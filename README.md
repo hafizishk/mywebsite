@@ -6,8 +6,9 @@ on every push; the directory is served as-is.
 
 ```
 index.html      the whole page (CSS + JS inlined)
-assets/         3 latin-subset woff2 fonts, 9 generated images, 3 client
+assets/         3 latin-subset woff2 fonts, 9 generated images, 4 client
                 logos, the mark, and the Open Graph card
+tools/          the image generator (not deployed — see .vercelignore)
 vercel.json     cache and security headers
 ```
 
@@ -33,8 +34,20 @@ palette — one idea per subject. Nine images, ~170 KB total. Film grain is a
 single SVG noise overlay in CSS (`.grain::after`), not baked into the files;
 baking it made the same set 2.2 MB.
 
-Each one is a straight replacement point for a real photograph: same filename,
-any aspect ratio — every slot uses `object-fit: cover`.
+They come from `tools/gen_images.py` (numpy + Pillow), which is deterministic:
+re-running it reproduces every file byte for byte.
+
+```sh
+python3 tools/gen_images.py
+```
+
+`gen-apps-makan.webp` shows the Makan app's dark splash screen inside the phone. The
+splash is composited after tone-mapping so the brand orange stays exact; its
+logo is `tools/makan-splash.png` (white wordmark, highlight curve filled white).
+Swap that file to put a different app on the phone.
+
+Each image is also a straight replacement point for a real photograph: any
+aspect ratio works, since every slot uses `object-fit: cover`.
 
 ## Client logos
 
@@ -43,6 +56,7 @@ any aspect ratio — every slot uses `object-fit: cover`.
 | `d2d-logo.webp` | **Stopgap.** Keyed out of a website screenshot; the source is only 79 px wide, so it is soft. Replace with the original file. |
 | `xleague-logo-light.webp` | **Stopgap.** The original has white lettering that disappears on the white tiles; this copy recolours only the lettering. Replace with an official light-background version. |
 | `nsg-logo.svg` | The original mark with its viewBox cropped to the content. |
+| `makan-logo.webp` | From the supplied artwork. No URL yet, so its tile is not a link — add `u:` to its entry to link it. |
 
 The client rail is built in JS from the `clients` array near the bottom of
 `index.html` — add an entry there to add a client.

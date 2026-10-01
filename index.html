@@ -193,7 +193,7 @@ button{font:inherit;color:inherit}
 .svc .more{margin-top:auto;display:grid;grid-template-rows:0fr;opacity:0;
   transition:grid-template-rows .6s var(--ease),opacity .45s ease}
 .svc .more>div{overflow:hidden}
-.svc .more p{margin:.8em 0 1.2em;max-width:30em;color:rgba(255,255,255,.9)}
+.svc .more p{margin:.8em 0 1.2em;max-width:min(30em,46%);color:rgba(255,255,255,.9)}
 .svc.on .more,.svc:hover .more,.svc:focus-within .more{grid-template-rows:1fr;opacity:1}
 .svc .cover{transition:transform 1.2s var(--ease),filter .6s ease}
 .svc.on .cover,.svc:hover .cover{transform:scale(1.03)}
@@ -273,6 +273,8 @@ button{font:inherit;color:inherit}
   .head{flex-direction:column;align-items:flex-start;gap:8px}
   .svc{height:auto;min-height:260px}
   .svc .more{grid-template-rows:1fr;opacity:1}
+  .svc .more p{max-width:74%}
+  .svc .cover-apps{object-position:15% 50%}
   .about-grid{grid-template-columns:1fr;gap:28px}
   .about-img{aspect-ratio:4/3}
   .cta{padding-top:120px}
@@ -361,7 +363,7 @@ button{font:inherit;color:inherit}
       <a class="link" href="#build">More on operations systems ↘</a></div>
   </div>
   <div class="slide" id="s3" role="tabpanel" aria-labelledby="t3">
-    <img class="cover" src="assets/gen-apps.webp" alt="" width="1800" height="760" loading="lazy">
+    <img class="cover" src="assets/gen-apps-makan.webp" alt="" width="1800" height="760" loading="lazy">
     <div class="glass"><h3 class="display">“Everyone keeps asking for the thing that only lives on your laptop.”</h3>
       <p>Native iOS and Android apps that put the live picture in every pocket.</p>
       <a class="link" href="#build">More on mobile apps ↘</a></div>
@@ -427,7 +429,7 @@ button{font:inherit;color:inherit}
         <div class="txt"><h3 class="display">Operations systems that replace memory and WhatsApp</h3>
           <div class="more"><div><p>Scheduling, approvals, paperwork, payouts and per-unit P&amp;L — the back office, systematised.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Operations%20systems">Talk about operations ↗</a></div></div></div></article>
-      <article class="svc grain" data-r><img class="cover" src="assets/gen-apps.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc grain" data-r><img class="cover cover-apps" src="assets/gen-apps-makan.webp" alt="" width="1800" height="760" loading="lazy">
         <div class="txt"><h3 class="display">Native apps that put it in every pocket</h3>
           <div class="more"><div><p>iOS and Android, on the same backbone as everything else — updates, schedules, notifications.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Mobile%20app">Talk about an app ↗</a></div></div></div></article>
@@ -488,7 +490,7 @@ button{font:inherit;color:inherit}
         <li><a href="#build">Automation</a></li></ul></div>
       <div><h4>Clients</h4><ul>
         <li><a href="https://d2dsports.sg">D2D Sports</a></li><li><a href="https://xleague.sg">X-League</a></li>
-        <li><a href="https://nationalscoutgames.sg">National Scout Games</a></li></ul></div>
+        <li><a href="https://nationalscoutgames.sg">National Scout Games</a></li><li>Makan</li></ul></div>
       <div><h4>Studio</h4><ul>
         <li><a href="#about">About</a></li><li><a href="#method">How I work</a></li></ul></div>
       <div><h4>Contact</h4><ul>
@@ -548,23 +550,29 @@ button{font:inherit;color:inherit}
   });
   if (auto) timer = setInterval(function () { show((cur + 1) % tabs.length); }, 6500);
 
-  /* client rail: three clients, repeated until one half is wider than the
-     widest screen, then doubled so the -50% loop is seamless */
+  /* client rail: each client is repeated until one half holds ~12 tiles —
+     wider than the widest screen, and the same scroll speed whatever the
+     client count — then doubled so the -50% loop is seamless. Only the first
+     copy of each logo is exposed to keyboard and screen readers. A client
+     with no URL gets a plain tile instead of a link. */
   var clients = [
     { n: 'D2D Sports', u: 'https://d2dsports.sg', s: 'assets/d2d-logo.webp', w: 158, h: 102 },
     { n: 'X-League', u: 'https://xleague.sg', s: 'assets/xleague-logo-light.webp', w: 440, h: 290 },
-    { n: 'National Scout Games', u: 'https://nationalscoutgames.sg', s: 'assets/nsg-logo.svg', w: 390, h: 563, tall: 1 }
+    { n: 'National Scout Games', u: 'https://nationalscoutgames.sg', s: 'assets/nsg-logo.svg', w: 390, h: 563, tall: 1 },
+    { n: 'Makan', s: 'assets/makan-logo.webp', w: 480, h: 326 }
   ];
-  var track = document.getElementById('track');
-  var half = '';
-  for (var r = 0; r < 4; r++) clients.forEach(function (c) {
-    half += '<a class="logo" href="' + c.u + '" target="_blank" rel="noopener"' +
-      (r ? ' tabindex="-1" aria-hidden="true"' : ' aria-label="' + c.n + ' — visit the live site"') + '>' +
-      '<img' + (c.tall ? ' class="tall"' : '') + ' src="' + c.s + '" alt="' + (r ? '' : c.n) +
-      '" width="' + c.w + '" height="' + c.h + '" decoding="async"></a>';
-  });
-  track.innerHTML = half + half.replace(/<a class="logo"(?![^>]*aria-hidden)/g,
-    '<a class="logo" tabindex="-1" aria-hidden="true"').replace(/alt="[^"]+"/g, 'alt=""');
+  var reps = Math.ceil(12 / clients.length);
+  function tile(c, hidden) {
+    var img = '<img' + (c.tall ? ' class="tall"' : '') + ' src="' + c.s + '" alt="' + (hidden ? '' : c.n) +
+      '" width="' + c.w + '" height="' + c.h + '" decoding="async">';
+    if (!c.u) return '<div class="logo"' + (hidden ? ' aria-hidden="true"' : '') + '>' + img + '</div>';
+    return '<a class="logo" href="' + c.u + '" target="_blank" rel="noopener"' +
+      (hidden ? ' tabindex="-1" aria-hidden="true"' : ' aria-label="' + c.n + ' — visit the live site"') +
+      '>' + img + '</a>';
+  }
+  var rail = '';
+  for (var r = 0; r < reps * 2; r++) clients.forEach(function (c) { rail += tile(c, r > 0); });
+  document.getElementById('track').innerHTML = rail;
 
   /* services: the card nearest mid-screen opens */
   var svcs = [].slice.call(document.querySelectorAll('.svc'));
