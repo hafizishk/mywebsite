@@ -1,85 +1,58 @@
 # stackformstudios.com
 
-Static site for Stackform Studios. Plain HTML, one CSS block, ~2 KB of vanilla
-JS — no build step, no framework, no runtime. Deploy the directory as-is.
+Static site for Stackform Studios. Plain HTML with inline CSS and a few KB of
+vanilla JS — no build step, no framework, no runtime. Vercel deploys `main`
+on every push; the directory is served as-is.
 
 ```
 index.html      the whole page (CSS + JS inlined)
-assets/         4 latin-subset woff2 fonts, 7 webp images, 1 svg
+assets/         3 latin-subset woff2 fonts, 9 generated images, 3 client
+                logos, the mark, and the Open Graph card
+vercel.json     cache and security headers
 ```
 
-## Where this came from
+## Design
 
-The previously deployed page was a single 4.7 MB HTML file titled
-`Bundled Page`. Every asset was base64-inlined into a manifest, and a 67 KB
-client-side runtime had to download and "unpack" the whole thing before the
-browser painted anything. That is what made it slow on mobile, and it also meant
-crawlers and link previews only ever saw the placeholder title.
+The layout follows a reference site's structure — floating pill nav, coral
+hero with tabs that switch a full-width feature panel, overlaid-title cards, a
+moving client rail, sticky intro beside stacked capability cards, a CTA band
+and a black footer — with Stackform's own content throughout. No assets, copy
+or artwork from the reference are used.
 
-This version was reconstructed from that deployment: the resolved DOM was
-captured, the assets extracted from the manifest, and the builder runtime
-dropped entirely. Content and visual design are unchanged.
+Type sizes are in `vw`, measured off the reference at its 2590px capture width,
+with floors for small screens. Display type is Archivo at weight 340; Archivo
+is a variable font (100–900), so it is the same file the earlier design used.
 
-## What changed
+The mark is rendered through a CSS mask (`.mark`) so it can take the accent
+colour; the source file is black.
 
-**Payload — 3.36 MB → 0.45 MB over the wire (-87%)**
+## Imagery
 
-| | before | after |
-|---|---|---|
-| Documents | 1 × 4.7 MB blocking | 47 KB (9.7 KB gzipped) |
-| Images | 2.9 MB PNG | 358 KB WebP, capped at 2× display size, lazy below the fold |
-| Fonts | 15 woff2 (345 KB), incl. Cyrillic + Vietnamese | 4 latin-only woff2 (146 KB) |
-| JS | 206 KB builder runtime | ~2 KB inline |
+`assets/gen-*.webp` are abstract compositions generated in code, in the site
+palette — one idea per subject. Nine images, ~170 KB total. Film grain is a
+single SVG noise overlay in CSS (`.grain::after`), not baked into the files;
+baking it made the same set 2.2 MB.
 
-First paint no longer waits on a multi-megabyte download plus a JS unpack step.
+Each one is a straight replacement point for a real photograph: same filename,
+any aspect ratio — every slot uses `object-fit: cover`.
 
-**Responsive.** The original shipped a `viewport` meta tag but no breakpoints at
-all — every dimension was a hard pixel value in an inline `style` attribute. Added
-breakpoints at 1024 / 860 / 760 / 480 px: grids collapse to one column, column
-dividers become row separators, flex rows stack, display type is fluid via
-`clamp()`, and the nav becomes a toggle menu under 860 px.
+## Client logos
 
-**Width on large monitors.** Content is now capped at `--maxw` (1360 px) and
-centred. The cap is applied as horizontal padding rather than a wrapper element,
-so section borders and the dark contact panel still bleed to the full viewport.
-The hero ceiling came down from 124 px to 104 px, which removes a chunk of
-vertical sprawl.
+| file | note |
+|---|---|
+| `d2d-logo.webp` | **Stopgap.** Keyed out of a website screenshot; the source is only 79 px wide, so it is soft. Replace with the original file. |
+| `xleague-logo-light.webp` | **Stopgap.** The original has white lettering that disappears on the white tiles; this copy recolours only the lettering. Replace with an official light-background version. |
+| `nsg-logo.svg` | The original mark with its viewBox cropped to the content. |
 
-**Metadata.** Real `<title>`, meta description, canonical, Open Graph and
-Twitter card tags, `ProfessionalService` JSON-LD, and a favicon. Previously the
-document title was literally `Bundled Page`, which is what Slack, WhatsApp and
-LinkedIn previews displayed.
+The client rail is built in JS from the `clients` array near the bottom of
+`index.html` — add an entry there to add a client.
 
-**Robustness.** Reveal-on-scroll is gated behind a `.js` class on `<html>`, so
-the page is fully readable with scripting off or if the script fails. Verified:
-3,719 characters of body text render with JS disabled. `prefers-reduced-motion`
-is respected throughout.
+## Caching
 
-## Things to know
-
-**The countdown target is a real date now.** The old runtime restarted the clock
-at `412 days 09 h 26 m` on every page load — two renders 18 minutes apart showed
-identical values, so it was never counting toward anything. It is now anchored
-to an actual instant, declared in the markup:
-
-```html
-<div data-countdown="2027-09-22T00:00:00+08:00">
-```
-
-`2027-09-22` is what the original numbers implied relative to when they were
-captured. **If the real National Scout Games kick-off is a different date, edit
-that one attribute** — nothing else needs to change.
-
-**`assets/nsg-mark.svg` is 75 KB** (22 KB gzipped), large for a logo because it
-is a traced bitmap rather than drawn vectors. Worth replacing with a real vector
-mark if one exists.
-
-**Serve gzip or brotli**, and set long `Cache-Control` on `assets/` — the
-filenames are stable, so cache them hard.
-
-**Republishing from the original builder will overwrite all of this.** These
-fixes live in the output, not in whatever tool produced `Bundled Page`. If that
-tool is still the source of truth, the changes need to be ported back into it.
+`vercel.json` gives `assets/` a week's `max-age` with a month of
+`stale-while-revalidate`. Asset filenames are not content-hashed, so this is
+deliberately not `immutable` — **when replacing an image, give it a new
+filename** or visitors may see the old one for up to a week.
 
 ## Local preview
 
