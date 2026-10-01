@@ -12,13 +12,13 @@
 <meta property="og:title" content="Stackform Studios — Forward-Deployed Software Engineering, Singapore">
 <meta property="og:description" content="Stackform Studios embeds an engineer inside your operation and builds the custom software that runs it — websites, operations systems, mobile apps and automation. Singapore.">
 <meta property="og:url" content="https://www.stackformstudios.com/">
-<meta property="og:image" content="https://www.stackformstudios.com/assets/og.jpg">
+<meta property="og:image" content="https://www.stackformstudios.com/assets/og-v2.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Stackform Studios — Forward-Deployed Software Engineering, Singapore">
 <meta name="twitter:description" content="Stackform Studios embeds an engineer inside your operation and builds the custom software that runs it — websites, operations systems, mobile apps and automation. Singapore.">
-<meta name="twitter:image" content="https://www.stackformstudios.com/assets/og.jpg">
+<meta name="twitter:image" content="https://www.stackformstudios.com/assets/og-v2.jpg">
 <link rel="icon" href="assets/stackform-mark.webp" type="image/webp">
 <link rel="preload" href="assets/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script type="application/ld+json">
@@ -89,12 +89,7 @@ button{font:inherit;color:inherit}
   white-space:nowrap}
 .link:hover{color:var(--coral)}
 
-/* Film grain is one tiny SVG over every image, not baked into the files —
-   baked grain made the set 2.2 MB; this keeps it at 166 KB. */
-.grain{position:relative;isolation:isolate}
-.grain::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity:.16;mix-blend-mode:overlay}
+.media{position:relative;isolation:isolate}
 .cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
 /* The mark file is black; masking it lets it take the accent anywhere. */
@@ -267,14 +262,19 @@ button{font:inherit;color:inherit}
 }
 @media (max-width:760px){
   .tabs{margin-left:0}
-  .panel{height:auto;aspect-ratio:4/5}
-  .glass{left:10px;right:10px;bottom:10px;width:auto;min-width:0}
+  .panel{height:auto;display:grid;background:#120d0b}
+  .slide{position:relative;inset:auto;grid-area:1/1}
+  /* Stacked, the desktop zoom would push the picture over the copy below it. */
+  .slide .cover,.slide.on .cover{position:relative;display:block;height:auto;aspect-ratio:4/3;object-position:100% 50%;transform:none}
+  .glass{position:static;width:auto;min-width:0;max-width:none;border-radius:0;background:transparent;
+    backdrop-filter:none;-webkit-backdrop-filter:none;padding:18px var(--gut) 24px}
   .trio{grid-template-columns:1fr}
   .head{flex-direction:column;align-items:flex-start;gap:8px}
-  .svc{height:auto;min-height:260px}
+  .svc{height:auto;display:flex;flex-direction:column;background:#120d0b}
+  .svc .cover,.svc.on .cover,.svc:hover .cover{position:relative;height:auto;aspect-ratio:4/3;object-position:100% 50%;transform:none}
+  .svc .txt{position:relative;inset:auto;padding:16px 16px 20px}
   .svc .more{grid-template-rows:1fr;opacity:1}
-  .svc .more p{max-width:74%}
-  .svc .cover-apps{object-position:15% 50%}
+  .svc .more p{max-width:none}
   .about-grid{grid-template-columns:1fr;gap:28px}
   .about-img{aspect-ratio:4/3}
   .cta{padding-top:120px}
@@ -343,33 +343,33 @@ button{font:inherit;color:inherit}
   </div>
 </header>
 
-<section class="panel grain" aria-live="polite">
+<section class="panel media" aria-live="polite">
   <div class="slide on" id="s0" role="tabpanel" aria-labelledby="t0">
-    <img class="cover" src="assets/gen-websites.webp" alt="" width="1800" height="760" fetchpriority="high">
+    <img class="cover" src="assets/dev-websites.webp" alt="" width="2400" height="1013" fetchpriority="high">
     <div class="glass"><h3 class="display">“Our site is a PDF and a Facebook page.”</h3>
       <p>Sites people actually use — fast, responsive, and driven by live data.</p>
       <a class="link" href="#build">More on websites ↘</a></div>
   </div>
   <div class="slide" id="s1" role="tabpanel" aria-labelledby="t1">
-    <img class="cover" src="assets/gen-software.webp" alt="" width="1800" height="760" loading="lazy">
+    <img class="cover" src="assets/dev-software.webp" alt="" width="2400" height="1013" loading="lazy">
     <div class="glass"><h3 class="display">“Everything lives in one master spreadsheet.”</h3>
       <p>Purpose-built systems for the way the operation actually works.</p>
       <a class="link" href="#build">More on custom software ↘</a></div>
   </div>
   <div class="slide" id="s2" role="tabpanel" aria-labelledby="t2">
-    <img class="cover" src="assets/gen-operations.webp" alt="" width="1800" height="760" loading="lazy">
+    <img class="cover" src="assets/dev-operations.webp" alt="" width="2400" height="1013" loading="lazy">
     <div class="glass"><h3 class="display">“The busiest day of the week runs on memory and WhatsApp.”</h3>
       <p>Scheduling, approvals, paperwork and payouts — the back office, systematised.</p>
       <a class="link" href="#build">More on operations systems ↘</a></div>
   </div>
   <div class="slide" id="s3" role="tabpanel" aria-labelledby="t3">
-    <img class="cover" src="assets/gen-apps-makan.webp" alt="" width="1800" height="760" loading="lazy">
+    <img class="cover" src="assets/dev-apps.webp" alt="" width="2400" height="1013" loading="lazy">
     <div class="glass"><h3 class="display">“Everyone keeps asking for the thing that only lives on your laptop.”</h3>
       <p>Native iOS and Android apps that put the live picture in every pocket.</p>
       <a class="link" href="#build">More on mobile apps ↘</a></div>
   </div>
   <div class="slide" id="s4" role="tabpanel" aria-labelledby="t4">
-    <img class="cover" src="assets/gen-automation.webp" alt="" width="1800" height="760" loading="lazy">
+    <img class="cover" src="assets/dev-automation.webp" alt="" width="2400" height="1013" loading="lazy">
     <div class="glass"><h3 class="display">“Someone types the same thing into three places.”</h3>
       <p>Enter it once; comms, social posts and reports generate themselves.</p>
       <a class="link" href="#build">More on automation ↘</a></div>
@@ -382,14 +382,14 @@ button{font:inherit;color:inherit}
     <a class="link" href="#about">How I work ↘</a>
   </div>
   <div class="trio">
-    <div class="card grain" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
-      <img class="cover" src="assets/gen-understand.webp" alt="" width="1100" height="880" loading="lazy">
+    <div class="card media" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
+      <img class="cover" src="assets/dev-sitin.webp" alt="" width="1467" height="1173" loading="lazy">
       <h3 class="display">I sit in</h3></div>
-    <div class="card grain" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
-      <img class="cover" src="assets/gen-build.webp" alt="" width="1100" height="880" loading="lazy">
+    <div class="card media" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
+      <img class="cover" src="assets/dev-build.webp" alt="" width="1467" height="1173" loading="lazy">
       <h3 class="display">I build</h3></div>
-    <div class="card grain" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
-      <img class="cover" src="assets/gen-stay.webp" alt="" width="1100" height="880" loading="lazy">
+    <div class="card media" data-r><span class="badge"><i class="mark" aria-hidden="true"></i></span>
+      <img class="cover" src="assets/dev-stay.webp" alt="" width="1467" height="1173" loading="lazy">
       <h3 class="display">I stay on</h3></div>
   </div>
 </section>
@@ -417,23 +417,23 @@ button{font:inherit;color:inherit}
       business really works — then run, evolved and kept moving as it grows.</p>
     </div>
     <div class="stack">
-      <article class="svc grain on" data-r><img class="cover" src="assets/gen-websites.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc media on" data-r><img class="cover" src="assets/dev-websites.webp" alt="" width="2400" height="1013" loading="lazy">
         <div class="txt"><h3 class="display">Websites people actually use</h3>
           <div class="more"><div><p>Fast, responsive, and driven by live data instead of a PDF someone re-uploads.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Website">Talk about a website ↗</a></div></div></div></article>
-      <article class="svc grain" data-r><img class="cover" src="assets/gen-software.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc media" data-r><img class="cover" src="assets/dev-software.webp" alt="" width="2400" height="1013" loading="lazy">
         <div class="txt"><h3 class="display">Custom software for the way you work</h3>
           <div class="more"><div><p>Purpose-built systems for how the operation really runs — not off-the-shelf tools bent out of shape.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Custom%20software">Talk about custom software ↗</a></div></div></div></article>
-      <article class="svc grain" data-r><img class="cover" src="assets/gen-operations.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc media" data-r><img class="cover" src="assets/dev-operations.webp" alt="" width="2400" height="1013" loading="lazy">
         <div class="txt"><h3 class="display">Operations systems that replace memory and WhatsApp</h3>
           <div class="more"><div><p>Scheduling, approvals, paperwork, payouts and per-unit P&amp;L — the back office, systematised.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Operations%20systems">Talk about operations ↗</a></div></div></div></article>
-      <article class="svc grain" data-r><img class="cover cover-apps" src="assets/gen-apps-makan.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc media" data-r><img class="cover" src="assets/dev-apps.webp" alt="" width="2400" height="1013" loading="lazy">
         <div class="txt"><h3 class="display">Native apps that put it in every pocket</h3>
           <div class="more"><div><p>iOS and Android, on the same backbone as everything else — updates, schedules, notifications.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Mobile%20app">Talk about an app ↗</a></div></div></div></article>
-      <article class="svc grain" data-r><img class="cover" src="assets/gen-automation.webp" alt="" width="1800" height="760" loading="lazy">
+      <article class="svc media" data-r><img class="cover" src="assets/dev-automation.webp" alt="" width="2400" height="1013" loading="lazy">
         <div class="txt"><h3 class="display">Automation, so it’s only entered once</h3>
           <div class="more"><div><p>Comms, social posts and reports that generate themselves from data entered a single time.</p>
           <a class="link" href="mailto:hello@stackformstudios.com?subject=Automation">Talk about automation ↗</a></div></div></div></article>
@@ -444,7 +444,7 @@ button{font:inherit;color:inherit}
 
 <section class="about sec gut" id="about">
   <div class="about-grid">
-    <div class="about-img grain" data-r><img class="cover" src="assets/gen-about.webp" alt="" width="1000" height="1100"></div>
+    <div class="about-img media" data-r><img class="cover" src="assets/dev-about.webp" alt="" width="2000" height="1333"></div>
     <div data-r>
       <span class="tag">About</span>
       <h2 class="display">One engineer. No hand-offs.</h2>
@@ -537,7 +537,14 @@ button{font:inherit;color:inherit}
       slides[k].classList.toggle('on', on);
     });
     cur = i;
-    if (focus) tabs[i].focus();
+    // On narrow screens the tab bar scrolls sideways; keep the active tab in
+    // view. Horizontal only, so the auto-advance never moves the page.
+    var bar = tabs[i].parentNode;
+    if (bar.scrollWidth > bar.clientWidth) {
+      bar.scrollTo({ left: tabs[i].offsetLeft - (bar.clientWidth - tabs[i].offsetWidth) / 2,
+                     behavior: reduce ? 'auto' : 'smooth' });
+    }
+    if (focus) tabs[i].focus({ preventScroll: true });
   }
   function stopAuto() { auto = false; clearInterval(timer); }
   tabs.forEach(function (t, i) {

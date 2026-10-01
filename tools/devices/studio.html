@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Device studio for the site imagery.
+  Renders one scene per URL (?scene=name) at its logical size; tools/devices/render.mjs
+  screenshots each scene at 4/3 density into assets/. Devices are drawn in CSS
+  (generic modern hardware, no brand marks); screens are real Stackform work.
+-->
+<style>
+@font-face{font-family:'IBM Plex Mono';font-weight:400;src:url(../../assets/plexmono-400-latin.woff2) format('woff2')}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#17100d;overflow:hidden}
+#scene{position:relative;overflow:hidden;background:#17100d}
+.bloom{position:absolute;inset:0;pointer-events:none}
+.vignette{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.38) 100%)}
+.dev{position:absolute;transform-style:preserve-3d}
+.shadow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.7),transparent);
+  filter:blur(18px)}
+
+/* screen content */
+.scr{position:absolute;overflow:hidden;background:#000}
+.scr>img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.glare{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(118deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.04) 30%,transparent 46%)}
+
+/* phone */
+.phone{border-radius:16% / 7.8%;padding:1.6%;
+  background:linear-gradient(140deg,#8a8580 0%,#3d3a37 22%,#26241f 50%,#5d5954 78%,#2b2926 100%);
+  box-shadow:0 50px 90px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05) inset}
+.phone .body{position:absolute;inset:1.6%;border-radius:14.6% / 7.1%;background:#060606}
+.phone .scr{inset:4.4%;border-radius:12% / 5.8%}
+.phone .island{position:absolute;left:50%;top:5.6%;width:30%;height:3.6%;border-radius:99px;background:#000;transform:translateX(-50%);z-index:3}
+.phone .btn{position:absolute;width:1.4%;background:#3a3733;border-radius:2px}
+
+/* laptop */
+.lid{position:absolute;left:0;top:0;width:100%;border-radius:2.4% 2.4% 0 0 / 3.8% 3.8% 0 0;
+  background:#0a0a0a;box-shadow:0 0 0 1.5px #3a3835 inset}
+.lid .scr{left:2.3%;right:2.3%;top:3.2%;bottom:3.2%;border-radius:.4%}
+.deck{position:absolute;left:-7%;width:114%;
+  background:linear-gradient(#e6e3df,#b9b5b0 45%,#8f8b86);
+  clip-path:polygon(0 0,100% 0,98.6% 100%,1.4% 100%);border-radius:0 0 30% 30% / 0 0 100% 100%}
+.deck::after{content:"";position:absolute;left:42%;width:16%;top:0;height:42%;border-radius:0 0 8px 8px;
+  background:linear-gradient(#a9a5a0,#c9c6c2)}
+
+/* monitor */
+.mon{position:absolute;left:0;top:0;width:100%;border-radius:1.2%;background:#080808;
+  box-shadow:0 0 0 2px #2c2a27,0 50px 90px rgba(0,0,0,.55)}
+.mon .scr{inset:1.3% 1.3% 1.3% 1.3%;border-radius:.3%}
+.neck{position:absolute;left:43%;width:14%;background:linear-gradient(90deg,#8e8a85,#d4d1cd 45%,#9a9691)}
+.foot{position:absolute;left:31%;width:38%;border-radius:4px 4px 10px 10px;
+  background:linear-gradient(#d9d6d2,#9b9792)}
+
+/* tablet */
+.tab{border-radius:5.5%;padding:1.4%;background:linear-gradient(140deg,#8f8b86,#3b3835 30%,#26231f 60%,#66625d);
+  box-shadow:0 50px 90px rgba(0,0,0,.6)}
+.tab .body{position:absolute;inset:1.4%;border-radius:4.4%;background:#060606}
+.tab .scr{inset:5%;border-radius:1.6%}
+.tab.land .scr{inset:6.4% 4.6%}
+
+/* splash + editor screens */
+.splash{display:grid;place-items:center;background:#0e0c0b}
+.splash img{width:58%;height:auto}
+.editor{background:#14110f;font-family:'IBM Plex Mono',monospace;color:#d8d2c8;display:flex;flex-direction:column}
+.editor .bar{display:flex;align-items:center;gap:7px;padding:9px 12px;background:#0d0b0a;border-bottom:1px solid #26211d}
+.editor .dot{width:9px;height:9px;border-radius:50%;background:#3a332e}
+.editor .file{margin-left:14px;padding:4px 10px;border-radius:5px;background:#201b18;color:#efe7dc;font-size:12px}
+.editor pre{flex:1;margin:0;padding:16px 16px;font:inherit;font-size:14.5px;line-height:1.6;white-space:pre;overflow:hidden;counter-reset:ln}
+.editor .ln{display:block}
+.editor .ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:26px;color:#4f463f;text-align:right;margin-right:14px}
+.k{color:#f2735f}.s{color:#f2b27a}.c{color:#6f6458}.n{color:#e8c39a}.f{color:#f6ece0}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<script>
+const S = '../../assets/', SCR = 'screens/';
+const img = (src, pos) => `<img src="${src}" style="object-position:${pos || 'top center'}">`;
+
+/* ── device builders: x,y = top-left of the device in scene px, w = width ── */
+function phone(x, y, w, content, rot = 0) {
+  const h = w * 2.06;
+  return `<div class="dev phone" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;transform:rotate(${rot}deg)">
+    <div class="btn" style="right:-.6%;top:24%;height:9%"></div>
+    <div class="btn" style="left:-.6%;top:20%;height:5%"></div><div class="btn" style="left:-.6%;top:28%;height:7%"></div>
+    <div class="body"></div><div class="island"></div>
+    <div class="scr ${content.cls || ''}">${content.html}<div class="glare"></div></div></div>`;
+}
+function laptop(x, y, w, content) {
+  const lidH = w * 0.635, deckH = w * 0.03;
+  return `<div class="dev" style="left:${x}px;top:${y}px;width:${w}px;height:${lidH + deckH}px">
+    <div class="shadow" style="left:-12%;right:-12%;top:${lidH - deckH * 2}px;height:${deckH * 5}px"></div>
+    <div class="lid" style="height:${lidH}px"><div class="scr ${content.cls || ''}">${content.html}<div class="glare"></div></div></div>
+    <div class="deck" style="top:${lidH}px;height:${deckH}px"></div></div>`;
+}
+function monitor(x, y, w, content) {
+  const h = w * 0.59, neckH = w * 0.17, footH = w * 0.026;
+  return `<div class="dev" style="left:${x}px;top:${y}px;width:${w}px;height:${h + neckH + footH}px">
+    <div class="shadow" style="left:18%;right:18%;top:${h + neckH - footH}px;height:${footH * 4}px"></div>
+    <div class="neck" style="top:${h - 4}px;height:${neckH + 4}px"></div>
+    <div class="foot" style="top:${h + neckH}px;height:${footH}px"></div>
+    <div class="mon" style="height:${h}px"><div class="scr ${content.cls || ''}">${content.html}<div class="glare"></div></div></div></div>`;
+}
+function tablet(x, y, w, content, land = false, rot = 0) {
+  const h = land ? w * 0.74 : w * 1.36;
+  return `<div class="dev tab ${land ? 'land' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;transform:rotate(${rot}deg)">
+    <div class="body"></div><div class="scr ${content.cls || ''}">${content.html}<div class="glare"></div></div></div>`;
+}
+const floor = (x, y, w, h) => `<div class="shadow" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`;
+
+/* ── screens ── */
+const SCREENS = {
+  d2dSite:  { html: img(SCR + 'd2d-website.webp') },
+  d2dAdmin: { html: img(SCR + 'd2d-admin.webp', 'left top') },
+  d2dFix:   { html: img(SCR + 'd2d-admin.webp', '62% top') },
+  d2dApp:   { html: img(SCR + 'd2d-app.webp') },
+  xlSite:   { html: img(SCR + 'xleague-website.webp', 'left top') },
+  xlProf:   { html: img(SCR + 'xleague-profile.webp', 'left top') },
+  makan:    { cls: 'splash', html: `<img src="${SCR}makan-splash.png" alt="">` },
+  code:     { cls: 'editor', html: '' }   // filled from the live index.html below
+};
+
+/* the coral light the rest of the site uses */
+const bloom = (cx, cy, r = 1) => `<div class="bloom" style="background:
+  radial-gradient(ellipse ${46 * r}% ${68 * r}% at ${cx}% ${cy}%,rgba(240,96,76,.95),rgba(200,56,42,.55) 38%,transparent 74%),
+  radial-gradient(ellipse ${20 * r}% ${28 * r}% at ${cx + 5}% ${cy - 16}%,rgba(246,176,110,.45),transparent 70%),
+  radial-gradient(ellipse 70% 90% at ${Math.max(18, cx - 48)}% 60%,rgba(176,48,36,.38),transparent 75%)"></div>`;
+
+/* ── scenes: logical px; rendered at 4/3 density ──
+   Wide scenes (1800x760) feed both the hero panel and the capability cards,
+   so every device stays inside x 1000-1720, y 140-620: right of the glass card
+   and card copy, and inside the 3.8:1 card crop. */
+const SCENES = {
+  websites:   { w: 1800, h: 760, html: () => bloom(75, 52) + laptop(1040, 175, 640, SCREENS.xlSite) },
+  software:   { w: 1800, h: 760, html: () => bloom(75, 50) + monitor(1080, 150, 560, SCREENS.d2dAdmin) },
+  operations: { w: 1800, h: 760, html: () => bloom(74, 52) + floor(1040, 560, 600, 60) +
+                 tablet(1030, 175, 540, SCREENS.d2dFix, true) + phone(1530, 250, 160, SCREENS.d2dApp, 4) },
+  apps:       { w: 1800, h: 760, html: () => bloom(74, 52) + floor(1150, 600, 460, 50) +
+                 phone(1180, 175, 190, SCREENS.d2dApp, -7) + phone(1370, 150, 215, SCREENS.makan, 3) },
+  automation: { w: 1800, h: 760, html: () => bloom(74, 52) +
+                 laptop(1010, 205, 560, SCREENS.d2dSite) + phone(1540, 255, 160, SCREENS.d2dApp, 3) },
+  /* trio cards, 1100x880: titles sit bottom-left, so devices stay up and right */
+  sitin:      { w: 1100, h: 880, html: () => bloom(60, 42, 1.2) + floor(380, 700, 440, 50) +
+                 tablet(380, 90, 420, SCREENS.xlProf, false, 4) },
+  build:      { w: 1100, h: 880, html: () => bloom(58, 44, 1.2) + laptop(250, 190, 720, SCREENS.code) },
+  stay:       { w: 1100, h: 880, html: () => bloom(60, 44, 1.2) + floor(470, 700, 300, 40) +
+                 phone(500, 120, 260, SCREENS.d2dApp, 5) },
+  /* about, 1500x1000 */
+  about:      { w: 1500, h: 1000, html: () => bloom(52, 48, 1.1) + floor(300, 800, 950, 70) +
+                 monitor(330, 120, 720, SCREENS.xlSite) + laptop(760, 420, 560, SCREENS.d2dSite) +
+                 phone(250, 470, 150, SCREENS.makan, -6) }
+};
+
+/* Real code for the editor screen: the client-rail builder from this site. */
+async function codeScreen() {
+  const src = await (await fetch('../../index.html')).text();
+  // From the rail builder up to and including the line that writes the rail.
+  const a = src.indexOf('  var reps = Math.ceil');
+  const b = src.indexOf('\n', src.indexOf("document.getElementById('track')"));
+  const lines = src.slice(a, b).split('\n').map(l => l.replace(/^  /, ''));
+  const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const hl = l => esc(l)
+    .replace(/('(?:[^'\\]|\\.)*')/g, '<span class="s">$1</span>')
+    .replace(/\b(var|function|return|if|for)\b/g, '<span class="k">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="n">$1</span>')
+    .replace(/\b(tile|ceil|forEach|getElementById)\b/g, '<span class="f">$1</span>');
+  return `<div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="file">index.html</span></div><pre>${lines.map(l => `<span class="ln">${hl(l)}</span>`).join('')}</pre>`;
+}
+
+(async () => {
+  SCREENS.code.html = await codeScreen();
+  const name = new URLSearchParams(location.search).get('scene');
+  const sc = SCENES[name];
+  const el = document.getElementById('scene');
+  el.style.width = sc.w + 'px'; el.style.height = sc.h + 'px';
+  el.innerHTML = sc.html() + '<div class="vignette"></div>';
+  await Promise.all([...el.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+  await document.fonts.ready;
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

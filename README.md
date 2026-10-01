@@ -6,9 +6,10 @@ on every push; the directory is served as-is.
 
 ```
 index.html      the whole page (CSS + JS inlined)
-assets/         3 latin-subset woff2 fonts, 9 generated images, 4 client
+assets/         3 latin-subset woff2 fonts, 9 device scenes, 4 client
                 logos, the mark, and the Open Graph card
-tools/          the image generator (not deployed — see .vercelignore)
+tools/devices/  the scene renderer and source screens (not deployed —
+                see .vercelignore)
 vercel.json     cache and security headers
 ```
 
@@ -29,25 +30,36 @@ colour; the source file is black.
 
 ## Imagery
 
-`assets/gen-*.webp` are abstract compositions generated in code, in the site
-palette — one idea per subject. Nine images, ~170 KB total. Film grain is a
-single SVG noise overlay in CSS (`.grain::after`), not baked into the files;
-baking it made the same set 2.2 MB.
+`assets/dev-*.webp` show real Stackform work on device frames — laptops, a
+monitor, a tablet and phones — lit in the site's coral. Nine scenes, ~345 KB
+total, rendered at 4/3 density so screen text stays sharp on large displays.
 
-They come from `tools/gen_images.py` (numpy + Pillow), which is deterministic:
-re-running it reproduces every file byte for byte.
+| file | scene |
+|---|---|
+| `dev-websites` | laptop — X-League site |
+| `dev-software` | monitor — D2D admin suite |
+| `dev-operations` | tablet + phone — D2D fixtures, D2D app |
+| `dev-apps` | two phones — Makan dark splash, D2D app |
+| `dev-automation` | laptop + phone — D2D site, D2D app |
+| `dev-sitin` | tablet — X-League player profile |
+| `dev-build` | laptop — this site's client-rail code, pulled live from `index.html` |
+| `dev-stay` | phone — D2D app |
+| `dev-about` | monitor + laptop + phone — X-League, D2D, Makan |
+
+The devices are drawn in CSS in `tools/devices/studio.html` (generic hardware,
+no brand marks); the screens are in `tools/devices/screens/`. To change a
+screen or a layout, edit those and re-render:
 
 ```sh
-python3 tools/gen_images.py
+python3 -m http.server 8898 &            # from the repo root
+node tools/devices/render.mjs            # needs playwright-core + Chromium
+python3 tools/devices/encode.py          # needs Pillow; writes assets/dev-*.webp
 ```
 
-`gen-apps-makan.webp` shows the Makan app's dark splash screen inside the phone. The
-splash is composited after tone-mapping so the brand orange stays exact; its
-logo is `tools/makan-splash.png` (white wordmark, highlight curve filled white).
-Swap that file to put a different app on the phone.
-
-Each image is also a straight replacement point for a real photograph: any
-aspect ratio works, since every slot uses `object-fit: cover`.
+The wide scenes feed both the hero panel and the capability cards, so their
+devices stay in the right 45% of the frame: clear of the panel's glass card and
+the cards' copy, and whole in a 4:3 crop anchored right — which is how phones
+show them, picture above copy.
 
 ## Client logos
 
