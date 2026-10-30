@@ -283,16 +283,34 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
     actions: { key: 'id', name: 'Task', fields: [
       ['task', 'Task', 'textarea'], ['owner', 'Who', 'select', { options: STATUS.owner }], ['due', 'Due', 'date'],
       ['area', 'Area', 'text'], ['status', 'Status', 'select', { options: ['Open', 'Ongoing', 'Scheduled', 'Planned', 'Waiting', 'Done'] }]] },
+    expenses: { key: 'id', name: 'Expense', fields: [
+      ['date', 'Date', 'date'], ['vendor', 'Vendor', 'text'], ['item', 'What', 'text'],
+      ['currency', 'Currency', 'select', { options: ['SGD', 'USD'] }], ['amount', 'Amount', 'number'],
+      ['sgd_amount', 'S$ charged (from card statement)', 'number', { help: 'Leave blank for USD until you see the card statement; an estimate is used meanwhile' }],
+      ['paid_with', 'Paid with', 'select', { options: ['Personal card', 'Aspire card', 'MariBank', 'Cash'] }],
+      ['reference', 'Invoice or reference no.', 'text'], ['receipt', 'Where the receipt is', 'text'],
+      ['rebill_to', 'Rebill to client', 'text'], ['rebilled', 'Rebilled', 'select', { options: ['No', 'Yes'] }],
+      ['reimbursed', 'Reimbursed from MariBank', 'select', { options: ['No', 'Yes'] }], ['note', 'Note', 'textarea']] },
     projects: { key: 'repo', name: 'Project', fields: [
       ['project', 'Project', 'text'], ['repo', 'Repository', 'text'], ['kind', 'Kind', 'select', { options: ['Client build', 'Own product', 'Internal', 'Personal'] }],
       ['visibility', 'Visibility', 'select', { options: ['private', 'public'] }], ['last_push', 'Last change', 'date']] },
   };
-  const data = { invoices: [], clients: [], pipeline: [], subscriptions: [], actions: [], projects: [], settings: [] };
+  const data = { invoices: [], clients: [], pipeline: [], subscriptions: [], expenses: [], actions: [], projects: [], settings: [] };
+  const USD_SGD_EST = 1.30;
+  const sgdOf = (e) => (e.sgd_amount != null && e.sgd_amount !== '' ? num(e.sgd_amount) : e.currency === 'SGD' ? num(e.amount) : num(e.amount) * USD_SGD_EST);
 
+  let missing = [];
   async function loadAll() {
     const names = Object.keys(data);
     const res = await Promise.all(names.map((n) => sb.from(n).select('*')));
-    res.forEach((r, i) => { if (r.error) throw r.error; data[names[i]] = r.data || []; });
+    missing = [];
+    res.forEach((r, i) => {
+      if (r.error) {
+        if (names[i] === 'invoices') throw r.error;
+        missing.push(names[i]); data[names[i]] = []; console.warn('Could not load', names[i], r.error.message); return;
+      }
+      data[names[i]] = r.data || [];
+    });
   }
 
   /* ---------- Derived numbers ---------- */
@@ -327,9 +345,10 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
     clients: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/>',
     subscriptions: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h3"/>',
     projects: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
+    expenses: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
     cass: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   };
-  const VIEWS = [['overview', 'Overview'], ['invoices', 'Invoices'], ['pipeline', 'Pipeline'], ['clients', 'Clients'], ['subscriptions', 'Subscriptions'], ['projects', 'Projects'], ['cass', 'Cass']];
+  const VIEWS = [['overview', 'Overview'], ['invoices', 'Invoices'], ['pipeline', 'Pipeline'], ['clients', 'Clients'], ['subscriptions', 'Subscriptions'], ['expenses', 'Expenses'], ['projects', 'Projects'], ['cass', 'Cass']];
   let current = 'overview';
   function buildNav() {
     const rail = $('#rail'), pill = $('#pillbar');
@@ -527,6 +546,30 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
     node.insertBefore(el('div', { class: 'tiles' }, tile('Known monthly cost', money(known), 'Yearly plans spread over 12 months'), tile('Amounts to confirm', String(unknown), 'Pull these from each billing page')), node.children[1]);
     return node;
   }
+  function vExpenses() {
+    const rows = data.expenses.filter(matches).sort((a, b) => ((a.date || '') < (b.date || '') ? 1 : -1));
+    const all = data.expenses;
+    const total = all.reduce((s, e) => s + sgdOf(e), 0);
+    const rebill = all.filter((e) => e.rebill_to && e.rebilled !== 'Yes').reduce((s, e) => s + sgdOf(e), 0);
+    const reimb = all.filter((e) => e.paid_with === 'Personal card' && e.reimbursed !== 'Yes').reduce((s, e) => s + sgdOf(e), 0);
+    const hasEst = all.some((e) => e.currency !== 'SGD' && (e.sgd_amount == null || e.sgd_amount === ''));
+    if (missing.includes('expenses')) return panel('Expenses', 'The expenses table is not set up yet. Run supabase/admin_expenses.sql in the Supabase SQL editor, then reload this page.');
+    const node = panel('Expenses', 'Every receipt the business paid. All deductible; client items get billed back at cost.',
+      el('div', { class: 'toolbar' }, el('button', { class: 'btn sm', type: 'button', text: 'New expense', onclick: () => edit('expenses') })),
+      el('div', { class: 'tiles' },
+        tile('Spent this year', money(total), hasEst ? `USD items at about S$${USD_SGD_EST.toFixed(2)} until the card statement is in` : 'All in S$', true),
+        tile('To bill back to clients', money(rebill), 'Client items not yet rebilled'),
+        tile('To reimburse yourself', money(reimb), 'Paid on your personal card, not yet repaid from MariBank')),
+      table([
+        { label: 'Date', get: (r) => day(r.date), cls: 'nowrap' }, { label: 'Vendor', get: (r) => r.vendor }, { label: 'What', get: (r) => r.item },
+        { label: 'Amount', num: true, get: (r) => `${r.currency} ${num(r.amount).toFixed(2)}` },
+        { label: 'S$', num: true, get: (r) => money(sgdOf(r)), cls: (r) => 'num' + (r.currency !== 'SGD' && (r.sgd_amount == null || r.sgd_amount === '') ? ' muted' : '') },
+        { label: 'Paid with', get: (r) => r.paid_with, cls: (r) => (r.paid_with === 'Personal card' && r.reimbursed !== 'Yes' ? 'st warn' : 'muted') },
+        { label: 'Rebill to', get: (r) => (r.rebill_to ? (r.rebilled === 'Yes' ? r.rebill_to + ' (billed)' : r.rebill_to) : ''), cls: (r) => (r.rebill_to && r.rebilled !== 'Yes' ? 'st warn' : 'muted') },
+        { label: 'Reference', get: (r) => r.reference, cls: 'muted' }, { label: 'Receipt', get: (r) => r.receipt, cls: 'muted' },
+      ], rows, (r) => edit('expenses', r)));
+    return node;
+  }
   const vProjects = () => simple('projects', 'Projects', 'Every repository. Client work should be private.', [
     { label: 'Project', get: (r) => r.project }, { label: 'Kind', get: (r) => r.kind, cls: 'muted' }, { label: 'Repository', get: (r) => r.repo, cls: 'muted' },
     { label: 'Visibility', get: (r) => status(r.visibility, r.visibility === 'public' && r.kind === 'Client build' ? 'st bad' : 'st') }, { label: 'Last change', get: (r) => day(r.last_push), cls: 'nowrap' }]);
@@ -541,7 +584,7 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
         el('div', { class: 'card' }, el('h2', { text: 'Cass' }), taskList(open.filter((r) => r.owner === 'Cass')))),
       done.length ? el('div', { class: 'card' }, el('h2', { text: 'Done' }), taskList(done)) : null);
   }
-  const VIEW_FN = { overview: vOverview, invoices: vInvoices, pipeline: vPipeline, clients: vClients, subscriptions: vSubscriptions, projects: vProjects, cass: vCass };
+  const VIEW_FN = { overview: vOverview, invoices: vInvoices, pipeline: vPipeline, clients: vClients, subscriptions: vSubscriptions, expenses: vExpenses, projects: vProjects, cass: vCass };
   function render() { const v = $('#view'); v.replaceChildren(VIEW_FN[current]()); }
   let rto; window.addEventListener('resize', () => { clearTimeout(rto); rto = setTimeout(() => current === 'overview' && render(), 150); });
 
