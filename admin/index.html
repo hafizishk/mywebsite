@@ -63,7 +63,7 @@ h1,h2,h3{margin:0;font-family:var(--display);font-weight:420;letter-spacing:-.01
 
 /* App shell */
 .app{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;max-width:1440px;margin:0 auto;padding-block:18px 96px}
-.rail{position:sticky;top:max(18px,env(safe-area-inset-top,0px));align-self:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px}
+.rail{z-index:20;position:sticky;top:max(18px,env(safe-area-inset-top,0px));align-self:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px}
 .rail .mark{margin:4px 0 10px}
 .navbtn{width:42px;height:42px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--muted);position:relative}
 .navbtn:hover{background:var(--glass-hi);color:var(--ink)}
@@ -484,7 +484,12 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
   function vInvoices() {
     const sel = el('select', { class: 'input', 'aria-label': 'Status', onchange: () => { filt = sel.value; render(); } },
       el('option', { value: '', text: 'All statuses' }), STATUS.invoices.map((s) => el('option', { value: s, text: s, selected: filt === s })));
-    const rows = data.invoices.filter((r) => (!filt || r.status === filt) && matches(r)).sort((a, b) => ((a.issued || a.due) < (b.issued || b.due) ? 1 : -1));
+    const rows = data.invoices.filter((r) => (!filt || r.status === filt) && matches(r)).sort((a, b) => {
+      const sa = a.status === 'Scheduled' ? 1 : 0, sb2 = b.status === 'Scheduled' ? 1 : 0;
+      if (sa !== sb2) return sa - sb2;
+      if (sa) return (a.due || '') < (b.due || '') ? -1 : 1;
+      return (a.issued || '') < (b.issued || '') ? 1 : -1;
+    });
     return panel('Invoices', 'One numbering sequence across all clients. Cancelled invoices stay on record.',
       el('div', { class: 'toolbar' }, sel, el('button', { class: 'btn sm', type: 'button', text: 'New invoice', onclick: () => edit('invoices') })),
       table([
