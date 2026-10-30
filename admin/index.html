@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Stackform HQ</title>
+<link rel="icon" href="/assets/stackform-mark.webp">
+<style>
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(/assets/archivo-latin.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(/assets/plexmono-400-latin.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(/assets/instrument-latin.woff2) format('woff2')}
+
+/* Layout: frosted panels floating over a warm, blurred studio light; icon rail left, pill bar on phones. */
+:root{
+  --coral:#eb5443; --coral-lo:#dd3b33;
+  --ink:#1a1918; --muted:#6f6a63; --faint:#a39d94;
+  --glass:rgba(255,255,255,.46); --glass-hi:rgba(255,255,255,.72); --glass-line:rgba(255,255,255,.62);
+  --rule:rgba(26,25,24,.08);
+  --ok:#2f8f5b; --warn:#c07a12; --bad:#c8372b;
+  --shadow:0 1px 0 rgba(255,255,255,.55) inset, 0 18px 40px -22px rgba(60,40,20,.35);
+  --r:22px; --r-sm:14px;
+  --display:'Archivo',system-ui,sans-serif; --body:'Instrument Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;font-family:var(--body);font-size:14px;color:var(--ink);background:#e9ddd0;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scene{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#e7d8c8}
+.scene::before,.scene::after{content:"";position:absolute;inset:-10%;filter:blur(60px)}
+.scene::before{background:
+  radial-gradient(38% 46% at 12% 18%, #fff7ec 0%, transparent 70%),
+  radial-gradient(30% 40% at 88% 10%, #f6e2cc 0%, transparent 70%),
+  radial-gradient(34% 30% at 72% 78%, #c99f7a 0%, transparent 70%),
+  radial-gradient(28% 34% at 22% 86%, #b88a63 0%, transparent 72%),
+  radial-gradient(40% 40% at 50% 50%, #efe2d3 0%, transparent 75%)}
+.scene::after{background:radial-gradient(20% 26% at 92% 64%, rgba(235,84,67,.22) 0%, transparent 70%),
+  radial-gradient(16% 20% at 6% 52%, rgba(120,84,52,.25) 0%, transparent 70%)}
+.glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--r);box-shadow:var(--shadow);
+  -webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
+
+/* Login */
+.login{min-height:100%;display:grid;place-items:center;padding-block:40px}
+.login .glass{width:min(420px,100%);padding:32px;display:flex;flex-direction:column;gap:16px}
+.brandrow{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:620;letter-spacing:.02em}
+.mark{width:22px;height:22px;background:var(--ink);-webkit-mask:url(/assets/stackform-mark.webp) center/contain no-repeat;mask:url(/assets/stackform-mark.webp) center/contain no-repeat}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:420;letter-spacing:-.01em;text-wrap:balance}
+.login h1{font-size:28px}
+.muted{color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.input{background:var(--glass-hi);border:1px solid var(--glass-line);border-radius:12px;padding:10px 12px;min-width:0;width:100%}
+.btn{appearance:none;border:0;border-radius:999px;padding:10px 18px;background:var(--ink);color:#fff;cursor:pointer;font-weight:600}
+.btn:hover{background:#000}
+.btn.ghost{background:var(--glass-hi);color:var(--ink);border:1px solid var(--glass-line)}
+.btn.coral{background:var(--coral)} .btn.coral:hover{background:var(--coral-lo)}
+.btn.sm{padding:6px 12px;font-size:12.5px}
+.msg{font-size:13px;min-height:1.2em}
+
+/* App shell */
+.app{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;max-width:1440px;margin:0 auto;padding-block:18px 96px}
+.rail{position:sticky;top:max(18px,env(safe-area-inset-top,0px));align-self:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px}
+.rail .mark{margin:4px 0 10px}
+.navbtn{width:42px;height:42px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--muted);position:relative}
+.navbtn:hover{background:var(--glass-hi);color:var(--ink)}
+.navbtn[aria-current="page"]{background:var(--ink);color:#fff}
+.navbtn svg{width:19px;height:19px}
+.navbtn .tip{position:absolute;left:52px;white-space:nowrap;background:var(--ink);color:#fff;font-size:12px;padding:4px 8px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s}
+.navbtn:hover .tip,.navbtn:focus-visible .tip{opacity:1}
+.main{min-width:0;display:flex;flex-direction:column;gap:18px}
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;border-radius:999px}
+.topbar .who{font-weight:600;white-space:nowrap}
+.search{flex:1;display:flex;align-items:center;gap:8px;background:var(--glass-hi);border:1px solid var(--glass-line);border-radius:999px;padding:7px 14px;min-width:0}
+.search input{border:0;background:transparent;outline:0;min-width:0;width:100%}
+.search svg{width:15px;height:15px;color:var(--muted);flex:none}
+.panel{padding:26px;display:flex;flex-direction:column;gap:20px}
+.panel-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.panel-head h1{font-size:clamp(24px,2.4vw,32px)}
+.panel-head p{margin:4px 0 0;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
+.tile{background:var(--glass-hi);border:1px solid var(--glass-line);border-radius:var(--r-sm);padding:16px;display:flex;flex-direction:column;gap:6px;min-width:0;transition:transform .2s}
+.tile:hover{transform:translateY(-3px)}
+.tile .big{font-family:var(--display);font-weight:420;font-size:26px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tile .sub{font-size:12px;color:var(--muted)}
+.tile.accent{background:linear-gradient(160deg,rgba(235,84,67,.92),rgba(221,59,51,.92));color:#fff;border-color:rgba(255,255,255,.35)}
+.tile.accent .label,.tile.accent .sub{color:rgba(255,255,255,.8)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px}
+.card{background:var(--glass-hi);border:1px solid var(--glass-line);border-radius:var(--r-sm);padding:18px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.card h2{font-size:17px}
+.card .note{font-size:12px;color:var(--muted);margin-top:-6px}
+.chart{position:relative;min-height:220px}
+.tip-pop{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--rule);border-radius:10px;box-shadow:0 8px 24px -10px rgba(0,0,0,.25);padding:6px 10px;font-size:12px;white-space:nowrap}
+.tip-pop .k{color:var(--muted)}
+.donutwrap{display:flex;flex-wrap:wrap;align-items:center;gap:20px}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:180px}
+.legend-row{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.legend-row i{width:10px;height:10px;border-radius:3px}
+.legend-row b{font-weight:600;font-variant-numeric:tabular-nums}
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px}
+.ring{background:var(--glass-hi);border:1px solid var(--glass-line);border-radius:var(--r-sm);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.ring svg{width:92px;height:92px}
+.ring .name{font-weight:600}
+.ring .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tablewrap{overflow:auto;max-height:560px;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;z-index:1;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-align:left;font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:rgba(255,255,255,.55)}
+.num{text-align:right;white-space:nowrap}
+.nowrap{white-space:nowrap}
+.struck{text-decoration:line-through;color:var(--faint)}
+.st{white-space:nowrap}
+.st::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:.08em;background:var(--dot,var(--faint))}
+.st.ok{--dot:var(--ok)} .st.warn{--dot:var(--warn)} .st.bad{--dot:var(--bad);color:var(--bad)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar .input{width:auto;flex:1 1 220px}
+.toolbar select.input{flex:0 0 auto}
+.empty{color:var(--muted);padding:18px 4px}
+.list{display:flex;flex-direction:column}
+.task{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--rule)}
+.task:last-child{border-bottom:0}
+.task .when{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:62px}
+.task .when.late{color:var(--bad)}
+.task .who{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;padding-top:3px}
+.task .who.cass{color:var(--coral)}
+.check{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--faint);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0;margin-top:1px}
+.check:hover{border-color:var(--ok)}
+.check.done{background:var(--ok);border-color:var(--ok)}
+.check.done::after{content:"";width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.taskgrid{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+
+/* Drawer */
+.scrim{position:fixed;inset:0;background:rgba(40,28,18,.25);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);z-index:41;border-radius:var(--r) 0 0 var(--r);padding:24px;
+  padding-top:max(24px,env(safe-area-inset-top,0px));padding-bottom:max(24px,env(safe-area-inset-bottom,0px));padding-right:max(24px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px;overflow:auto;background:rgba(255,250,244,.88)}
+.drawer h2{font-size:22px}
+.drawer form{display:flex;flex-direction:column;gap:12px}
+.drawer .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.drawer .spacer{flex:1}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--bad)}
+
+/* Phone pill bar */
+.pillbar{display:none}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .pillbar{display:flex;position:fixed;left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom,0px));z-index:30;gap:2px;padding:6px;border-radius:999px;max-width:calc(100% - 24px);overflow-x:auto}
+  .pillbar button{border:0;background:transparent;border-radius:999px;padding:8px 12px;font-size:12.5px;white-space:nowrap;cursor:pointer;color:var(--muted)}
+  .pillbar button[aria-current="page"]{background:var(--ink);color:#fff}
+  .panel{padding:18px}
+  .topbar .who{display:none}
+}
+
+/* Music */
+.music{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:35;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+@media (max-width:760px){.music{bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 64px)}}
+.music-fab{width:46px;height:46px;border-radius:50%;border:1px solid var(--glass-line);display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.music-fab svg{width:20px;height:20px}
+.music-fab.playing{color:var(--coral)}
+.music-card{width:min(340px,calc(100vw - 32px));padding:12px;display:flex;flex-direction:column;gap:10px}
+.music-card.collapsed{position:fixed;left:-9999px;top:0;width:340px}
+.music-frame{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#111;max-width:100%}
+.music-set{display:flex;gap:6px}
+.music-set .input{padding:7px 10px;font-size:12.5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/admin/config.js"></script>
+</head>
+<body>
+<div class="scene" aria-hidden="true"></div>
+
+<section class="login" id="login" hidden>
+  <div class="glass">
+    <div class="brandrow"><span class="mark"></span>STACKFORM</div>
+    <h1>Stackform HQ</h1>
+    <p class="muted" style="margin:0">Owner access only. Enter your email and we'll send you a one-time sign-in link.</p>
+    <form id="login-form" class="field">
+      <label class="label" for="login-email">Email</label>
+      <input class="input" id="login-email" type="email" autocomplete="email" required>
+      <button class="btn coral" type="submit" style="margin-top:8px">Send sign-in link</button>
+    </form>
+    <p class="msg muted" id="login-msg" role="status"></p>
+  </div>
+</section>
+
+<div class="app" id="app" hidden>
+  <nav class="rail glass" aria-label="Sections" id="rail"></nav>
+  <main class="main">
+    <header class="topbar glass">
+      <span class="who" id="greet">Hello</span>
+      <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search invoices, clients, deals, tasks" aria-label="Search everything"></label>
+      <button class="btn ghost sm" id="signout" type="button">Sign out</button>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+<nav class="pillbar glass" id="pillbar" aria-label="Sections" hidden></nav>
+
+<div class="music" id="music" hidden>
+  <div class="music-card glass collapsed" id="music-card">
+    <div class="label">Music</div>
+    <iframe class="music-frame" id="music-frame" title="Music player" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
+    <p class="muted" id="music-empty" style="margin:0;font-size:12.5px">Paste a YouTube or YouTube Music playlist link to play it here.</p>
+    <form class="music-set" id="music-form">
+      <input class="input" id="music-url" type="url" placeholder="Playlist link" aria-label="Playlist link">
+      <button class="btn sm" type="submit">Set</button>
+    </form>
+  </div>
+  <button class="music-fab glass" id="music-fab" type="button" aria-label="Music" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+  </button>
+</div>
+
+<div id="drawer-host"></div>
+
+<script>
+(() => {
+  const cfg = window.STACKFORM_ADMIN || {};
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null) n.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    return n;
+  };
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs = {}) => { const n = document.createElementNS(svgNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+
+  const TAX_RATE = 0.2;
+  const money = (v) => (v == null || v === '' || isNaN(Number(v)) ? '—' : 'S$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const money0 = (v) => 'S$' + Math.round(Number(v) || 0).toLocaleString('en-SG');
+  const num = (v) => (v == null || v === '' || isNaN(Number(v)) ? 0 : Number(v));
+  const day = (s) => (s ? new Date(s + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+  const shortDay = (s) => (s ? new Date(s + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : '');
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+  const thisMonth = () => today().slice(0, 7);
+
+  if (!cfg.supabaseUrl || cfg.supabaseUrl.includes('YOUR-PROJECT')) {
+    $('#login').hidden = false;
+    $('#login-form').hidden = true;
+    $('#login-msg').textContent = 'Not connected yet: add the Supabase project URL and anon key to admin/config.js.';
+    return;
+  }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
+
+  /* ---------- Tables and their editable fields ---------- */
+  const STATUS = {
+    invoices: ['Paid', 'Due', 'Scheduled', 'Cancelled'],
+    stage: ['Prospect', 'Planned', 'Pitching', 'Invited', 'Estimate', 'Quoted', 'Not proposed', 'Won', 'Lost'],
+    owner: ['You', 'Cass'],
+  };
+  const T = {
+    invoices: { key: 'ref', name: 'Invoice', fields: [
+      ['ref', 'Invoice number', 'text', { help: 'Use SCH-xx for agreed but not yet issued' }], ['issued', 'Issued', 'date'], ['client', 'Client', 'text'],
+      ['description', 'For', 'text'], ['amount', 'Amount (S$)', 'number'], ['paid', 'Paid (S$)', 'number'],
+      ['status', 'Status', 'select', { options: STATUS.invoices }], ['due', 'Due', 'date'], ['paid_month', 'Month paid (YYYY-MM)', 'text'], ['note', 'Note', 'textarea']] },
+    clients: { key: 'client', name: 'Client', fields: [
+      ['client', 'Client', 'text'], ['contact', 'Contact', 'text'], ['type', 'Type', 'text'], ['since', 'Client since', 'date'],
+      ['contracted', 'Contracted one-time (S$)', 'number'], ['retainer', 'Retainer per month (S$)', 'number'],
+      ['retainer_status', 'Retainer status', 'select', { options: ['Active', 'From go-live', 'None agreed', 'Ended'] }],
+      ['status', 'Status', 'text'], ['referred_by', 'Referred by', 'text'], ['note', 'Note', 'textarea']] },
+    pipeline: { key: 'prospect', name: 'Deal', fields: [
+      ['prospect', 'Prospect', 'text'], ['scope', 'Scope', 'text'], ['document', 'Quote', 'text'],
+      ['one_time', 'One-time (S$)', 'number'], ['monthly', 'Monthly (S$)', 'number'],
+      ['stage', 'Stage', 'select', { options: STATUS.stage }], ['next_step', 'Next step', 'textarea']] },
+    subscriptions: { key: 'vendor', name: 'Subscription', fields: [
+      ['vendor', 'Vendor', 'text'], ['item', 'What', 'text'], ['billing', 'Billing', 'select', { options: ['Monthly', 'Yearly', 'One-time', 'Usage-based'] }],
+      ['currency', 'Currency', 'select', { options: ['SGD', 'USD'] }], ['amount', 'Price', 'number'], ['sgd_per_month', 'S$ per month', 'number'],
+      ['paid_from', 'Paid from', 'select', { options: ['Personal card', 'Aspire card', 'MariBank'] }], ['status', 'Status', 'text']] },
+    actions: { key: 'id', name: 'Task', fields: [
+      ['task', 'Task', 'textarea'], ['owner', 'Who', 'select', { options: STATUS.owner }], ['due', 'Due', 'date'],
+      ['area', 'Area', 'text'], ['status', 'Status', 'select', { options: ['Open', 'Ongoing', 'Scheduled', 'Planned', 'Waiting', 'Done'] }]] },
+    projects: { key: 'repo', name: 'Project', fields: [
+      ['project', 'Project', 'text'], ['repo', 'Repository', 'text'], ['kind', 'Kind', 'select', { options: ['Client build', 'Own product', 'Internal', 'Personal'] }],
+      ['visibility', 'Visibility', 'select', { options: ['private', 'public'] }], ['last_push', 'Last change', 'date']] },
+  };
+  const data = { invoices: [], clients: [], pipeline: [], subscriptions: [], actions: [], projects: [], settings: [] };
+
+  async function loadAll() {
+    const names = Object.keys(data);
+    const res = await Promise.all(names.map((n) => sb.from(n).select('*')));
+    res.forEach((r, i) => { if (r.error) throw r.error; data[names[i]] = r.data || []; });
+  }
+
+  /* ---------- Derived numbers ---------- */
+  function totals() {
+    let received = 0, outstanding = 0, scheduled = 0;
+    for (const r of data.invoices) {
+      if (r.status === 'Paid') received += num(r.paid);
+      else if (r.status === 'Due') outstanding += num(r.amount);
+      else if (r.status === 'Scheduled') scheduled += num(r.amount);
+    }
+    let active = 0, committed = 0;
+    for (const c of data.clients) {
+      if (c.retainer_status === 'Active') { active += num(c.retainer); committed += num(c.retainer); }
+      else if (c.retainer_status === 'From go-live') committed += num(c.retainer);
+    }
+    let pipeOne = 0, pipeMonthly = 0;
+    for (const p of data.pipeline) if (!['Won', 'Lost'].includes(p.stage)) { pipeOne += num(p.one_time); pipeMonthly += num(p.monthly); }
+    return { received, outstanding, scheduled, setaside: received * TAX_RATE, active, committed, pipeOne, pipeMonthly };
+  }
+  const receivedBy = (client) => data.invoices.filter((i) => i.client === client && i.status === 'Paid').reduce((s, i) => s + num(i.paid), 0);
+  const byMonth = () => {
+    const m = new Map();
+    for (const r of data.invoices) if (r.status === 'Paid' && r.paid_month) m.set(r.paid_month, (m.get(r.paid_month) || 0) + num(r.paid));
+    return [...m.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  };
+
+  /* ---------- Navigation ---------- */
+  const ICON = {
+    overview: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
+    invoices: '<path d="M7 3h10v18l-3-2-2 2-2-2-3 2z"/><path d="M10 8h4M10 12h4"/>',
+    pipeline: '<path d="M4 5h16l-6 7v6l-4 2v-8z"/>',
+    clients: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/>',
+    subscriptions: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h3"/>',
+    projects: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
+    cass: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  };
+  const VIEWS = [['overview', 'Overview'], ['invoices', 'Invoices'], ['pipeline', 'Pipeline'], ['clients', 'Clients'], ['subscriptions', 'Subscriptions'], ['projects', 'Projects'], ['cass', 'Cass']];
+  let current = 'overview';
+  function buildNav() {
+    const rail = $('#rail'), pill = $('#pillbar');
+    rail.replaceChildren(el('span', { class: 'mark', 'aria-hidden': 'true' }));
+    pill.replaceChildren();
+    for (const [id, label] of VIEWS) {
+      const b = el('button', { class: 'navbtn', type: 'button', 'aria-label': label, onclick: () => go(id) });
+      b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[id]}</svg>`;
+      b.append(el('span', { class: 'tip', text: label }));
+      b.dataset.view = id; rail.append(b);
+      const p = el('button', { type: 'button', text: label, onclick: () => go(id) }); p.dataset.view = id; pill.append(p);
+    }
+  }
+  function go(id) {
+    if (!VIEWS.some(([v]) => v === id)) id = 'overview';
+    current = id;
+    document.querySelectorAll('[data-view]').forEach((b) => { if (b.dataset.view === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
+    render();
+  }
+  window.addEventListener('hashchange', () => go(location.hash.slice(1)));
+  $('#q').addEventListener('input', () => render());
+
+  /* ---------- Shared bits ---------- */
+  const stClass = (s) => ({ Paid: 'st ok', Live: 'st ok', Active: 'st ok', Won: 'st ok', Due: 'st warn', Quoted: 'st warn', Migration: 'st warn' }[s] || 'st');
+  const status = (s, extra) => el('span', { class: extra || stClass(s), text: s || '' });
+  const matches = (row) => { const q = $('#q').value.trim().toLowerCase(); return !q || Object.values(row).join(' ').toLowerCase().includes(q); };
+  const panel = (title, sub, ...kids) => el('section', { class: 'panel glass' },
+    el('div', { class: 'panel-head' }, el('div', {}, el('h1', { text: title }), sub ? el('p', { text: sub }) : null), kids.shift() || null), ...kids);
+  const tile = (label, value, sub, accent) => el('div', { class: 'tile' + (accent ? ' accent' : '') },
+    el('span', { class: 'label', text: label }), el('span', { class: 'big', text: value }), el('span', { class: 'sub', text: sub }));
+  function table(cols, rows, onRow) {
+    if (!rows.length) return el('p', { class: 'empty', text: 'Nothing here yet.' });
+    const thead = el('thead', {}, el('tr', {}, cols.map((c) => el('th', { class: c.num ? 'num' : null, text: c.label }))));
+    const tbody = el('tbody');
+    for (const r of rows) {
+      const tr = el('tr', { tabindex: '0', onclick: () => onRow && onRow(r), onkeydown: (e) => { if (e.key === 'Enter' && onRow) onRow(r); } });
+      for (const c of cols) { const v = c.get(r); const td = el('td', { class: c.cls ? (typeof c.cls === 'function' ? c.cls(r) : c.cls) : (c.num ? 'num' : null) }); td.append(v && v.nodeType ? v : document.createTextNode(v == null ? '' : String(v))); tr.append(td); }
+      tbody.append(tr);
+    }
+    return el('div', { class: 'tablewrap' }, el('table', {}, thead, tbody));
+  }
+
+  /* ---------- Charts ---------- */
+  function barChart(host, rows) {
+    host.replaceChildren();
+    if (!rows.length) { host.append(el('p', { class: 'empty', text: 'No payments recorded yet.' })); return; }
+    const W = Math.max(280, host.clientWidth || 520), H = 220, mt = 26, mb = 30;
+    const max = Math.max(...rows.map((r) => r[1])) * 1.12;
+    const band = W / rows.length, bw = Math.min(54, band * 0.56);
+    const s = sv('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Cash received by month' });
+    const defs = sv('defs'); const lg = sv('linearGradient', { id: 'barg', x1: 0, x2: 0, y1: 0, y2: 1 });
+    lg.append(sv('stop', { offset: '0', 'stop-color': '#f2735f' }), sv('stop', { offset: '1', 'stop-color': '#dd3b33' })); defs.append(lg); s.append(defs);
+    s.append(sv('line', { x1: 0, x2: W, y1: H - mb, y2: H - mb, stroke: 'rgba(26,25,24,.15)' }));
+    const tip = el('div', { class: 'tip-pop', hidden: true });
+    rows.forEach(([m, v], i) => {
+      const x = i * band + (band - bw) / 2, h = (v / max) * (H - mt - mb), y = H - mb - h;
+      const last = i === rows.length - 1;
+      s.append(sv('rect', { x, y, width: bw, height: h, rx: 7, fill: last ? 'url(#barg)' : 'rgba(26,25,24,.78)' }));
+      const t1 = sv('text', { x: x + bw / 2, y: y - 7, 'text-anchor': 'middle', 'font-size': 11.5, fill: '#1a1918', 'font-family': 'Instrument Sans' }); t1.textContent = money0(v); s.append(t1);
+      const t2 = sv('text', { x: x + bw / 2, y: H - mb + 19, 'text-anchor': 'middle', 'font-size': 11, fill: '#6f6a63', 'font-family': 'IBM Plex Mono' });
+      t2.textContent = new Date(m + '-01T00:00:00').toLocaleDateString('en-SG', { month: 'short' }).toUpperCase(); s.append(t2);
+      const hit = sv('rect', { x: i * band, y: mt, width: band, height: H - mt - mb, fill: 'transparent' });
+      hit.addEventListener('pointermove', (e) => {
+        tip.replaceChildren(el('div', { class: 'k', text: new Date(m + '-01T00:00:00').toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }) }), el('div', { text: money(v) }));
+        tip.hidden = false; const b = host.getBoundingClientRect();
+        tip.style.left = Math.max(0, Math.min(b.width - tip.offsetWidth, e.clientX - b.left + 12)) + 'px'; tip.style.top = Math.max(0, e.clientY - b.top - 44) + 'px';
+      });
+      hit.addEventListener('pointerleave', () => { tip.hidden = true; });
+      s.append(hit);
+    });
+    host.append(s, tip);
+  }
+  const PALETTE = ['#eb5443', '#1a1918', '#c9a27c', '#7d8f74', '#8a7fa3', '#d9a441'];
+  function donut(parts, centerLabel, centerValue) {
+    const total = parts.reduce((s, p) => s + p.v, 0) || 1, R = 46, C = 2 * Math.PI * R;
+    const s = sv('svg', { viewBox: '0 0 120 120', width: 150, height: 150, role: 'img', 'aria-label': centerLabel });
+    s.append(sv('circle', { cx: 60, cy: 60, r: R, fill: 'none', stroke: 'rgba(26,25,24,.08)', 'stroke-width': 14 }));
+    let off = 0;
+    parts.forEach((p, i) => {
+      const len = (p.v / total) * C;
+      s.append(sv('circle', { cx: 60, cy: 60, r: R, fill: 'none', stroke: PALETTE[i % PALETTE.length], 'stroke-width': 14, 'stroke-dasharray': `${Math.max(0, len - 2)} ${C}`, 'stroke-dashoffset': -off, transform: 'rotate(-90 60 60)', 'stroke-linecap': 'butt' }));
+      off += len;
+    });
+    const a = sv('text', { x: 60, y: 56, 'text-anchor': 'middle', 'font-size': 8, fill: '#6f6a63', 'font-family': 'IBM Plex Mono' }); a.textContent = centerLabel.toUpperCase();
+    const b = sv('text', { x: 60, y: 72, 'text-anchor': 'middle', 'font-size': 14, fill: '#1a1918', 'font-family': 'Archivo', 'font-weight': 500 }); b.textContent = centerValue;
+    s.append(a, b); return s;
+  }
+  function ring(frac, color) {
+    const R = 38, C = 2 * Math.PI * R, f = Math.max(0, Math.min(1, frac));
+    const s = sv('svg', { viewBox: '0 0 92 92' });
+    s.append(sv('circle', { cx: 46, cy: 46, r: R, fill: 'none', stroke: 'rgba(26,25,24,.09)', 'stroke-width': 8 }));
+    s.append(sv('circle', { cx: 46, cy: 46, r: R, fill: 'none', stroke: color, 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-dasharray': `${C * f} ${C}`, transform: 'rotate(-90 46 46)' }));
+    const t = sv('text', { x: 46, y: 51, 'text-anchor': 'middle', 'font-size': 16, fill: '#1a1918', 'font-family': 'Archivo', 'font-weight': 500 }); t.textContent = Math.round(f * 100) + '%';
+    s.append(t); return s;
+  }
+
+  /* ---------- Views ---------- */
+  function taskList(rows) {
+    if (!rows.length) return el('p', { class: 'empty', text: 'Nothing due. Nice.' });
+    const t = today();
+    return el('div', { class: 'list' }, rows.map((r) => {
+      const done = r.status === 'Done', late = !done && r.due && r.due < t;
+      const box = el('button', { class: 'check' + (done ? ' done' : ''), type: 'button', 'aria-label': done ? 'Mark not done' : 'Mark done',
+        onclick: async (e) => { e.stopPropagation(); await save('actions', { ...r, status: done ? 'Open' : 'Done' }, r.id); } });
+      return el('div', { class: 'task' },
+        el('div', { class: 'taskgrid' }, box, el('span', { class: 'when' + (late ? ' late' : ''), text: r.due ? shortDay(r.due) : '—' })),
+        el('div', { class: done ? 'struck' : '', style: 'cursor:pointer', onclick: () => edit('actions', r) }, r.task, el('div', { class: 'muted', style: 'font-size:12px;margin-top:2px', text: r.area || '' })),
+        el('span', { class: 'who' + (r.owner === 'Cass' ? ' cass' : ''), text: r.owner || '' }));
+    }));
+  }
+  const sortBy = (k, dir = 1) => (a, b) => ((a[k] || '') < (b[k] || '') ? -dir : (a[k] || '') > (b[k] || '') ? dir : 0);
+
+  function vOverview() {
+    const t = totals();
+    const hour = new Date().getHours();
+    const head = el('div', { class: 'toolbar' }, el('button', { class: 'btn sm', type: 'button', text: 'New invoice', onclick: () => edit('invoices') }), el('button', { class: 'btn ghost sm', type: 'button', text: 'New task', onclick: () => edit('actions') }));
+    const chartHost = el('div', { class: 'chart' });
+    const clientParts = data.clients.map((c) => ({ name: c.client, v: receivedBy(c.client) })).filter((p) => p.v > 0).sort((a, b) => b.v - a.v);
+    const next = data.invoices.filter((r) => ['Due', 'Scheduled'].includes(r.status)).sort(sortBy('due')).slice(0, 8);
+    const horizon = new Date(Date.now() + 21 * 864e5).toISOString().slice(0, 10);
+    const tasks = data.actions.filter((r) => r.status !== 'Done' && r.due && r.due <= horizon).sort(sortBy('due'));
+    const node = panel(`${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}, Hafiz`, 'Money in, money coming, and what needs doing.', head,
+      el('div', { class: 'tiles' },
+        tile('Received since July', money(t.received), 'Paid invoices, all clients', true),
+        tile('Waiting on payment', money(t.outstanding), 'Issued, not yet paid'),
+        tile('Still to invoice', money(t.scheduled), 'Agreed, not yet issued'),
+        tile('Retainers per month', money(t.active), `${money(t.committed)} once go-lives start`),
+        tile('Pipeline, one-time', money(t.pipeOne), `Priced deals, plus ${money(t.pipeMonthly)} a month`),
+        tile('Tax set-aside', money(t.setaside), `${Math.round(TAX_RATE * 100)}% of receipts for MediSave and tax`)),
+      el('div', { class: 'grid2' },
+        el('div', { class: 'card' }, el('h2', { text: 'Cash received by month' }), el('p', { class: 'note', text: 'By the month the money arrived. Latest month in coral.' }), chartHost),
+        el('div', { class: 'card' }, el('h2', { text: 'Received by client' }), el('p', { class: 'note', text: 'Share of everything paid so far.' }),
+          el('div', { class: 'donutwrap' }, donut(clientParts, 'Total', money0(t.received)),
+            el('div', { class: 'legend' }, clientParts.map((p, i) => el('div', { class: 'legend-row' }, el('i', { style: `background:${PALETTE[i % PALETTE.length]}` }), el('span', { text: p.name }), el('b', { text: money(p.v) }))))))),
+      el('div', { class: 'card' }, el('h2', { text: 'Contracts paid' }), el('p', { class: 'note', text: 'How much of each signed contract has come in.' }),
+        el('div', { class: 'rings' }, data.clients.filter((c) => num(c.contracted) > 0).map((c, i) => {
+          const r = receivedBy(c.client), retainersPaid = data.invoices.filter((x) => x.client === c.client && x.status === 'Paid' && /retainer/i.test(x.description || '')).reduce((s, x) => s + num(x.paid), 0);
+          const buildPaid = r - retainersPaid;
+          return el('div', { class: 'ring', style: 'cursor:pointer', onclick: () => edit('clients', c) }, ring(buildPaid / num(c.contracted), PALETTE[i % PALETTE.length]),
+            el('span', { class: 'name', text: c.client }), el('span', { class: 'sub', text: `${money0(buildPaid)} of ${money0(c.contracted)}` }));
+        }))),
+      el('div', { class: 'grid2' },
+        el('div', { class: 'card' }, el('h2', { text: 'Money coming next' }), el('p', { class: 'note', text: 'Issued and scheduled, soonest first. Tap to edit or mark paid.' }),
+          table([{ label: 'Expected', get: (r) => shortDay(r.due), cls: 'nowrap' }, { label: 'Client', get: (r) => r.client }, { label: 'For', get: (r) => r.description },
+            { label: 'Amount', num: true, get: (r) => money(r.amount) }, { label: 'Status', get: (r) => status(r.status) }], next, (r) => edit('invoices', r))),
+        el('div', { class: 'card' }, el('h2', { text: 'Cass · next up' }), el('p', { class: 'note', text: 'Next three weeks. Overdue in red. Tick to complete.' }), taskList(tasks))));
+    requestAnimationFrame(() => barChart(chartHost, byMonth()));
+    return node;
+  }
+
+  function vInvoices() {
+    const sel = el('select', { class: 'input', 'aria-label': 'Status', onchange: () => { filt = sel.value; render(); } },
+      el('option', { value: '', text: 'All statuses' }), STATUS.invoices.map((s) => el('option', { value: s, text: s, selected: filt === s })));
+    const rows = data.invoices.filter((r) => (!filt || r.status === filt) && matches(r)).sort((a, b) => ((a.issued || a.due) < (b.issued || b.due) ? 1 : -1));
+    return panel('Invoices', 'One numbering sequence across all clients. Cancelled invoices stay on record.',
+      el('div', { class: 'toolbar' }, sel, el('button', { class: 'btn sm', type: 'button', text: 'New invoice', onclick: () => edit('invoices') })),
+      table([
+        { label: 'Invoice', get: (r) => (r.ref.startsWith('SCH') ? 'Not issued' : r.ref), cls: (r) => 'nowrap' + (r.ref.startsWith('SCH') ? ' muted' : '') },
+        { label: 'Issued', get: (r) => day(r.issued), cls: 'nowrap' }, { label: 'Client', get: (r) => r.client }, { label: 'For', get: (r) => r.description },
+        { label: 'Amount', num: true, get: (r) => money(r.amount), cls: (r) => 'num' + (r.status === 'Cancelled' ? ' struck' : '') },
+        { label: 'Status', get: (r) => status(r.status) }, { label: 'Due', get: (r) => day(r.due), cls: 'nowrap' }, { label: 'Note', get: (r) => r.note || '', cls: 'muted' },
+      ], rows, (r) => edit('invoices', r)));
+  }
+  let filt = '';
+
+  function simple(kind, title, sub, cols) {
+    const rows = data[kind].filter(matches);
+    return panel(title, sub, el('div', { class: 'toolbar' }, el('button', { class: 'btn sm', type: 'button', text: 'New ' + T[kind].name.toLowerCase(), onclick: () => edit(kind) })),
+      table(cols, rows, (r) => edit(kind, r)));
+  }
+  const vPipeline = () => simple('pipeline', 'Pipeline', 'Quoted, estimated and early deals. New quotes follow your pricing floors.', [
+    { label: 'Prospect', get: (r) => r.prospect }, { label: 'Scope', get: (r) => r.scope }, { label: 'Quote', get: (r) => r.document, cls: 'muted' },
+    { label: 'One-time', num: true, get: (r) => money(r.one_time) }, { label: 'Monthly', num: true, get: (r) => money(r.monthly) },
+    { label: 'Stage', get: (r) => status(r.stage) }, { label: 'Next step', get: (r) => r.next_step, cls: 'muted' }]);
+  const vClients = () => simple('clients', 'Clients', 'Signed work. Received is worked out from your invoices.', [
+    { label: 'Client', get: (r) => r.client }, { label: 'Contact', get: (r) => r.contact }, { label: 'Type', get: (r) => r.type, cls: 'muted' },
+    { label: 'Since', get: (r) => (r.since ? new Date(r.since + 'T00:00:00').toLocaleDateString('en-SG', { month: 'short', year: 'numeric' }) : ''), cls: 'nowrap' },
+    { label: 'Contracted', num: true, get: (r) => money(r.contracted) }, { label: 'Received', num: true, get: (r) => money(receivedBy(r.client)) },
+    { label: 'Retainer', num: true, get: (r) => money(r.retainer) }, { label: 'Retainer status', get: (r) => r.retainer_status, cls: 'muted' },
+    { label: 'Status', get: (r) => status(r.status) }, { label: 'Referred by', get: (r) => r.referred_by, cls: 'muted' }, { label: 'Note', get: (r) => r.note, cls: 'muted' }]);
+  function vSubscriptions() {
+    const known = data.subscriptions.reduce((s, r) => s + num(r.sgd_per_month), 0);
+    const unknown = data.subscriptions.filter((r) => r.sgd_per_month == null || r.sgd_per_month === '').length;
+    const node = simple('subscriptions', 'Subscriptions', 'Everything the business pays for. All deductible: keep the receipts.', [
+      { label: 'Vendor', get: (r) => r.vendor }, { label: 'What', get: (r) => r.item, cls: 'muted' }, { label: 'Billing', get: (r) => r.billing },
+      { label: 'Price', num: true, get: (r) => (r.amount == null ? 'To confirm' : `${r.currency} ${Number(r.amount).toFixed(2)}`), cls: (r) => 'num' + (r.amount == null ? ' muted' : '') },
+      { label: 'S$ / month', num: true, get: (r) => money(r.sgd_per_month) }, { label: 'Paid from', get: (r) => r.paid_from, cls: (r) => (r.paid_from === 'Personal card' ? 'st warn' : 'muted') },
+      { label: 'Status', get: (r) => r.status, cls: 'muted' }]);
+    node.insertBefore(el('div', { class: 'tiles' }, tile('Known monthly cost', money(known), 'Yearly plans spread over 12 months'), tile('Amounts to confirm', String(unknown), 'Pull these from each billing page')), node.children[1]);
+    return node;
+  }
+  const vProjects = () => simple('projects', 'Projects', 'Every repository. Client work should be private.', [
+    { label: 'Project', get: (r) => r.project }, { label: 'Kind', get: (r) => r.kind, cls: 'muted' }, { label: 'Repository', get: (r) => r.repo, cls: 'muted' },
+    { label: 'Visibility', get: (r) => status(r.visibility, r.visibility === 'public' && r.kind === 'Client build' ? 'st bad' : 'st') }, { label: 'Last change', get: (r) => day(r.last_push), cls: 'nowrap' }]);
+  function vCass() {
+    const rows = data.actions.filter(matches);
+    const open = rows.filter((r) => r.status !== 'Done').sort(sortBy('due'));
+    const done = rows.filter((r) => r.status === 'Done').sort(sortBy('due', -1));
+    return panel('Cass', 'Your running list: what you do, what Cass does, and the dates that matter.',
+      el('div', { class: 'toolbar' }, el('button', { class: 'btn sm', type: 'button', text: 'New task', onclick: () => edit('actions') })),
+      el('div', { class: 'grid2' },
+        el('div', { class: 'card' }, el('h2', { text: 'You' }), taskList(open.filter((r) => r.owner !== 'Cass'))),
+        el('div', { class: 'card' }, el('h2', { text: 'Cass' }), taskList(open.filter((r) => r.owner === 'Cass')))),
+      done.length ? el('div', { class: 'card' }, el('h2', { text: 'Done' }), taskList(done)) : null);
+  }
+  const VIEW_FN = { overview: vOverview, invoices: vInvoices, pipeline: vPipeline, clients: vClients, subscriptions: vSubscriptions, projects: vProjects, cass: vCass };
+  function render() { const v = $('#view'); v.replaceChildren(VIEW_FN[current]()); }
+  let rto; window.addEventListener('resize', () => { clearTimeout(rto); rto = setTimeout(() => current === 'overview' && render(), 150); });
+
+  /* ---------- Editing ---------- */
+  async function save(kind, row, originalKey) {
+    const key = T[kind].key, clean = {};
+    for (const [k, v] of Object.entries(row)) if (k !== 'updated_at') clean[k] = v === '' ? null : v;
+    clean.updated_at = new Date().toISOString();
+    let res;
+    if (originalKey != null && originalKey !== clean[key] && key !== 'id') {
+      res = await sb.from(kind).delete().eq(key, originalKey);
+      if (!res.error) res = await sb.from(kind).insert(clean);
+    } else if (originalKey != null) res = await sb.from(kind).update(clean).eq(key, originalKey);
+    else { if (key === 'id') delete clean.id; res = await sb.from(kind).insert(clean); }
+    if (res.error) return res.error.message;
+    await loadAll(); render(); return null;
+  }
+  function edit(kind, row) {
+    const cfgT = T[kind], isNew = !row, host = $('#drawer-host');
+    const close = () => { host.replaceChildren(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', esc);
+    const form = el('form');
+    const inputs = {};
+    for (const [k, label, type, opt = {}] of cfgT.fields) {
+      const id = `f-${kind}-${k}`, val = row ? row[k] : '';
+      let input;
+      if (type === 'select') input = el('select', { class: 'input', id }, el('option', { value: '', text: '—' }), opt.options.map((o) => el('option', { value: o, text: o, selected: val === o })));
+      else if (type === 'textarea') { input = el('textarea', { class: 'input', id, rows: 3 }); input.value = val ?? ''; }
+      else { input = el('input', { class: 'input', id, type: type === 'number' ? 'number' : type, step: type === 'number' ? '0.01' : null }); input.value = val ?? ''; }
+      inputs[k] = input;
+      form.append(el('div', { class: 'field' }, el('label', { class: 'label', for: id, text: label }), input, opt.help ? el('span', { class: 'muted', style: 'font-size:12px', text: opt.help }) : null));
+    }
+    const msg = el('p', { class: 'msg', role: 'status' });
+    const collect = () => { const o = { ...(row || {}) }; for (const [k, , type] of cfgT.fields) { const v = inputs[k].value; o[k] = type === 'number' ? (v === '' ? null : Number(v)) : v; } return o; };
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); msg.textContent = 'Saving…';
+      const err = await save(kind, collect(), isNew ? null : row[cfgT.key]);
+      if (err) msg.textContent = 'Could not save: ' + err; else close();
+    });
+    const extra = [];
+    if (kind === 'invoices' && row && row.status !== 'Paid') extra.push(el('button', { class: 'btn coral', type: 'button', text: 'Mark paid', onclick: async () => {
+      msg.textContent = 'Saving…';
+      const err = await save('invoices', { ...collect(), status: 'Paid', paid: Number(inputs.amount.value) || row.amount, paid_month: thisMonth() }, row.ref);
+      if (err) msg.textContent = 'Could not save: ' + err; else close();
+    } }));
+    const delWrap = el('div', { class: 'confirm' });
+    if (!isNew) {
+      const askDel = el('button', { class: 'btn ghost sm', type: 'button', text: 'Delete', onclick: () => {
+        delWrap.replaceChildren(el('span', { text: 'Delete this for good?' }),
+          el('button', { class: 'btn sm', type: 'button', style: 'background:var(--bad)', text: 'Yes, delete', onclick: async () => {
+            const res = await sb.from(kind).delete().eq(cfgT.key, row[cfgT.key]);
+            if (res.error) { msg.textContent = 'Could not delete: ' + res.error.message; return; }
+            await loadAll(); render(); close();
+          } }),
+          el('button', { class: 'btn ghost sm', type: 'button', text: 'Keep', onclick: () => delWrap.replaceChildren(askDel) }));
+      } });
+      delWrap.append(askDel);
+    }
+    form.append(el('div', { class: 'row' }, el('button', { class: 'btn', type: 'submit', text: isNew ? 'Add' : 'Save' }), ...extra, el('span', { class: 'spacer' }), el('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: close })), delWrap, msg);
+    host.replaceChildren(el('div', { class: 'scrim', onclick: close }), el('aside', { class: 'drawer glass', role: 'dialog', 'aria-modal': 'true', 'aria-label': (isNew ? 'New ' : 'Edit ') + cfgT.name.toLowerCase() },
+      el('div', { class: 'label', text: isNew ? 'New' : 'Edit' }), el('h2', { text: isNew ? 'New ' + cfgT.name.toLowerCase() : (row[cfgT.key === 'id' ? 'task' : cfgT.key] || cfgT.name) }), form));
+    const first = form.querySelector('input,select,textarea'); if (first) first.focus();
+  }
+
+  /* ---------- Music ---------- */
+  const listId = (url) => { try { const u = new URL(url); return u.searchParams.get('list'); } catch { return null; } };
+  function setMusic(url) {
+    const id = url && listId(url), frame = $('#music-frame');
+    if (!id) { frame.hidden = true; $('#music-empty').hidden = false; return; }
+    const src = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(id)}&rel=0`;
+    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+    frame.hidden = false; $('#music-empty').hidden = true; $('#music-url').value = url; $('#music-fab').classList.add('playing');
+  }
+  $('#music-fab').addEventListener('click', () => {
+    const card = $('#music-card'), open = card.classList.toggle('collapsed') === false;
+    $('#music-fab').setAttribute('aria-expanded', String(open));
+  });
+  $('#music-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = $('#music-url').value.trim();
+    if (!listId(url)) { $('#music-empty').hidden = false; $('#music-empty').textContent = 'That link has no playlist in it. Open the playlist and copy its link.'; return; }
+    setMusic(url);
+    await sb.from('settings').upsert({ key: 'music_playlist', value: url, updated_at: new Date().toISOString() });
+  });
+
+  /* ---------- Auth ---------- */
+  async function start(session) {
+    if (!session) {
+      $('#app').hidden = true; $('#pillbar').hidden = true; $('#music').hidden = true; $('#login').hidden = false;
+      $('#login-email').value = cfg.ownerEmail || ''; return;
+    }
+    $('#login').hidden = true;
+    try { await loadAll(); }
+    catch (err) { $('#login').hidden = false; $('#login-form').hidden = true; $('#login-msg').textContent = 'Signed in, but the data did not load: ' + (err.message || err); return; }
+    $('#greet').textContent = 'Hafiz';
+    $('#app').hidden = false; $('#pillbar').hidden = false; $('#music').hidden = false;
+    buildNav(); go(location.hash.slice(1) || 'overview');
+    const m = data.settings.find((s) => s.key === 'music_playlist'); if (m) setMusic(m.value);
+  }
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#login-email').value.trim(), msg = $('#login-msg');
+    msg.textContent = 'Sending…';
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + '/admin', shouldCreateUser: false } });
+    msg.textContent = error ? 'Could not send the link: ' + error.message : 'Check your inbox for the sign-in link.';
+  });
+  $('#signout').addEventListener('click', async () => { await sb.auth.signOut(); start(null); });
+  sb.auth.onAuthStateChange((_evt, session) => { if (_evt === 'SIGNED_IN' && $('#app').hidden) start(session); if (_evt === 'SIGNED_OUT') start(null); });
+  sb.auth.getSession().then(({ data: { session } }) => start(session));
+})();
+</script>
+</body>
+</html>
