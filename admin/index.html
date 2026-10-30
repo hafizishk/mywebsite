@@ -291,11 +291,17 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
       ['reference', 'Invoice or reference no.', 'text'], ['receipt', 'Where the receipt is', 'text'],
       ['rebill_to', 'Rebill to client', 'text'], ['rebilled', 'Rebilled', 'select', { options: ['No', 'Yes'] }],
       ['reimbursed', 'Reimbursed from MariBank', 'select', { options: ['No', 'Yes'] }], ['note', 'Note', 'textarea']] },
+    commissions: { key: 'id', name: 'Commission', fields: [
+      ['referrer', 'Referrer', 'text'], ['client', 'Client', 'text'], ['client_payment', 'For which client payment', 'text'],
+      ['client_invoice', 'Client invoice', 'text'], ['base', 'Client payment (S$)', 'number'], ['rate', 'Rate (%)', 'number'],
+      ['amount', 'Commission (S$)', 'number'], ['due', 'Pay by', 'date', { help: '14 days after the client pays' }],
+      ['status', 'Status', 'select', { options: ['Waiting on client', 'To pay', 'Paid', 'Cancelled'] }],
+      ['paid_on', 'Paid on', 'date'], ['receipt', 'Receipt', 'text'], ['note', 'Note', 'textarea']] },
     projects: { key: 'repo', name: 'Project', fields: [
       ['project', 'Project', 'text'], ['repo', 'Repository', 'text'], ['kind', 'Kind', 'select', { options: ['Client build', 'Own product', 'Internal', 'Personal'] }],
       ['visibility', 'Visibility', 'select', { options: ['private', 'public'] }], ['last_push', 'Last change', 'date']] },
   };
-  const data = { invoices: [], clients: [], pipeline: [], subscriptions: [], expenses: [], actions: [], projects: [], settings: [] };
+  const data = { invoices: [], clients: [], pipeline: [], subscriptions: [], expenses: [], commissions: [], actions: [], projects: [], settings: [] };
   const USD_SGD_EST = 1.30;
   const sgdOf = (e) => (e.sgd_amount != null && e.sgd_amount !== '' ? num(e.sgd_amount) : e.currency === 'SGD' ? num(e.amount) : num(e.amount) * USD_SGD_EST);
 
@@ -346,9 +352,10 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
     subscriptions: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h3"/>',
     projects: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
     expenses: '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+    commissions: '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="M18 6 6 18"/>',
     cass: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
   };
-  const VIEWS = [['overview', 'Overview'], ['invoices', 'Invoices'], ['pipeline', 'Pipeline'], ['clients', 'Clients'], ['subscriptions', 'Subscriptions'], ['expenses', 'Expenses'], ['projects', 'Projects'], ['cass', 'Cass']];
+  const VIEWS = [['overview', 'Overview'], ['invoices', 'Invoices'], ['pipeline', 'Pipeline'], ['clients', 'Clients'], ['subscriptions', 'Subscriptions'], ['expenses', 'Expenses'], ['commissions', 'Commissions'], ['projects', 'Projects'], ['cass', 'Cass']];
   let current = 'overview';
   function buildNav() {
     const rail = $('#rail'), pill = $('#pillbar');
@@ -570,6 +577,24 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
       ], rows, (r) => edit('expenses', r)));
     return node;
   }
+  function vCommissions() {
+    if (missing.includes('commissions')) return panel('Commissions', 'The commissions table is not set up yet. It is created automatically by the next database update.');
+    const all = data.commissions;
+    const rows = all.filter(matches).sort((a, b) => ((a.status === 'Paid') - (b.status === 'Paid')) || ((a.due || '9') < (b.due || '9') ? -1 : 1));
+    const sum = (f) => all.filter(f).reduce((s, c) => s + num(c.amount), 0);
+    return panel('Commissions', 'What you owe referrers. Pay within 14 days of the client paying, and get a receipt each time.',
+      el('div', { class: 'toolbar' }, el('button', { class: 'btn sm', type: 'button', text: 'New commission', onclick: () => edit('commissions') })),
+      el('div', { class: 'tiles' },
+        tile('To pay now', money(sum((c) => c.status === 'To pay')), 'Client has paid: transfer within 14 days', sum((c) => c.status === 'To pay') > 0),
+        tile('Coming', money(sum((c) => c.status === 'Waiting on client')), 'Owed once the client pays'),
+        tile('Paid out', money(sum((c) => c.status === 'Paid')), 'Deductible: keep each receipt')),
+      table([
+        { label: 'Referrer', get: (r) => r.referrer }, { label: 'Client', get: (r) => r.client }, { label: 'For', get: (r) => r.client_payment, cls: 'muted' },
+        { label: 'Client pays', num: true, get: (r) => money(r.base) }, { label: 'Rate', num: true, get: (r) => (r.rate == null ? '' : num(r.rate) + '%') },
+        { label: 'Commission', num: true, get: (r) => money(r.amount) }, { label: 'Pay by', get: (r) => day(r.due), cls: 'nowrap' },
+        { label: 'Status', get: (r) => r.status, cls: (r) => (r.status === 'To pay' ? 'st warn' : r.status === 'Paid' ? 'st' : 'muted') },
+      ], rows, (r) => edit('commissions', r)));
+  }
   const vProjects = () => simple('projects', 'Projects', 'Every repository. Client work should be private.', [
     { label: 'Project', get: (r) => r.project }, { label: 'Kind', get: (r) => r.kind, cls: 'muted' }, { label: 'Repository', get: (r) => r.repo, cls: 'muted' },
     { label: 'Visibility', get: (r) => status(r.visibility, r.visibility === 'public' && r.kind === 'Client build' ? 'st bad' : 'st') }, { label: 'Last change', get: (r) => day(r.last_push), cls: 'nowrap' }]);
@@ -584,7 +609,7 @@ tbody tr:hover td{background:rgba(255,255,255,.55)}
         el('div', { class: 'card' }, el('h2', { text: 'Cass' }), taskList(open.filter((r) => r.owner === 'Cass')))),
       done.length ? el('div', { class: 'card' }, el('h2', { text: 'Done' }), taskList(done)) : null);
   }
-  const VIEW_FN = { overview: vOverview, invoices: vInvoices, pipeline: vPipeline, clients: vClients, subscriptions: vSubscriptions, expenses: vExpenses, projects: vProjects, cass: vCass };
+  const VIEW_FN = { overview: vOverview, invoices: vInvoices, pipeline: vPipeline, clients: vClients, subscriptions: vSubscriptions, expenses: vExpenses, commissions: vCommissions, projects: vProjects, cass: vCass };
   function render() { const v = $('#view'); v.replaceChildren(VIEW_FN[current]()); }
   let rto; window.addEventListener('resize', () => { clearTimeout(rto); rto = setTimeout(() => current === 'overview' && render(), 150); });
 
