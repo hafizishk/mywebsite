@@ -85,3 +85,9 @@ filename** or visitors may see the old one for up to a week.
 ```sh
 python3 -m http.server 8000
 ```
+
+## /spl — SPL fan app admin (Football Association of Singapore pitch)
+
+`www.stackformstudios.com/spl` opens the SPL office admin; `/spl/index.html` is the fan app on the web.
+The files are a copy of `mock/` from the private `hafizishk/SPL` repo, which is the source of truth: change them
+there, then copy them across (`tools/sync-site.sh` in that repo) and push here.

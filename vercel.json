@@ -2,6 +2,19 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
+      "source": "/spl(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/helpr(.*)",
       "headers": [
         {
@@ -64,9 +77,18 @@
       "source": "/helpr",
       "destination": "/helpr/agency",
       "permanent": false
+    },
+    {
+      "source": "/spl",
+      "destination": "/spl/",
+      "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/spl/",
+      "destination": "/spl/admin.html"
+    },
     {
       "source": "/helpr/:path((?!_expo/|assets/|favicon.ico$).*)",
       "destination": "/helpr/index.html"
