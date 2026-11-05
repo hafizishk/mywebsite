@@ -55,7 +55,7 @@
     if (rows.length > 300) rows.splice(0, rows.length - 300); try { localStorage.setItem(AUK, JSON.stringify(rows)); } catch (e) {}
     AUD = rows.slice().reverse();
   }
-  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Votes', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings' };
+  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Awards', potm: 'Awards', awards: 'Awards', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings' };
   const q_ = s => `‘${E(s || 'Untitled')}’`;
   const fixture = i => SPL.matches[i] ? `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}` : 'a game';
   const evWords = (i, e) => { const m = SPL.matches[i], k = e[4], who = k ? E(pname(e[8] || k, e[5])) : '';
@@ -100,6 +100,17 @@
       if (o.name !== p.name) out.push([`Partners screen: ${p.name ? E(p.name) : 'empty space'}${o.name ? ` (was ${E(o.name)})` : ''}`, '']);
       else if (o.logo !== p.logo) out.push([`Partners screen: ${p.logo ? 'new logo' : 'removed the logo'} for ${E(p.name || 'space ' + (j + 1))}`, p.logo ? 'add' : 'del']);
       else if (o.tier !== p.tier) out.push([`Partners screen: ${E(p.name)} is now ${E(p.tier)}`, '']); }); }
+    else if (s === 'awards') { const bm = {}; ((b || {}).months || []).forEach(m => { bm[m.key] = m; });
+      ((a || {}).months || []).forEach(m => { const o = bm[m.key]; delete bm[m.key];
+        if (!o) { out.push([`Added ${E(m.month)} to the awards`, 'add']); return; }
+        if (o.stage !== m.stage) out.push([m.stage === 'voting' ? `Opened the ${E(m.month)} vote` : m.stage === 'announced' ? `Announced ${E(m.month)}'s winners` : `Moved ${E(m.month)} back to the shortlist`, m.stage === 'shortlist' ? 'del' : 'add']);
+        [['potm', 'name', 'Player of the Month'], ['gotm', 'player', 'Goal of the Month']].forEach(([w, nk, lab]) => { const oi = {}; o[w].picks.forEach(x => { oi[x.id] = x; });
+          m[w].picks.forEach(x => { const y = oi[x.id]; delete oi[x.id]; if (!y) out.push([`${E(m.month)} ${lab}: shortlisted ${E(x[nk])}`, 'add']);
+            else { const f = ['clip', 'from', 'to', 'how', 'write', 'line'].filter(k => (y[k] || '') !== (x[k] || '')); if (f.length) out.push([`${E(m.month)} ${lab}: ${E(x[nk])}, ${f.map(k => ({ clip: 'clip link', from: 'clip start', to: 'clip end', how: 'description', write: 'write-up', line: 'stat line' })[k]).join(', ')}`, '']); } });
+          Object.values(oi).forEach(x => out.push([`${E(m.month)} ${lab}: removed ${E(x[nk])}`, 'del'])); });
+        if (o.opens !== m.opens || o.closes !== m.closes) out.push([`${E(m.month)} vote dates: ${E(dt(m.opens))} to ${E(dt(m.closes))}`, '']); });
+      Object.values(bm).forEach(m => out.push([`Deleted ${E(m.month)} from the awards`, 'del'])); }
+    else if (s === 'potm') { /* follows the awards page */ out.push(['Updated Player of the Month in the app', '']); }
     else if (s === 'partnerLook') out.push([`Partners screen look: ${{ light: 'white page', mono: 'white marks on navy', colour: 'colour on tiles' }[a] || E(a)}`, '']);
     if (!out.length) out.push([`Changed ${SECTION[s] || E(s)}`, '']);
     return out;
@@ -270,21 +281,95 @@
       <div class="panel"><h2>Sent and scheduled</h2>${pushTable(D.pushes.slice().reverse())}</div>`;
   }
 
-  function votes() {
-    const g = D.gotm, st = stats(), mine = (() => { try { return (JSON.parse(localStorage.getItem('spl-mock') || '{}').votes || {})[g.month]; } catch (e) { return null; } })();
-    const tally = id => (+g.base[id] || 0) + (mine === id ? 1 : 0), total = g.goals.reduce((a, x) => a + tally(x.id), 0) || 1;
-    const players = []; Object.keys(SPL.squads).forEach(k => SPL.squads[k].forEach(p => players.push([k, p[1]])));
-    return head('Votes', 'Goal of the Month: the shortlist, the vote and the result, all shown in the app.') + `
-      <div class="panel" style="display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><h2 style="margin:0">Goal of the Month</h2><span class="lbl ${g.winner ? 'ok' : g.open ? 'live' : 'warn'}">${g.winner ? 'Result published' : g.open ? 'Voting open' : 'Voting closed'}</span><span style="flex:1"></span>
-          ${g.winner ? '<button class="btn2 sm" data-gotm="reopen">Start a new month</button>' : g.open ? '<button class="btn2 sm" data-gotm="close">Close voting</button>' : '<button class="btn2 sm" data-gotm="open">Reopen voting</button>'}${!g.winner ? '<button class="btn sm" data-gotm="publish">Publish the winner</button>' : ''}</div>
-        <div class="grid3"><label class="fld"><span>Month</span><input class="in" id="gMonth" value="${E(g.month)}"></label><label class="fld"><span>Voting closes</span><input class="in" type="date" id="gCloses" value="${E(g.closes)}"></label><span></span></div>
-        <table class="tbl"><thead><tr><th>Player</th><th>Match</th><th style="width:80px">Minute</th><th>How it went in</th><th style="width:170px">Votes</th><th style="width:60px"></th></tr></thead><tbody>
-          ${g.goals.map((x, j) => { const pct = Math.round(100 * tally(x.id) / total); return `<tr ${g.winner === x.id ? 'class="sel"' : ''}><td><select class="in" data-gf="${j}:player">${players.map(([k, n]) => `<option value="${k}|${E(n)}" ${n === x.player && k === x.team ? 'selected' : ''}>${E(n)} · ${short(k)}</option>`).join('')}</select></td><td><input class="in" data-gf="${j}:match" value="${E(x.match)}"></td><td><input class="in" data-gf="${j}:min" value="${E(x.min)}"></td><td><input class="in" data-gf="${j}:how" value="${E(x.how)}"></td><td><div style="display:flex;flex-direction:column;gap:6px"><span><b class="big" style="font-size:22px">${pct}%</b> <span class="note">${tally(x.id).toLocaleString()}${g.winner === x.id ? ' · winner' : ''}</span></span><div class="bar"><span style="width:${pct}%"></span></div></div></td><td><button class="lnk danger" data-delgoal="${j}">Remove</button></td></tr>`; }).join('')}
-        </tbody></table>
-        <div style="display:flex;gap:10px;align-items:center"><button class="btn" data-savegotm="1">Save shortlist</button>${g.goals.length < 6 ? '<button class="btn2" data-addgoal="1">Add a goal</button>' : ''}<span class="note" style="margin-left:auto">${total.toLocaleString()} votes. Counts before this demo are placeholders; each fan's vote is real.</span></div>
-      </div>
-      <p class="note">Player of the Match runs itself: the app opens the vote at full time with three players from the game.</p>`;
+  // ---------- monthly awards (Hafiz, 5 Nov): a board with a card per month; a card opens the month's four steps ----------
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const mName = key => MONTHS[+key.slice(5, 7) - 1] || key;
+  const numOf = (k, nm) => (SPL.squads[k] && SPL.squads[k].find(p => p[1] === nm) || [0])[0];
+  const PHOTOS = { LCS: 'all', TAM: [25], GEY: [18], JUR: [7] }, hasPhoto = (k, n) => PHOTOS[k] === 'all' ? SPL.squads.LCS.some(p => p[0] === n) && n !== 27 && n !== 28 : (PHOTOS[k] || []).includes(n);
+  const face = (k, n, px) => hasPhoto(k, n) ? `<span class="face" style="width:${px}px;height:${px}px;background-image:url(assets/players/${k}/${n}.png);background-color:${C[k].c}"></span>` : `<span class="face" style="width:${px}px;height:${px}px">${crest(k, Math.round(px * .62))}</span>`;
+  const ytId = u => { const m = String(u || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || String(u || '').match(/^([\w-]{11})$/); return m ? m[1] : ''; };
+  const clipTh = u => ytId(u) ? `<span class="clipth" style="background-image:url(https://img.youtube.com/vi/${ytId(u)}/mqdefault.jpg)"><i></i></span>` : '<span class="clipth none">No clip yet</span>';
+  const partnerTag = k => `<span class="ptag"><span>Presented by</span><img src="assets/partners/colour/${k === 'potm' ? 'dongfeng' : 'msig'}.png" alt="${k === 'potm' ? 'Dongfeng' : 'MSIG'}"></span>`;
+  // the month's results, from the season data and the matchday console: every goal, and each club's record
+  function monthData(key) {
+    const goals = [], rec = {}, tally = {};
+    SPL.matches.forEach((m, i) => { if (!m[1].startsWith(key)) return; let sc = m[4], gl = (m[6] || []).map(g => ({ player: String(g[0]).replace(/\s*\((pen|og)\)$/i, ''), og: /\(og\)$/i.test(g[0]), min: g[1] + "'", team: g[2] }));
+      const L = D.live[i]; if (!sc && L && L.ev && L.ev.length) { sc = scoreOf(i); gl = L.ev.filter(e => e[3] === 'G').map(e => ({ player: pname(e[8] || e[4], e[5]), min: minText(e), team: e[4], og: e[7] === 'og' })); }
+      if (!sc) return; const label = `${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`;
+      [[m[2], sc[0], sc[1]], [m[3], sc[1], sc[0]]].forEach(([k, f, g]) => { const r = rec[k] = rec[k] || [0, 0, 0]; r[f > g ? 0 : f === g ? 1 : 2]++; });
+      gl.forEach(g => { if (g.og) return; goals.push({ id: 'm' + i + '-' + g.min.replace(/\W/g, '') + '-' + g.player.replace(/\W/g, '').slice(0, 10), player: g.player, team: g.team, match: label, min: g.min, mi: i }); tally[g.player + '|' + g.team] = (tally[g.player + '|' + g.team] || 0) + 1; }); });
+    const players = Object.entries(tally).map(([k, n]) => { const [name, team] = k.split('|'); return { name, team, goals: n, r: rec[team] || [0, 0, 0] }; }).sort((x, y) => y.goals - x.goals || x.name.localeCompare(y.name));
+    return { goals, players, rec };
+  }
+  const draftLine = (m, x, md) => { const r = md.rec[x.team] || [0, 0, 0]; return `${C[x.team].short} in ${m.month}: W${r[0]} D${r[1]} L${r[2]}. ${x.line || ''}.`.replace(' .', '.'); };
+  // steps: what's done for a month
+  function steps(m) {
+    const P = m.potm.picks, G = m.gotm.picks;
+    return [['Shortlist', `${P.length} of 5 players, ${G.length} of 5 goals`, P.length >= 5 && G.length >= 5],
+      ['Clips and write-ups', `${G.filter(g => ytId(g.clip)).length} of ${G.length} clips, ${P.filter(x => (x.write || x.how)).length} of ${P.length} write-ups`, G.length && G.every(g => ytId(g.clip)) && P.length && P.every(x => x.write || x.how)],
+      ['Vote', m.opens ? `${dt(m.opens)} – ${dt(m.closes)}` : 'Dates to set', m.stage !== 'shortlist'],
+      ['Announce', m.stage === 'announced' ? 'Done' : 'One press', m.stage === 'announced']];
+  }
+  const dt = v => v ? new Date(v).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const tallyOf = (m, which) => { const base = which === 'potm' && D.potm.month === m.month ? D.potm.base : which === 'gotm' && D.gotm.month === m.month ? D.gotm.base : {}; let mine = null;
+    try { const v = JSON.parse(localStorage.getItem('spl-mock') || '{}').votes || {}; mine = which === 'potm' ? v['potm:' + m.month] : v[m.month]; } catch (x) {}
+    const t = {}; m[which].picks.forEach(x => { t[x.id] = (+base[x.id] || 0) + (mine === x.id ? 1 : 0); }); return t; };
+  // what the app reads: the latest month that is voting or announced becomes store.potm and store.gotm
+  function mirror(d) {
+    const pub = d.awards.months.filter(m => m.stage !== 'shortlist').sort((x, y) => x.key.localeCompare(y.key)), m = pub[pub.length - 1]; if (!m) return;
+    const keepG = d.gotm.month === m.month ? d.gotm.base : {}, keepP = d.potm.month === m.month ? d.potm.base : {};
+    d.gotm = { month: m.month, closes: (m.closes || '').slice(0, 10), open: m.stage === 'voting', winner: m.gotm.winner, base: keepG,
+      goals: m.gotm.picks.map(g => ({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min, how: g.how || '', clip: g.clip || '', from: g.from || '', to: g.to || '' })),
+      previous: pub.slice(0, -1).reverse().map(x => { const w = x.gotm.picks.find(g => g.id === x.gotm.winner); return w ? { month: x.month, player: w.player, team: w.team, match: w.match } : null; }).filter(Boolean) };
+    if (m.potm.picks.length) d.potm = { month: m.month, mkey: m.key, closes: (m.closes || '').slice(0, 10), open: m.stage === 'voting', winner: m.potm.winner, base: keepP,
+      list: m.potm.picks.map(x => ({ id: x.id, name: x.name, team: x.team, n: x.n, line: x.line, how: x.write || x.how || '' })) };
+  }
+  const awSave = (fn, msg) => save(d => { fn(d); mirror(d); }, msg);
+  const monthOfKey = (d, key) => d.awards.months.find(m => m.key === key);
+
+  function votes() { return A.awm && D.awards.months.some(m => m.key === A.awm) ? awardMonth(D.awards.months.find(m => m.key === A.awm)) : awardBoard(); }
+  function awardBoard() {
+    const ms = D.awards.months.slice().sort((x, y) => y.key.localeCompare(x.key)), col = st => ms.filter(m => m.stage === st);
+    const card = m => { const S2 = steps(m), md = m.stage === 'voting' ? null : null, tp = tallyOf(m, 'potm'), tg = tallyOf(m, 'gotm');
+      const bars = (which, list, name) => { const t = which === 'potm' ? tp : tg, tot = Object.values(t).reduce((a, b) => a + b, 0) || 1; return list.slice().sort((a, b) => t[b.id] - t[a.id]).map((x, i) => `<div class="vb"><span><span>${E(name(x))}</span><b>${Math.round(100 * t[x.id] / tot)}%</b></span><i><em style="width:${Math.round(100 * t[x.id] / tot)}%;${i ? '' : 'background:#E8363D'}"></em></i></div>`).join(''); };
+      const wP = m.potm.picks.find(x => x.id === m.potm.winner), wG = m.gotm.picks.find(x => x.id === m.gotm.winner);
+      return `<button class="g awc ${m.stage}" data-awm="${m.key}"><span class="awh"><b>${E(m.month)}</b>${m.stage === 'voting' ? `<span class="chip r">● Closes ${E(dt(m.closes))}</span>` : m.stage === 'announced' ? '<span class="lbl ok">Announced</span>' : `<span class="lbl warn">${S2.filter(x => x[2]).length} of 4 steps</span>`}</span>
+        ${m.stage === 'shortlist' ? S2.map(x => `<span class="awrow"><span class="note">${x[0]}</span><b class="${x[2] ? 'ok' : ''}">${x[2] ? '✓' : E(x[1])}</b></span>`).join('') : ''}
+        ${m.stage === 'voting' ? `${m.potm.picks.length ? `<span class="awsub"><span class="lbl">Player of the Month</span>${partnerTag('potm')}</span><span class="faces">${m.potm.picks.map(x => face(x.team, x.n, 40)).join('')}</span>${bars('potm', m.potm.picks, x => x.name)}` : ''}
+          <span class="awsub"><span class="lbl">Goal of the Month</span>${partnerTag('gotm')}</span><span class="clips">${m.gotm.picks.map(g => clipTh(g.clip)).join('')}</span>${bars('gotm', m.gotm.picks, x => x.player)}` : ''}
+        ${m.stage === 'announced' ? `${wP ? `<span class="win">${face(wP.team, wP.n, 44)}<span><span class="lbl">Player of the Month</span><b>${E(wP.name)}</b></span></span>` : ''}${wG ? `<span class="win">${face(wG.team, numOf(wG.team, wG.player), 44)}<span><span class="lbl">Goal of the Month</span><b>${E(wG.player)}</b><span class="note">${E(wG.match)}${wG.min ? ' · ' + E(wG.min) : ''}</span></span></span>` : ''}` : ''}
+        <span class="lnk" style="align-self:flex-start">${m.stage === 'announced' ? 'View' : 'Open'}</span></button>`; };
+    const colH = (t, st) => `<div class="awcol"><div class="awct"><b>${t}</b><span class="lbl">${col(st).length}</span></div>${col(st).map(card).join('') || '<p class="note" style="padding:0 6px">Nothing here.</p>'}</div>`;
+    return head('Awards', 'Dongfeng Player of the Month and MSIG Goal of the Month: a card per month. Open a card to shortlist, add clips and write-ups, run the vote and announce.', '<button class="btn red sm" data-awnew="1">+ New month</button>') +
+      `<div class="awboard">${colH('Shortlist', 'shortlist')}${colH('Voting', 'voting')}${colH('Announced', 'announced')}</div>
+      <p class="note">One vote per signed-in fan once fan sign-in is live; until then each phone counts its own. October's vote counts are the demo's placeholders.</p>`;
+  }
+  function awardMonth(m) {
+    const md = monthData(m.key), S2 = steps(m), cur = S2.findIndex(x => !x[2]), P = m.potm.picks, G = m.gotm.picks, lock = m.stage !== 'shortlist';
+    const tick = (on, attr, dis) => `<button class="tk ${on ? 'on' : ''}" ${attr} ${dis ? 'disabled' : ''} aria-pressed="${on}"></button>`;
+    const players = md.players.slice(0, 12); P.forEach(x => { if (!players.some(y => y.name === x.name)) players.push({ name: x.name, team: x.team, goals: '–', r: md.rec[x.team] || [0, 0, 0] }); });
+    const same = (a, b) => a.id === b.id || (a.player === b.player && a.min === b.min && a.team === b.team);
+    const goals = md.goals.filter(g => !G.some(x => same(x, g) && x.id !== g.id)); G.forEach(g => { if (!goals.some(y => y.id === g.id)) goals.unshift({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min }); });
+    const shownGoals = A.allGoals ? goals : goals.filter(g => G.some(x => x.id === g.id)).concat(goals.filter(g => !G.some(x => x.id === g.id)).slice(0, Math.max(0, 8 - G.length)));
+    const fld = (path, v, ph, w) => `<input class="in" data-awf="${path}" value="${E(v || '')}" placeholder="${ph}" ${w ? `style="width:${w}px;flex:none"` : ''}>`;
+    const stepper = `<div class="g steps">${S2.map((x, j) => `<div class="st ${x[2] ? 'done' : j === cur ? 'on' : ''}"><i>${x[2] ? '✓' : j + 1}</i><span><b>${x[0]}</b><span class="note">${E(x[1])}</span></span></div>`).join('')}</div>`;
+    return head('Awards', `${E(m.month)} ${m.key.slice(0, 4)}. ${md.goals.length ? `${md.goals.length} goals in ${md.players.length ? 'the month\'s results' : 'the results'} so far.` : 'No results this month yet: candidates appear as the console records each game.'}`, `<span style="display:flex;gap:8px"><button class="btn2 sm" data-awback="1">All months</button>${m.stage === 'shortlist' ? `<button class="lnk danger" data-awdel="${m.key}">Delete month</button>` : ''}</span>`) + stepper + `
+      <div class="grid2">
+        <div class="panel"><h2 class="awh2">Player of the Month <span class="lbl">From ${E(m.month)}'s results</span>${partnerTag('potm')}</h2>
+          ${players.length ? `<table class="tbl"><thead><tr><th style="width:34px"></th><th>Player</th><th style="width:60px">Goals</th><th style="width:96px">Club</th><th style="width:70px">Photo</th></tr></thead><tbody>
+          ${players.map(x => { const n = numOf(x.team, x.name), on = P.some(y => y.name === x.name); return `<tr class="${on ? '' : 'dim'}"><td>${tick(on, `data-awp="${E(x.name)}|${x.team}"`, lock || (!on && P.length >= 5))}</td><td><span class="who2">${face(x.team, n, 34)}<span><b>${E(x.name)}</b><br><span class="note">${C[x.team].short}</span></span></span></td><td><b class="big" style="font-size:22px">${x.goals}</b></td><td class="note">W${x.r[0]} D${x.r[1]} L${x.r[2]}</td><td class="lbl ${hasPhoto(x.team, n) ? 'ok' : 'warn'}">${hasPhoto(x.team, n) ? 'Ready' : 'Needed'}</td></tr>`; }).join('')}</tbody></table>` : '<p class="note">No scorers this month yet.</p>'}
+          <p class="note" style="margin:10px 0 0">${P.length} of 5 picked. The FAS panel chooses; the list only saves digging through results.</p></div>
+        <div class="panel"><h2 class="awh2">Goal of the Month <span class="lbl">Every ${E(m.month)} goal</span>${partnerTag('gotm')}</h2>
+          ${shownGoals.length ? shownGoals.map(g => { const j = G.findIndex(x => x.id === g.id), on = j >= 0, x = on ? G[j] : {}; return `<div class="gl ${on ? '' : 'dim'}">${tick(on, `data-awg="${E(g.id)}"`, lock || (!on && G.length >= 5))}${on ? clipTh(x.clip) : ''}<span class="gli"><b>${E(g.player)} <span class="note">${E(g.min)}</span></b><span class="note">${crest(g.team, 14)} ${E(g.match)}</span>
+            ${on ? `<span class="glf">${fld(`g:${j}:clip`, x.clip, 'Paste the clip link (YouTube)')}${fld(`g:${j}:from`, x.from, 'Starts 1:23', 92)}${fld(`g:${j}:to`, x.to, 'Ends 1:41', 92)}</span>${fld(`g:${j}:how`, x.how, 'How it went in, one line for the vote card')}` : ''}</span></div>`; }).join('') : '<p class="note">No goals this month yet.</p>'}
+          ${goals.length > shownGoals.length || A.allGoals ? `<button class="lnk" data-awall="1" style="margin-top:10px">${A.allGoals ? 'Show fewer' : `Show all ${goals.length} goals`}</button>` : ''}
+          <p class="note" style="margin:10px 0 0">${G.length} of 5 picked. The clip plays between the start and end times, in the vote and as a Short in Watch.</p></div></div>
+      ${P.length ? `<div class="panel"><h2>Write-ups <span class="lbl">Drafted from the numbers; edit before the vote opens</span></h2><div class="wus">${P.map((x, j) => `<div class="wu">${face(x.team, x.n, 64)}<b>${E(x.name)}</b><textarea class="in" rows="4" data-awf="p:${j}:write" placeholder="${E(draftLine(m, x, md))}">${E(x.write || '')}</textarea>${fld(`p:${j}:line`, x.line, 'e.g. 4 goals')}</div>`).join('')}</div></div>` : ''}
+      <div class="panel awvote"><h2 style="margin:0">Vote</h2><label class="fld"><span>Opens</span><input class="in" type="datetime-local" data-awf="opens" value="${E(m.opens)}"></label><label class="fld"><span>Closes</span><input class="in" type="datetime-local" data-awf="closes" value="${E(m.closes)}"></label>
+        <span style="display:flex;flex-direction:column;gap:6px"><label class="chk"><input type="checkbox" checked disabled> Alert every fan when it opens</label><label class="chk"><input type="checkbox" checked disabled> Remind fans who haven't voted, 24 hours before close</label></span><span style="flex:1"></span>
+        <a class="btn2" href="index.html" target="_blank" rel="noopener">Preview in the app</a>
+        ${m.stage === 'shortlist' ? `<button class="btn red" data-awopen="${m.key}" ${S2[0][2] && m.opens && m.closes ? '' : 'disabled'}>Open the vote</button>` : m.stage === 'voting' ? `<button class="btn red" data-awclose="${m.key}">Close and announce</button>` : '<span class="lbl ok">Announced</span>'}</div>
+      ${m.stage === 'voting' ? `<div class="panel"><h2>Votes so far</h2><div class="grid2">${['potm', 'gotm'].map(w => { const t = tallyOf(m, w), tot = Object.values(t).reduce((a, b) => a + b, 0) || 1; return `<div>${m[w].picks.slice().sort((a, b) => t[b.id] - t[a.id]).map((x, i) => `<div class="vb"><span><span>${E(x.name || x.player)}</span><b>${Math.round(100 * t[x.id] / tot)}% <span class="note">${t[x.id].toLocaleString()}</span></b></span><i><em style="width:${Math.round(100 * t[x.id] / tot)}%;${i ? '' : 'background:#E8363D'}"></em></i></div>`).join('')}</div>`; }).join('')}</div></div>` : ''}`;
   }
 
   function sponsors() {
@@ -320,7 +405,7 @@
     return d.toDateString() === t.toDateString() ? 'Today' : d.toDateString() === y.toDateString() ? 'Yesterday' : d.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long' }); };
   const tm = ts => new Date(ts).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' });
   function activity() {
-    const all = auditEntries(AUD), people = [...new Set(all.map(e => e.who))], secs = ['News', 'Notifications', 'Matchday', 'Votes', 'Sponsors'];
+    const all = auditEntries(AUD), people = [...new Set(all.map(e => e.who))], secs = ['News', 'Notifications', 'Matchday', 'Awards', 'Sponsors'];
     const list = all.filter(e => (!A.audWho || e.who === A.audWho) && (!A.audSec || e.sections.includes(A.audSec)));
     const filters = `<div class="afil"><button class="${!A.audWho ? 'on' : ''}" data-audwho="">Everyone</button>${people.map(p => `<button class="${A.audWho === p ? 'on' : ''}" data-audwho="${E(p)}"><span class="av">${initials(p)}</span>${whoName(p)}</button>`).join('')}<span class="sep"></span><button class="${!A.audSec ? 'on' : ''}" data-audsec="">All pages</button>${secs.map(s => `<button class="${A.audSec === s ? 'on' : ''}" data-audsec="${s}">${s}</button>`).join('')}</div>`;
     const undo = e => e.rows.filter(canUndo).map(r => `<button class="lnk" data-undo="${E(String(r.id))}">Put back${e.rows.length > 1 ? ' ' + E((SECTION[r.section] || r.section).toLowerCase()) : ''}</button>`).join('');
@@ -342,7 +427,7 @@
   }
 
   // ---------- shell ----------
-  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Votes', votes], sponsors: ['Sponsors', sponsors], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
+  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
   // ---------- staff sign-in (backend.js set): only logins on the FAS staff list get past this ----------
   const CL = window.SPLCLOUD || { on: false, state: { status: 'demo' } };
   A.authed = !CL.on; A.checking = CL.on;
@@ -424,15 +509,31 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-look],[data-newmenu],[data-qnews],[data-dial],[data-gonews]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-look],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
+    if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
+    if (d.awback) { A.awm = null; render(); return; }
+    if (d.awall) { A.allGoals = !A.allGoals; render(); return; }
+    if (d.awnew) { const ks = D.awards.months.map(m => m.key).sort(), last = ks[ks.length - 1] || '2026-10', y = +last.slice(0, 4), mo = +last.slice(5, 7), key = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
+      awSave(d2 => { d2.awards.months.push({ key, month: mName(key), stage: 'shortlist', opens: '', closes: '', potm: { picks: [], winner: '' }, gotm: { picks: [], winner: '' } }); }, `${mName(key)} added.`); A.awm = key; render(); return; }
+    if (d.awdel) { if (!confirm('Delete this month and its shortlist?')) return; awSave(d2 => { d2.awards.months = d2.awards.months.filter(m => m.key !== d.awdel); }, 'Month deleted.'); A.awm = null; render(); return; }
+    if (d.awp) { const [nm, k] = d.awp.split('|'); awSave(d2 => { const m = monthOfKey(d2, A.awm), P = m.potm.picks, j = P.findIndex(x => x.name === nm);
+        if (j >= 0) P.splice(j, 1); else if (P.length < 5) { const md = monthData(m.key), x = md.players.find(y => y.name === nm); P.push({ id: 'p' + Date.now().toString(36), name: nm, team: k, n: numOf(k, nm), line: x ? `${x.goals} goal${x.goals === 1 ? '' : 's'}` : '', how: '', write: '' }); } }); return; }
+    if (d.awg) { awSave(d2 => { const m = monthOfKey(d2, A.awm), G = m.gotm.picks, j = G.findIndex(x => x.id === d.awg);
+        if (j >= 0) G.splice(j, 1); else if (G.length < 5) { const g = monthData(m.key).goals.find(x => x.id === d.awg); if (g) G.push({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min, how: '', clip: '', from: '', to: '' }); } }); return; }
+    if (d.awopen) { awSave(d2 => { const m = monthOfKey(d2, d.awopen); m.stage = 'voting';
+        d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month} Awards 🏆`, body: `Who impressed you this month? Vote for Player and Goal of the Month before ${new Date(m.closes).toLocaleDateString('en-SG', { weekday: 'long' })}.`, aud: 'all', kind: 'manual', match: null }); }, 'The vote is open. Every fan has been told.'); return; }
+    if (d.awclose) { const m0 = monthOfKey(D, d.awclose), tp = tallyOf(m0, 'potm'), tg = tallyOf(m0, 'gotm'), top = (list, t) => list.slice().sort((a, b) => t[b.id] - t[a.id])[0];
+      const wp = top(m0.potm.picks, tp), wg = top(m0.gotm.picks, tg); if (!confirm(`Close the vote and announce ${[wp && wp.name, wg && wg.player].filter(Boolean).join(' and ')}? Every fan is told.`)) return;
+      awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';
+        d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
     if (d.look) { A.look = d.look; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
     if (d.newmenu) { A.newOpen = !A.newOpen; render(); return; }
     if (d.qnews) { A.page = 'news'; A.news = 'new'; A.newOpen = false; render(); return; }
     if (d.dial) { A.dial = +d.dial; render(); return; }
     if (d.gonews) { A.page = 'news'; A.news = d.gonews; A.q = ''; render(); return; }
-    if (d.page) { A.page = d.page; A.newOpen = false; A.q = ''; render(); document.scrollingElement.scrollTop = 0; if (d.page === 'activity') loadAudit().then(render); return; }
+    if (d.page) { if (d.page === 'votes' && A.page === 'votes') A.awm = null; A.page = d.page; A.newOpen = false; A.q = ''; render(); document.scrollingElement.scrollTop = 0; if (d.page === 'activity') loadAudit().then(render); return; }
     if (d.audwho !== undefined) { A.audWho = d.audwho; render(); return; }
     if (d.audsec !== undefined) { A.audSec = d.audsec; render(); return; }
     if (d.audreload) { loadAudit().then(() => { flash('Up to date.'); render(); }); return; }
@@ -498,6 +599,8 @@
   });
   root.addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset && t.dataset.awf) { const [w, j, f] = t.dataset.awf.split(':'), v = t.value.trim();
+      awSave(d2 => { const m = monthOfKey(d2, A.awm); if (!m) return; if (w === 'opens' || w === 'closes') m[w] = v; else { const x = (w === 'p' ? m.potm.picks : m.gotm.picks)[+j]; if (x) x[f] = v.slice(0, 600); } }); return; }
     if (t.id === 'pWhen') { A.pushWhen = t.value; A.pushPre = { title: val('pTitle'), body: val('pBody') }; A.pushAud = val('pAud'); render(); }
     if (t.dataset && t.dataset.ptlogo !== undefined) { const f = t.files && t.files[0]; if (!f) return;
       // shrink to at most 480px wide, as PNG, so the stored logo stays small

@@ -25,6 +25,9 @@ var SPLSTORE = (function () {
     { id: 'n3', tag: 'Review', date: '2026-10-20', title: 'Five lessons from Matchweek 4 of the Singapore Premier League', dek: 'The Jurong East hoodoo is over, and the Young Lions problem is a finishing problem.', body: '[FULL ARTICLE FROM SPL.SG]', img: '', status: 'live' },
     { id: 'n4', tag: 'Roundup', date: '2026-10-19', title: 'Matchweek 4: Sailors end eight-match Jurong East wait', dek: 'Haag from the spot and Shawal late; Tampines come from behind to beat the Young Lions 4–1.', body: roundup(4), img: '', status: 'live' },
     { id: 'n5', tag: 'Roundup', date: '2026-10-14', title: 'Matchweek 3: Geylang go top after seeing off Jurong', dek: 'Sahil and Racic turn it around at Our Tampines Hub; Jackson wins his first in charge of the Sailors.', body: roundup(3), img: '', status: 'live' },
+    { id: "n7", tag: "Announcement", date: "2026-10-16", title: "FAS haze advisory: FA Cup final off", dek: "The FA Cup final and third-place play-off were called off because of haze, and FAS set out the limits for SPL matches.", body: "The FAS\u2013SPL Haze Management Protocol, drawn up with SportSG, decides whether matches go ahead based on the one-hour PM2.5 reading for each zone. SPL, Singapore Cup, SPL2 and international matches can be played up to a reading of 200 and are suspended or postponed above it.\n\nProfessional matches are checked from 12 hours before kick-off, with a final check 30 minutes before. For the SPL, Jalan Besar and Our Tampines Hub count as East, Jurong East as West and Bishan as Central.\n\nAmateur and youth football has stricter limits. With the West's PSI above 200, the FA Cup final and third-place play-off at Jurong East Stadium on 17 October did not go ahead and will be rescheduled.", img: '', status: 'live' },
+    { id: "n8", tag: "Preview", date: "2026-10-23", title: "Matchweek 5: Top three look to extend unbeaten starts", dek: "Geylang, Tampines and the Sailors are all unbeaten going into the weekend.", body: "Tampines, the only side with a perfect record, visited FC Jurong, who had lost their last two. Hide Higashikawa led the scoring chart with four goals.\n\nThe Sailors hosted Tanjong Pagar, who had lost their last 20 competitive meetings with them. Bottom side Young Lions, on a four-game losing run, hosted Balestier, and Geylang closed the round against winless Hougang on Monday night.", img: '', status: 'live' },
+    { id: "n9", tag: "Preview", date: "2026-10-15", title: "Matchweek 4: Jurong v Sailors headlines the weekend", dek: "Two title-chasing sides meet at Jurong East, and leaders Geylang go to Balestier.", body: "FC Jurong hosted the Sailors after their eight-game SPL winning run was ended by Geylang. The Sailors came in off a 1\u20130 ACL Two win at Tai Po but were without left-back Nur Adam Abdullah, who has a cruciate ligament injury.\n\nGeylang, perfect after three games, went to Balestier. The last five meetings between the two produced 32 goals. Tampines hosted Young Lions, having won their last five meetings, and Tanjong Pagar played Hougang on Friday.", img: '', status: 'live' },
     { id: 'n6', tag: 'Fixtures', date: '2026-10-01', title: 'Fixture update: Lion City Sailors v Tampines Rovers', dek: 'The Matchweek 2 meeting moves to Thursday 4 February 2027 because of AFC commitments.', body: 'The Matchweek 2 fixture between Lion City Sailors and Tampines Rovers at Jalan Besar Stadium has been rescheduled to Thursday 4 February 2027 because of both clubs\' AFC commitments.', img: '', status: 'live' }
   ];
   // Goal of the Month — October 2026 shortlist, from the roundups; vote counts are the demo's placeholders
@@ -35,6 +38,23 @@ var SPLSTORE = (function () {
     { id: 'g4', player: 'Hariss Harun', team: 'LCS', match: 'Sailors 6–0 Tanjong Pagar', min: "90+5'", how: 'The captain, from thirty yards, into the top corner.' },
     { id: 'g5', player: 'Seiya Satsukida', team: 'JUR', match: 'Jurong 2–3 Tampines', min: "47'", how: 'Chest and half-volley straight from the restart.' }
   ], base: { g1: 412, g2: 388, g3: 301, g4: 527, g5: 164 }, previous: [{ month: 'September', player: 'Lazar Vujanic', team: 'TPU', match: 'Balestier 3–4 Tanjong Pagar' }] });
+  // Monthly awards (Hafiz, 5 Nov): a card per month, worked through shortlist, clips and write-ups, vote, announce.
+  // October's shortlists are the ones in the app (top scorers from the results; goals from the roundups); clips are the SPL
+  // channel's highlights of those matches, start and end times still to be set by FAS. Vote counts are the demo's placeholders.
+  const seedPotm = () => ({ month: 'October', mkey: '2026-10', closes: '2026-11-09', open: true, winner: '', list: [
+    { id: 'p1', name: 'Hide Higashikawa', team: 'TAM', n: 25, line: '4 goals', how: "Tanjong Pagar 0–4 Tampines 63'; Tampines 4–1 Young Lions 73', 90+7'; Jurong 2–3 Tampines 41'" },
+    { id: 'p2', name: 'Matthias Phaeton', team: 'LCS', n: 23, line: '3 goals', how: "Sailors 6–1 Young Lions 74', 83'; Sailors 6–0 Tanjong Pagar 60'" },
+    { id: 'p3', name: 'Hugo Gomes', team: 'LCS', n: 3, line: '2 goals', how: "Sailors 6–1 Young Lions 37'; Sailors 6–0 Tanjong Pagar 37'" },
+    { id: 'p4', name: 'Giovanni Haag', team: 'LCS', n: 24, line: '2 goals', how: "Jurong 0–2 Sailors 41'; Sailors 6–0 Tanjong Pagar 87'" },
+    { id: 'p5', name: 'Yang Hyeonju', team: 'GEY', n: 18, line: '2 goals', how: "Geylang 3–0 Hougang 45+2', 90+1'" }
+  ], base: { p1: 1840, p2: 1312, p3: 655, p4: 590, p5: 702 } });
+  const OCT_CLIPS = { g1: '5xO_KqatlIs', g2: '', g3: 'LPIRSVkUwSU', g4: '1Fkaos7SD_I', g5: 'xnJWW1HOpKo' };
+  const seedAwards = () => ({ months: [
+    { key: '2026-09', month: 'September', stage: 'announced', opens: '', closes: '', potm: { picks: [], winner: '' },
+      gotm: { picks: [{ id: 'gs1', player: 'Lazar Vujanic', team: 'TPU', match: 'Balestier 3–4 Tanjong Pagar', min: '', how: '', clip: '', from: '', to: '' }], winner: 'gs1' } },
+    { key: '2026-10', month: 'October', stage: 'voting', opens: '2026-11-02T10:00', closes: '2026-11-09T23:59',
+      potm: { picks: seedPotm().list.map(x => Object.assign({ write: '' }, x)), winner: '' },
+      gotm: { picks: seedGotm().goals.map(g => Object.assign({ clip: OCT_CLIPS[g.id] ? 'https://youtu.be/' + OCT_CLIPS[g.id] : '', from: '', to: '' }, g)), winner: '' } }] });
   // the section sponsor slots the app carries; empty partner shows [PARTNER]
   const SLOTS = { gotm: 'Goal of the Month', potm: 'Player of the Match', stats: 'Player stats', moments: 'Moments', live: 'Live match centre' };
   const seedSponsors = () => { const o = {}; Object.keys(SLOTS).forEach(k => { o[k] = { partner: '', from: '', to: '' }; }); return o; };
@@ -43,7 +63,8 @@ var SPLSTORE = (function () {
   // h: the height each mark is drawn at, so they read as the same size (a tall lockup gets more, a long wordmark less)
   const PL = [['Singapore Pools', 'singapore-pools', 60], ['adidas', 'adidas', 44], ['Trip.com', 'trip-com', 32], ['Dongfeng by Volt Auto', 'dongfeng', 42], ['MSIG', 'msig', 44], ['Polar', 'polar', 34], ['Playback', 'playback', 15], ['Pan Pacific Leasing Group', 'pan-pacific', 36]];
   const seedPartners = () => [{ name: 'AIA', tier: 'Title partner', logo: 'aia' }].concat(PL.map(([name, f, h]) => ({ name, tier: 'Official partner', logo: `assets/partners/${f}.png`, h })));
-  const DEF = () => ({ news: seedNews(), lead: 'n1', pushes: [], live: {}, gotm: seedGotm(), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [] });
+  const withClips = g => { g.goals.forEach(x => { x.clip = OCT_CLIPS[x.id] ? 'https://youtu.be/' + OCT_CLIPS[x.id] : ''; x.from = ''; x.to = ''; }); return g; };
+  const DEF = () => ({ news: seedNews(), lead: 'n1', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm() });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
@@ -58,7 +79,7 @@ var SPLSTORE = (function () {
         ev: Array.isArray(L.ev) ? L.ev.filter(e => Array.isArray(e) && ['G', 'D', 'Y', 'R', 'S', 'HT', 'FT'].includes(e[3])).slice(0, 80).map(e => { e = e.slice(0, 10); if (e[8] != null && !SPL.clubs[e[8]]) e[8] = null; if (e[9] != null) e[9] = String(e[9]).slice(0, 40); return e; }) : [] }; });
     const g = isObj(d.gotm) ? d.gotm : {};
     out.gotm = { month: str(g.month, def.gotm.month), closes: str(g.closes, def.gotm.closes), open: g.open !== false, winner: str(g.winner, ''),
-      goals: Array.isArray(g.goals) && g.goals.length ? g.goals.filter(isObj).slice(0, 8).map((x, j) => ({ id: str(x.id, 'g' + (j + 1)), player: str(x.player, ''), team: C[x.team] ? x.team : 'TAM', match: str(x.match, ''), min: str(x.min, ''), how: str(x.how, '') })) : def.gotm.goals,
+      goals: Array.isArray(g.goals) && g.goals.length ? g.goals.filter(isObj).slice(0, 8).map((x, j) => ({ id: str(x.id, 'g' + (j + 1)), player: str(x.player, ''), team: C[x.team] ? x.team : 'TAM', match: str(x.match, ''), min: str(x.min, ''), how: str(x.how, '') , clip: str(x.clip, '').slice(0, 200), from: str(x.from, '').slice(0, 8), to: str(x.to, '').slice(0, 8)})) : def.gotm.goals,
       base: isObj(g.base) ? g.base : def.gotm.base, previous: Array.isArray(g.previous) ? g.previous.filter(isObj) : def.gotm.previous };
     out.sponsors = seedSponsors();
     if (isObj(d.sponsors)) Object.keys(SLOTS).forEach(k => { const s = d.sponsors[k]; if (isObj(s)) out.sponsors[k] = { partner: str(s.partner, '').slice(0, 60), from: str(s.from, ''), to: str(s.to, '') }; });
@@ -69,6 +90,15 @@ var SPLSTORE = (function () {
     // 'colour': colour marks on white tiles over the navy
     out.partnerLook = ['colour', 'light'].includes(d.partnerLook) ? d.partnerLook : 'light';
     out.staff = Array.isArray(d.staff) ? d.staff.filter(isObj).slice(0, 40) : [];
+    // monthly awards: kept as the admin wrote them, with every text field capped; the app reads potm and gotm, which the admin keeps in step
+    const pick = x => { const o = {}; Object.keys(x).slice(0, 16).forEach(k => { const v = x[k]; if (typeof v === 'string') o[k] = v.slice(0, 600); else if (typeof v === 'number') o[k] = v; }); return o; };
+    const aw = isObj(d.awards) && Array.isArray(d.awards.months) ? d.awards : def.awards;
+    out.awards = { months: aw.months.filter(isObj).slice(-24).map(m => ({ key: str(m.key, ''), month: str(m.month, ''), stage: ['shortlist', 'voting', 'announced'].includes(m.stage) ? m.stage : 'shortlist', opens: str(m.opens, ''), closes: str(m.closes, ''),
+      potm: { picks: isObj(m.potm) && Array.isArray(m.potm.picks) ? m.potm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.potm) ? str(m.potm.winner, '') : '' },
+      gotm: { picks: isObj(m.gotm) && Array.isArray(m.gotm.picks) ? m.gotm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.gotm) ? str(m.gotm.winner, '') : '' } })) };
+    const pm = isObj(d.potm) ? d.potm : def.potm;
+    out.potm = { month: str(pm.month, def.potm.month), mkey: str(pm.mkey, def.potm.mkey), closes: str(pm.closes, ''), open: pm.open !== false, winner: str(pm.winner, ''),
+      list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };
     return out;
   }
   function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} return clean(isObj(d) ? d : {}); }

@@ -274,10 +274,14 @@
       <span class="lbl">Football Association of Singapore</span>
       ${more.length ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="d" style="font-size:18px">More news</span><div class="card" style="padding:0 16px">${more.map(x => newsRow(x, false)).join('')}</div></div>` : ''}`;
   }
+  // a YouTube link or id from the admin, and a clip time like 1:23 or 83 (seconds)
+  const ytId = u => { const m = String(u || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || String(u || '').match(/^([\w-]{11})$/); return m ? m[1] : ''; };
+  const secs = t => { const m = String(t || '').trim().match(/^(?:(\d+):)?(\d{1,2})(?::(\d{2}))?$/); if (!m) return 0; return m[3] !== undefined ? (+m[1] || 0) * 3600 + +m[2] * 60 + +m[3] : (m[1] !== undefined ? +m[1] * 60 + +m[2] : +m[2]); };
   function video() {
-    const v = SPLVID.find(x => x.id === S.video) || CLUBVID.find(x => x.id === S.video) || CLUBVID[0];
-    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="watch" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:20px">Watch</span></div>
-      <div style="margin:0 -20px;aspect-ratio:16/9;background:#000"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="${v.title.replace(/"/g, '&quot;')}" style="width:100%;height:100%;border:0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    const v = SPLVID.find(x => x.id === S.video) || CLUBVID.find(x => x.id === S.video) || (S.vclip ? { id: S.video, k: 'SPL', title: S.vclip.title, date: S.vclip.date || '' } : CLUBVID[0]);
+    const span = S.vclip && S.vclip.id === S.video ? (S.vclip.from ? '&start=' + S.vclip.from : '') + (S.vclip.to ? '&end=' + S.vclip.to : '') : '';
+    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="${S.vclip && S.vclip.id === S.video ? 'gotm' : 'watch'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:20px">${S.vclip && S.vclip.id === S.video ? 'Goal of the Month' : 'Watch'}</span></div>
+      <div style="margin:0 -20px;aspect-ratio:16/9;background:#000"><iframe src="https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1${span}" title="${v.title.replace(/"/g, '&quot;')}" style="width:100%;height:100%;border:0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
       <div style="display:flex;flex-direction:column;gap:6px"><span class="lbl" style="display:flex;align-items:center;gap:6px">${C[v.k] ? crest(v.k, 14) + C[v.k].name : 'SPL channel'} · ${v.date}${v.len ? ' · ' + v.len : ''}</span><span class="d" style="font-size:22px;line-height:1.02">${v.title}</span></div>
       ${v.mi !== undefined ? `<button class="btn2" data-match="${v.mi}" style="width:100%">Match centre</button>` : ''}
       <div style="display:flex;flex-direction:column;gap:12px"><span class="lbl">Up next</span>${(v.k === 'SPL' ? SPLVID.filter(x => !x.kind).concat(CLUBVID) : CLUBVID.concat(SPLVID.filter(x => !x.kind))).filter(x => x.id !== v.id).slice(0, 4).map(clubVideoCard).join('')}</div>
@@ -700,20 +704,24 @@
         ${win && g.id === win ? '<span class="lbl" style="color:#C9A227">Winner</span>' : ''}
         <div style="display:flex;align-items:center;gap:12px">${crest(g.team, 34)}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:16px;line-height:1">${E(g.player)}</span><span class="lbl">${E(g.match)} · ${E(g.min)}</span></span>${show ? `<span class="d mono" style="font-size:26px;color:${top ? '#C9A227' : 'var(--ink)'}">${pct}%</span>` : `<span class="lbl" style="color:#fff">Vote</span>`}</div>
         <span style="font-size:12px;line-height:1.45;color:#DCDAF0">${E(g.how)}</span>
-        ${show ? `<div style="height:3px;background:rgba(255,255,255,.1)"><div style="height:3px;width:${pct}%;background:${top ? '#C9A227' : 'rgba(255,255,255,.45)'}"></div></div>${mine ? '<span class="lbl" style="font-size:9px">Your vote</span>' : ''}` : `<span class="lbl" style="font-size:9px;color:var(--accent,#FF9AA0)">Watch the goal · [CLIP FROM FAS]</span>`}</button>`; }).join('')}
+        ${show ? `<div style="height:3px;background:rgba(255,255,255,.1)"><div style="height:3px;width:${pct}%;background:${top ? '#C9A227' : 'rgba(255,255,255,.45)'}"></div></div>${mine ? '<span class="lbl" style="font-size:9px">Your vote</span>' : ''}` : (ytId(g.clip) ? `<span class="lbl" data-gclip="${E(g.id)}" role="button" style="font-size:9px;color:var(--accent,#FF9AA0)">▶ Watch the goal</span>` : `<span class="lbl" style="font-size:9px;color:var(--muted)">Clip coming</span>`)}</button>`; }).join('')}
       <div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 2px 0">Previous winners</div>${G.previous.map(w => `<div class="pl" style="cursor:default">${C[w.team] ? crest(w.team, 30) : ''}<span style="flex:1;display:flex;flex-direction:column"><span style="font-size:14px;font-weight:600">${E(w.player)}</span><span style="font-size:11px;color:var(--muted)">${E(w.match)}</span></span><span class="lbl">${E(w.month)}</span></div>`).join('')}</div>
       <span style="font-size:11px;color:var(--muted)">One vote per signed-in fan. The shortlist is the league's; the percentages in this demo are placeholders.</span>`;
   }
 
   // Player of the Month, October 2026: the shortlist is October's top scorers, counted from the results (data.js).
   // Vote counts are the demo's placeholders, and say so on screen.
-  const PMONTH = { month: 'October', closes: '2026-11-09', key: 'potm:October', list: [
+  const PMONTH0 = { month: 'October', closes: '2026-11-09', key: 'potm:October', list: [
     { id: 'p1', name: 'Hide Higashikawa', team: 'TAM', n: 25, line: '4 goals', how: "Tanjong Pagar 0–4 Tampines 63'; Tampines 4–1 Young Lions 73', 90+7'; Jurong 2–3 Tampines 41'" },
     { id: 'p2', name: 'Matthias Phaeton', team: 'LCS', n: 23, line: '3 goals', how: "Sailors 6–1 Young Lions 74', 83'; Sailors 6–0 Tanjong Pagar 60'" },
     { id: 'p3', name: 'Hugo Gomes', team: 'LCS', n: 3, line: '2 goals', how: "Sailors 6–1 Young Lions 37'; Sailors 6–0 Tanjong Pagar 37'" },
     { id: 'p4', name: 'Giovanni Haag', team: 'LCS', n: 24, line: '2 goals', how: "Jurong 0–2 Sailors 41'; Sailors 6–0 Tanjong Pagar 87'" },
     { id: 'p5', name: 'Yang Hyeonju', team: 'GEY', n: 18, line: '2 goals', how: "Geylang 3–0 Hougang 45+2', 90+1'" }
   ], base: { p1: 1840, p2: 1312, p3: 655, p4: 590, p5: 702 } };
+  // the month the office runs from the admin's Awards page (store.potm); the built-in October list if there is none
+  let PMONTH = PMONTH0;
+  const potmSync = () => { const M = STORE.potm; PMONTH = M && M.list && M.list.length ? Object.assign({}, M, { key: 'potm:' + M.month, base: Object.assign({}, M.base) }) : PMONTH0; };
+  potmSync();
   // the vote, simulated: fans' votes arrive for a few seconds, voting closes, the winner is revealed
   let vsimTimer = null;
   function vsimStart(key) {
@@ -764,16 +772,16 @@
       <span style="font-size:11px;color:var(--muted)">One vote per award, per signed-in fan. The winners are announced in the app the week after.</span>`;
   }
   function pmonth() {
-    const M = PMONTH, mine = P.votes[M.key], V = S.vsim && S.vsim.key === 'pmonth' ? S.vsim : null, show = !!(mine || V);
-    const tally = {}; M.list.forEach(x => { tally[x.id] = M.base[x.id] + (mine === x.id ? 1 : 0) + (V ? V.add[x.id] : 0); });
-    const total = Object.values(tally).reduce((a, b) => a + b, 0) || 1, lead = M.list.slice().sort((a, b) => tally[b.id] - tally[a.id])[0], win = V && V.done ? lead : null;
+    const M = PMONTH, mine = P.votes[M.key], V = S.vsim && S.vsim.key === 'pmonth' ? S.vsim : null, show = !!(mine || V || M.winner || M.open === false);
+    const tally = {}; M.list.forEach(x => { tally[x.id] = (+M.base[x.id] || 0) + (mine === x.id ? 1 : 0) + (V ? V.add[x.id] : 0); });
+    const total = Object.values(tally).reduce((a, b) => a + b, 0) || 1, lead = M.list.slice().sort((a, b) => tally[b.id] - tally[a.id])[0], win = V && V.done ? lead : (M.winner && M.list.find(x => x.id === M.winner)) || null;
     const order = show ? M.list.slice().sort((a, b) => tally[b.id] - tally[a.id]) : M.list;
     const pic = (x, h) => photoOf(x.team, x.n) ? `<img src="${photoOf(x.team, x.n)}" alt="" style="height:${h}px;width:auto;display:block">` : crest(x.team, Math.round(h * .55));
     return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="awards" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:22px">Player of the Month</span></div>
       <div style="display:flex;justify-content:space-between;align-items:center" class="lbl">${presented('pmonth')}<span>${win ? 'Result' : 'Voting closes ' + fmtDate(M.closes)}</span></div>
       ${simBar('pmonth')}
       ${win ? `<div class="card" style="position:relative;overflow:hidden;min-height:300px;padding:20px;border-top:3px solid #C9A227;display:flex;flex-direction:column;justify-content:flex-end;gap:6px"><span style="position:absolute;right:-20px;bottom:0">${pic(win, 290)}</span><span style="position:relative;z-index:1;display:flex;flex-direction:column;gap:6px;max-width:58%;text-shadow:0 2px 10px rgba(0,0,0,.5)"><span class="lbl" style="color:#C9A227">Player of the Month · ${M.month}</span><span class="d" style="font-size:20px;line-height:1">${win.name.split(' ')[0]}</span><span class="d" style="font-size:40px;line-height:.9">${win.name.split(' ').slice(1).join(' ')}</span><span class="lbl" style="display:flex;align-items:center;gap:6px">${crest(win.team, 16)}${C[win.team].short} · ${win.line}</span><span class="d mono" style="font-size:30px;color:#C9A227">${Math.round(100 * tally[win.id] / total)}%<span class="lbl" style="margin-left:8px;font-style:normal">of the vote</span></span></span></div>` : ''}
-      ${order.map((x, i) => { const pct = Math.round(100 * tally[x.id] / total), top = show && i === 0, me = mine === x.id, o = monthOf(x.name, x.team, '2026-10'), sh = C[x.team].short, ph = photoOf(x.team, x.n), pos = ((SPL.squads[x.team].find(p => p[0] === x.n) || [])[2]) || 'FW';
+      ${order.map((x, i) => { const pct = Math.round(100 * tally[x.id] / total), top = show && i === 0, me = mine === x.id, o = monthOf(x.name, x.team, M.mkey || '2026-10'), sh = C[x.team].short, ph = photoOf(x.team, x.n), pos = ((SPL.squads[x.team].find(p => p[0] === x.n) || [])[2]) || 'FW';
         return `<button class="card vcd" data-pvote="${x.id}" style="border-top:3px solid ${top ? '#C9A227' : me ? 'rgba(255,255,255,.5)' : 'transparent'}" ${show ? 'disabled' : ''}>
           <span class="vph" style="background:linear-gradient(170deg,${C[x.team].c} -20%,rgba(13,16,48,.2) 80%)">${crest(x.team, 26)}<span class="vpos">${{ FW: 'ST', DF: 'CB', MF: 'CM', GK: 'GK' }[pos] || pos}</span>${ph ? `<img src="${ph}" alt="">` : `<span class="swn" style="font-size:72px;top:30px">${x.n || ''}</span>`}<span class="vnm">${nice(x.name)}<small>${C[x.team].name}</small></span></span>
           <span class="vst">${[['Goals in ' + PMONTH.month, o.g], ['Season goals', o.season], [sh + ' record', `${o.r.w}-${o.r.d}-${o.r.l}`], [sh + ' goals for', o.r.f], ['Clean sheets', o.r.cs]].map(([l, v]) => `<span><span>${l}</span><b>${v}</b></span>`).join('')}
@@ -917,7 +925,7 @@
     if (vk !== lastView) { lastView = vk; if (!EMBED) { SPLSTORE.track('view', vk); app.querySelectorAll('[data-slot]').forEach(x => SPLSTORE.track('imp', x.dataset.slot)); } }
   }
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    const t = e.target.closest('[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
     const d = t.dataset;
     if (!EMBED) { const k = Object.keys(d)[0]; SPLSTORE.track('tap', k + (d[k] && d[k].length < 24 ? ':' + d[k] : '')); }
     if (d.sim) { if (d.sim === 'start') { simStart(); S.view = 'home'; S.htab = 'tonight'; } else if (d.sim === 'pause') S.sim.run = false; else if (d.sim === 'play') S.sim.run = true; else if (d.sim === 'rate') S.sim.rate = { 1: 4, 4: 10, 10: 1 }[S.sim.rate]; else if (d.sim === 'ht') { S.sim.T = 48; S.sim.run = false; } else if (d.sim === 'ft') { const end = Math.max(...LIVE_IDS.map(ftT)); fire(S.sim.T, end, true); S.sim.T = end; S.sim.run = false; } else if (d.sim === 'stop') { S.sim = null; S.toast = null; } reschedule(); S.keepScroll = true; render(); return; }
@@ -932,7 +940,8 @@
     if (d.snav) { const j = S.story.j + +d.snav; if (j < 0) S.story.p = 0; else if (j >= VIDEOS.length) S.story = null; else S.story = { j, p: 0 }; render(); return; }
     if (d.sclose) { S.story = null; if (d.gowatch) { S.view = 'watch'; } render(); return; }
     if (d.sclosego) { S.story = null; }
-    if (d.video) { S.from = S.view; S.video = d.video; S.view = 'video'; S.story = null; render(); return; }
+    if (d.gclip) { const g = GOTM_().goals.find(x => x.id === d.gclip), id = g && ytId(g.clip); if (id) { S.from = S.view; S.video = id; S.vclip = { id, title: `${g.player}, ${g.min} · ${g.match}`, from: secs(g.from), to: secs(g.to) }; S.view = 'video'; render(); } return; }
+    if (d.video) { S.vclip = null; S.from = S.view; S.video = d.video; S.view = 'video'; S.story = null; render(); return; }
     if (d.trip !== undefined) { SPLSTORE.track('trip', d.trip); return; }
     if (d.auth) { const a = S.auth; if (!a) return;
       if (d.auth === 'close') { clearTimeout(authTimer); S.auth = null; }
@@ -1006,7 +1015,7 @@
   // the admin and the app share the store: a change in one tab shows in the other straight away
   window.addEventListener('storage', e => {
     if (e.key !== SPLSTORE.KEY && e.key !== null) return;
-    STORE = SPLSTORE.read(); duePushes();
+    STORE = SPLSTORE.read(); potmSync(); duePushes();
     if (!['players', 'search', 'onboard', 'tickets'].includes(S.view)) { S.keepScroll = true; render(); } else renderChrome();
   });
   if (!timer) timer = setInterval(tick, 250);
