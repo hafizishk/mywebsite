@@ -80,15 +80,16 @@
     },
     {
       "source": "/spl",
-      "destination": "/spl/",
+      "destination": "/spl/admin.html",
+      "permanent": false
+    },
+    {
+      "source": "/spl/",
+      "destination": "/spl/admin.html",
       "permanent": false
     }
   ],
   "rewrites": [
-    {
-      "source": "/spl/",
-      "destination": "/spl/admin.html"
-    },
     {
       "source": "/helpr/:path((?!_expo/|assets/|favicon.ico$).*)",
       "destination": "/helpr/index.html"
