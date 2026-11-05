@@ -505,7 +505,13 @@
   });
   root.addEventListener('input', e => { if (e.target.id === 'gq') { A.q = e.target.value; render(); return; } if (e.target.id === 'pTitle') { const el = document.getElementById('lkT'); if (el) el.textContent = e.target.value || 'Title'; } if (e.target.id === 'pBody') { const el = document.getElementById('lkB'); if (el) el.textContent = e.target.value || 'Message'; } });
   // the app writes analytics and votes into the same storage; keep the numbers current
-  window.addEventListener('storage', e => { if (e.key === SPLSTORE.KEY) D = SPLSTORE.read(); if (['analytics', 'overview', 'votes', 'sponsors'].includes(A.page) && !document.activeElement.matches('input,textarea,select')) render(); });
+  // another tab (the app, or the phone preview) writes to the same storage: redraw only when something we show changed,
+  // and at most every few seconds for analytics, so the page never flickers while fans use the app
+  let lastDoc = JSON.stringify(D), evT = 0;
+  const calm = () => !document.activeElement.matches('input,textarea,select') && !A.q && !A.newOpen;
+  window.addEventListener('storage', e => {
+    if (e.key === SPLSTORE.KEY) { const nd = SPLSTORE.read(), j = JSON.stringify(nd); if (j === lastDoc) return; lastDoc = j; D = nd; if (A.page !== 'matchday' && calm()) render(); return; }
+    if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
   const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
   if (!CL.on) loadAudit().then(render);
