@@ -42,12 +42,41 @@
   const minText = e => e[2] ? `${e[1]}+${e[2]}'` : `${e[1]}'`;
 
   // ---------- analytics, counted from what the app recorded ----------
+  // Example numbers (Hafiz, 6 Nov): for the pitch, a fortnight of made-up app use so the dashboard and analytics read like a
+  // league in its first weeks. Clearly marked on every page that shows them; switched off in Settings to see what phones recorded.
+  try { A.mockOn = localStorage.getItem('spl-admin-mock') !== 'off'; } catch (e) { A.mockOn = true; }
+  let MOCK = null;
+  function mockEvents() {
+    if (MOCK) return MOCK; let seed = 20261120; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const pick = w => { let t = rnd() * w.reduce((a, x) => a + x[1], 0); for (const x of w) { t -= x[1]; if (t <= 0) return x[0]; } return w[0][0]; };
+    const now = Date.now(), day = 864e5, ev = [], dev = [];
+    const FOL = [['LCS', 412], ['TAM', 318], ['GEY', 207], ['BKF', 121], ['JUR', 98], ['HGU', 76], ['YLS', 52], ['TPU', 40]];
+    const VIEWS = [['home:tonight', 30], ['home:news', 8], ['match:24', 9], ['match:27', 7], ['table', 8], ['matches', 6], ['stats:players', 5], ['watch', 6], ['club:LCS', 4], ['club:TAM', 3], ['club:GEY', 2], ['article', 4], ['pmonth', 3], ['gotm', 2], ['player', 3], ['partners', 2]];
+    const TAPS = [['match', 30], ['video', 14], ['article', 10], ['vote', 9], ['tickets', 6], ['remind', 5], ['story', 12], ['htab', 8]].concat(FOL.map(([k, n]) => ['follow:' + k, n / 90]));
+    const IMP = [['live', 5], ['moments', 4], ['stats', 3], ['gotm', 2], ['potm', 2]];
+    const ART = D.news.filter(n => n.status === 'live').map((n, i) => [n.id, 8 - i]);
+    // fans grow through the fortnight: about 1,150 phones the week before, about 1,280 this week
+    const pool = 1500;
+    for (let d = 13; d >= 0; d--) { const base = now - d * day - (now % day), daily = Math.round(380 + (13 - d) * 22 + rnd() * 60), wkend = [0, 5, 6].includes(new Date(base).getDay()) ? 1.5 : 1;
+      const phones = Math.round(daily * wkend), first = Math.round((13 - d) * 18);
+      for (let k = 0; k < phones; k++) { const id = 'm' + ((first + Math.floor(rnd() * 1000) * 7 + k) % pool), t0 = base + Math.round(rnd() * day * .95); if (t0 > now) continue;
+        const n = 2 + Math.floor(rnd() * 6);
+        for (let j = 0; j < n; j++) { const t = t0 + j * 40000; ev.push([t, 'view', pick(VIEWS)]); dev.push([t, id]); }
+        if (rnd() < .8) { ev.push([t0 + 9000, 'tap', pick(TAPS)]); dev.push([t0 + 9000, id]); }
+        if (rnd() < .5) { ev.push([t0 + 12000, 'imp', pick(IMP)]); dev.push([t0 + 12000, id]); }
+        if (ART.length && rnd() < .14) { ev.push([t0 + 15000, 'article', pick(ART)]); dev.push([t0 + 15000, id]); }
+        if (rnd() < (d < 11 && d > 3 ? .42 : .05)) { ev.push([t0 + 20000, 'vote', rnd() < .7 ? 'pmonth' : 'gotm']); dev.push([t0 + 20000, id]); }
+        if (rnd() < .5) { ev.push([t0 - 60000, 'push', rnd() < .75 ? 'live' : 'manual']); dev.push([t0 - 60000, id]); } } }
+    const ord = ev.map((e, i) => i).sort((x, y) => ev[x][0] - ev[y][0]);
+    MOCK = { ev: ord.map(i => ev[i]), dev: ord.map(i => dev[i]) }; return MOCK;
+  }
+  const mockTag = () => A.mockOn ? '<span class="chip y" title="Switch off in Settings">Example numbers</span>' : '';
   function stats() {
-    const ev = SPLSTORE.events(), by = (kind) => { const o = {}; ev.filter(e => e[1] === kind).forEach(e => { o[e[2]] = (o[e[2]] || 0) + 1; }); return o; };
+    const ev = A.mockOn ? mockEvents().ev : SPLSTORE.events(), by = (kind) => { const o = {}; ev.filter(e => e[1] === kind).forEach(e => { o[e[2]] = (o[e[2]] || 0) + 1; }); return o; };
     return { ev, views: by('view'), taps: by('tap'), imp: by('imp'), articles: by('article'), push: by('push'), votes: ev.filter(e => e[1] === 'vote').length, first: ev.length ? ev[0][0] : 0 };
   }
   const VIEW_NAMES = { 'home:tonight': 'Home · Matchday', 'home:news': 'Home · News', watch: 'Watch', matches: 'Season · Matches', table: 'Season · Table', 'stats:players': 'Stats · Players', 'stats:clubstats': 'Stats · Clubs', clubs: 'Clubs', players: 'Players', player: 'Player profile', gotm: 'Goal of the Month', pmonth: 'Player of the Month', settings: 'Settings', search: 'Search', tickets: 'Tickets', video: 'Video', article: 'News article', onboard: 'Onboarding', partners: 'Partners screen' };
-  const viewName = k => VIEW_NAMES[k] || (k.startsWith('match:') ? 'Match centre · ' + k.slice(6) : k.startsWith('club:') ? 'Club · ' + (C[k.slice(5)] ? C[k.slice(5)].short : k.slice(5)) : k);
+  const viewName = k => VIEW_NAMES[k] || (k.startsWith('match:') ? 'Match centre · ' + (SPL.matches[+k.slice(6)] ? short(SPL.matches[+k.slice(6)][2]) + ' v ' + short(SPL.matches[+k.slice(6)][3]) : k.slice(6)) : k.startsWith('club:') ? 'Club · ' + (C[k.slice(5)] ? C[k.slice(5)].short : k.slice(5)) : k);
 
   // ---------- activity: who changed what ----------
   // With the backend on, the database writes one row per part of the document that changed on each save (who, when,
@@ -161,7 +190,7 @@
     const day = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' });
     const chips = [liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game tonight' : TONIGHT.length + ' games tonight'}</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
       g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open && g.closes >= TODAY ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
-      CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>'].join('');
+      mockTag() + (CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>')].join('');
     const later = ROUND.filter(i => !TONIGHT.includes(i)).map(i => SPL.matches[i]), m1 = SPL.matches[TONIGHT[0]];
     const byDay = {}; later.forEach(m => { (byDay[m[1]] = byDay[m[1]] || []).push(`${short(m[2])} v ${short(m[3])}`); });
     const summary = `${m1 ? `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])} tonight, 7.30PM` : 'No game tonight'}${Object.keys(byDay).length ? '; ' + Object.entries(byDay).map(([d, l]) => `${relDay(d).toLowerCase() === 'tomorrow' ? 'tomorrow' : 'on ' + dayName(d)}, ${l.join(' and ')}`).join(', then ') : ''}. ` +
@@ -174,7 +203,7 @@
       return go === 'app' ? `<a class="q" href="index.html" target="_blank" rel="noopener">${inner}</a>` : `<button class="q" ${attr}>${inner}</button>`; }).join('');
     // the four counts (Hafiz, 5 Nov, from the Halvo mock): fans, screens today, votes, alerts; all from what the app recorded
     const ev = st.ev, k = kind => ev.filter(e => e[1] === kind), day0 = new Date().setHours(0, 0, 0, 0), wk = 7 * 864e5, now = Date.now();
-    const dev = (() => { if (!CL.on) return ev.map(e => [e[0], CL.device || 'this']); try { const a = JSON.parse(localStorage.getItem('spl-evdev') || '[]'); return Array.isArray(a) ? a : []; } catch (x) { return []; } })();
+    const dev = (() => { if (A.mockOn) return mockEvents().dev; if (!CL.on) return ev.map(e => [e[0], CL.device || 'this']); try { const a = JSON.parse(localStorage.getItem('spl-evdev') || '[]'); return Array.isArray(a) ? a : []; } catch (x) { return []; } })();
     const fans = (from, to) => new Set(dev.filter(d => d[0] >= from && d[0] < to).map(d => d[1])).size;
     const fansNow = fans(now - wk, now + 1), fansPrev = fans(now - 2 * wk, now - wk);
     const fanSeries = (() => { const from = now - wk, w = wk / 10; return Array.from({ length: 10 }, (_, j) => fans(from + j * w, from + (j + 1) * w)); })();
@@ -184,7 +213,7 @@
       ['Fans in the app', fansNow, fansPrev ? `${fansNow >= fansPrev ? '+' : '−'}${Math.round(Math.abs(fansNow - fansPrev) * 100 / fansPrev)}% vs last week` : fansNow ? 'Phones this week' : 'No phones yet this week', '#E8363D', fanSeries, 'analytics'],
       ['Screens viewed today', vToday.length, topV.length ? topV.join(', then ') : 'None yet today', '#4A86FF', series(views), 'analytics'],
       ['Votes cast', votes.length, `${E(g.month)} awards`, '#C9A227', series(votes), 'votes'],
-      ['Alerts delivered', pushes.length, pushes.length ? (pl === pushes.length ? 'Goals and kick-off' : `${pl} match, ${pushes.length - pl} news and votes`) : 'None yet', '#3DD68C', series(pushes), 'push']]
+      ['Alerts delivered', pushes.length, pushes.length ? (pl === pushes.length ? 'Goals and kick-off' : `${pl.toLocaleString()} match, ${(pushes.length - pl).toLocaleString()} news and votes`) : 'None yet', '#3DD68C', series(pushes), 'push']]
       .map(([l, v, sub, col, pts, go]) => `<button class="g kp" data-page="${go}"><span class="l">${l}</span><span class="v">${v.toLocaleString()}</span><span class="s">${sub}</span>${spark(col, pts)}</button>`).join('');
     const fol = {}; ev.filter(e => e[1] === 'tap' && /^(follow|pick):/.test(e[2])).forEach(e => { const c = e[2].split(':')[1]; fol[c] = (fol[c] || 0) + 1; });
     const order = Object.keys(C).sort((x, y) => (fol[y] || 0) - (fol[x] || 0) || C[x].short.localeCompare(C[y].short));
@@ -400,10 +429,10 @@
 
   function analytics() {
     const st = stats(), top = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
-    const bars = (rows, name) => { const max = rows.length ? rows[0][1] : 1; return rows.length ? rows.slice(0, 12).map(([k, n]) => `<div style="display:grid;grid-template-columns:200px 1fr 50px;gap:12px;align-items:center;padding:7px 0"><span style="font-size:13px">${E(name(k))}</span><div class="bar"><span style="width:${Math.round(100 * n / max)}%"></span></div><span class="big" style="font-size:18px;text-align:right">${n}</span></div>`).join('') : '<p class="note">Nothing recorded yet.</p>'; };
-    const tapName = k => { const [a, b] = k.split(':'); return ({ go: 'Opened', match: 'Match centre', club: 'Club page', player: 'Player', article: 'Article', video: 'Video', story: 'Moments story', tickets: 'Tickets', vote: 'Goal of the Month vote', potm: 'Player of the Match vote', follow: 'Follow', htab: 'Home tab', mtab: 'Match tab', ttab: 'Table tab', ctab: 'Club tab', sim: 'Replay', remind: 'Remind me', cal: 'Add to calendar', pick: 'Club picker', ob: 'Onboarding', toast: 'Tapped an alert' }[a] || a) + (b && a !== 'match' && a !== 'potm' ? ' · ' + b : ''); };
-    return head('Analytics', st.first ? (CL.on ? `Recorded from every phone since ${hm(st.first)}. The latest 4,000 events, refreshed every 30 seconds.` : `Recorded in the app on this device since ${hm(st.first)}. In the live app every install reports here.`) : 'Nothing recorded yet. Open the app and use it, then come back.', '<button class="lnk danger" data-clearstats="1">Clear</button>') + `
-      <div class="grid4">${[[st.ev.filter(e => e[1] === 'view').length, 'Screens viewed'], [st.ev.filter(e => e[1] === 'tap').length, 'Taps'], [Object.values(st.articles).reduce((a, b) => a + b, 0), 'Articles read'], [Object.values(st.imp).reduce((a, b) => a + b, 0), 'Sponsor views']].map(([n, l]) => `<div class="panel"><div class="big" style="font-size:52px">${n}</div><div class="lbl">${l}</div></div>`).join('')}</div>
+    const bars = (rows, name) => { const max = rows.length ? rows[0][1] : 1; return rows.length ? rows.slice(0, 12).map(([k, n]) => `<div style="display:grid;grid-template-columns:200px 1fr 50px;gap:12px;align-items:center;padding:7px 0"><span style="font-size:13px">${E(name(k))}</span><div class="bar"><span style="width:${Math.round(100 * n / max)}%"></span></div><span class="big" style="font-size:18px;text-align:right">${n.toLocaleString()}</span></div>`).join('') : '<p class="note">Nothing recorded yet.</p>'; };
+    const tapName = k => { const [a, b] = k.split(':'); return ({ go: 'Opened', match: 'Match centre', club: 'Club page', player: 'Player', article: 'Article', video: 'Video', story: 'Moments story', tickets: 'Tickets', vote: 'Goal of the Month vote', potm: 'Player of the Match vote', follow: 'Follow', htab: 'Home tab', mtab: 'Match tab', ttab: 'Table tab', ctab: 'Club tab', sim: 'Replay', remind: 'Remind me', cal: 'Add to calendar', pick: 'Club picker', ob: 'Onboarding', toast: 'Tapped an alert' }[a] || a) + (b && a !== 'match' && a !== 'potm' ? ' · ' + (C[b] ? C[b].short : b) : ''); };
+    return head('Analytics', A.mockOn ? 'Example numbers: a made-up fortnight of app use, for the demo. Switch them off in Settings to see what phones recorded.' : st.first ? (CL.on ? `Recorded from every phone since ${hm(st.first)}. The latest 4,000 events, refreshed every 30 seconds.` : `Recorded in the app on this device since ${hm(st.first)}. In the live app every install reports here.`) : 'Nothing recorded yet. Open the app and use it, then come back.', '<button class="lnk danger" data-clearstats="1">Clear</button>') + `
+      <div class="grid4">${[[st.ev.filter(e => e[1] === 'view').length, 'Screens viewed'], [st.ev.filter(e => e[1] === 'tap').length, 'Taps'], [Object.values(st.articles).reduce((a, b) => a + b, 0), 'Articles read'], [Object.values(st.imp).reduce((a, b) => a + b, 0), 'Sponsor views']].map(([n, l]) => `<div class="panel"><div class="big" style="font-size:52px">${n.toLocaleString()}</div><div class="lbl">${l}</div></div>`).join('')}</div>
       <div class="grid2"><div class="panel"><h2>Screens</h2>${bars(top(st.views), viewName)}</div><div class="panel"><h2>What fans tap</h2>${bars(top(st.taps), tapName)}</div></div>
       <div class="grid2"><div class="panel"><h2>Sponsor sections seen</h2>${bars(top(st.imp), k => SPLSTORE.SLOTS[k] || k)}</div><div class="panel"><h2>Stories read</h2>${bars(top(st.articles), id => (D.news.find(n => n.id === id) || { title: id }).title)}</div></div>`;
   }
@@ -433,6 +462,7 @@
       <div class="panel"><h2>People</h2><table class="tbl"><thead><tr><th>Name</th><th>Team</th><th>Can use</th></tr></thead><tbody>
         ${[['[NAME]', 'Marketing', 'Everything'], ['[NAME]', 'Digital content', 'News, notifications, votes'], ['[NAME]', 'Commercial', 'Sponsors, analytics'], ['[NAME]', 'Match officials (one per ground)', 'Matchday console for their game']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="note">${r[2]}</td></tr>`).join('')}
       </tbody></table><p class="note" style="margin-top:12px">Staff sign in with their FAS email. A new person gets a login in Supabase (Authentication &gt; Users) and a line on the staff list; every save records who made it.</p></div>
+      <div class="panel"><h2>Example numbers</h2><p class="note">Fills Overview and Analytics with a made-up fortnight of app use (about 1,280 fans), marked "Example numbers" wherever it shows. Off shows only what phones really recorded.</p><button class="btn2" data-mocknum="1" style="margin-top:10px">${A.mockOn ? 'Show real numbers' : 'Show example numbers'}</button></div>
       <div class="panel"><h2>Demo data</h2><p class="note">Puts news, votes, sponsors and partners back as they started and clears analytics and live games. The app follows.</p><button class="btn2" data-resetall="1" style="margin-top:10px">Reset the demo</button></div>`;
   }
 
@@ -519,7 +549,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-mocknum],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -538,6 +568,7 @@
       const wp = top(m0.potm.picks, tp), wg = top(m0.gotm.picks, tg); if (!confirm(`Close the vote and announce ${[wp && wp.name, wg && wg.player].filter(Boolean).join(' and ')}? Every fan is told.`)) return;
       awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
+    if (d.mocknum) { A.mockOn = !A.mockOn; try { localStorage.setItem('spl-admin-mock', A.mockOn ? 'on' : 'off'); } catch (x) {} flash(A.mockOn ? 'Example numbers on.' : 'Showing what phones recorded.'); render(); return; }
     if (d.setlook) { A.look = d.setlook; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
     if (d.newmenu) { A.newOpen = !A.newOpen; render(); return; }
     if (d.qnews) { A.page = 'news'; A.news = 'new'; A.newOpen = false; render(); return; }
@@ -627,7 +658,7 @@
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
   const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
-  if (q.get('ov')) A.ovLook = q.get('ov'); if (!CL.on) loadAudit().then(render);
+  A.ovLook = q.get('ov') || 'B'; if (!CL.on) loadAudit().then(render);
   if (CL.on) {
     CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });
     CL.onChange(() => { const el = root.querySelector('.who .cs'); if (el) el.outerHTML = statusLine(); });
