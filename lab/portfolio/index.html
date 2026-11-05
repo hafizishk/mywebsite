@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio mock · Stackform Lab</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../../assets/stackform-mark.webp" type="image/webp">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url(../../assets/archivo-latin.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(../../assets/instrument-latin.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(../../assets/plexmono-400-latin.woff2) format('woff2')}
+
+/* Structure follows the reference portfolio; colours are Stackform's. The
+   reference pink is a light coral already, so it maps onto the brand accent. */
+:root{
+  color-scheme:only light;
+  --ink:#15110f;          /* dark sections */
+  --ink-2:#1d1815;
+  --paper:#fdfcfb;
+  --blush:#ffe4df;        /* the pale section */
+  --coral:#ffbfb4;        /* accent lines on dark */
+  --coral-deep:#eb5443;
+  --text:#15110f;
+  --muted:#8c8580;
+  --rule:rgba(21,17,15,.22);
+  --rule-dk:rgba(253,252,251,.2);
+  --col:min(1040px, calc(100% - 2*var(--gut)));
+  --gut:clamp(18px,4vw,48px);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--paper);color:var(--text);font-family:Archivo,system-ui,sans-serif;
+  font-stretch:100%;font-weight:420;letter-spacing:-.018em;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;letter-spacing:inherit}
+:focus-visible{outline:2px solid var(--coral-deep);outline-offset:3px}
+.col{width:var(--col);margin-inline:auto}
+.dark{background:var(--ink);color:var(--paper)}
+.small{font-family:'Instrument Sans',sans-serif;letter-spacing:0;font-size:clamp(12.5px,.86vw,14px);line-height:1.45}
+
+/* ── nav ─────────────────────────────────────────────────────────────── */
+.nav{position:fixed;inset:0 0 auto 0;z-index:50;transition:background .3s ease}
+.nav.solid{background:rgba(21,17,15,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.nav .col{display:flex;align-items:center;justify-content:space-between;height:62px;color:var(--paper)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:16px;letter-spacing:-.025em}
+.brand i{width:22px;aspect-ratio:96/88;background:var(--coral);
+  -webkit-mask:url(../../assets/stackform-mark.webp) center/contain no-repeat;mask:url(../../assets/stackform-mark.webp) center/contain no-repeat}
+.links{display:flex;gap:clamp(16px,2.2vw,30px);font-size:13px}
+.links a:hover{color:var(--coral)}
+.menu{display:none}
+
+/* ── hero ────────────────────────────────────────────────────────────── */
+.hero{min-height:max(640px,92svh);display:flex;align-items:center;padding:96px 0 64px}
+.hero .col{display:grid;grid-template-columns:1fr auto;gap:clamp(28px,6vw,96px);align-items:center}
+.kicker{color:var(--coral);font-size:clamp(16px,1.3vw,20px);margin:0 0 clamp(28px,4vw,52px)}
+.hero h1{margin:0;font-weight:430;font-size:clamp(40px,5.1vw,74px);line-height:.98;letter-spacing:-.035em}
+.hero h1 span{display:block}
+.hero h1 .c{color:var(--coral)}
+.hero .small{max-width:34em;margin:clamp(36px,5vw,68px) 0 0;color:#e8e2dd}
+.hero .small+.small{margin-top:.9em}
+
+/* 3x3 tile mosaic. Cells swap in and out on their own, like the reference. */
+.tiles{display:grid;grid-template-columns:repeat(3,var(--t));grid-auto-rows:var(--t);gap:var(--tg);
+  --t:clamp(92px,9.4vw,140px);--tg:clamp(6px,.6vw,9px)}
+.cell{position:relative;overflow:hidden;background:transparent}
+.cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+  transform:scale(1.04);transition:opacity .9s ease,transform 1.4s var(--ease)}
+.cell img.on{opacity:1;transform:none}
+
+/* ── intro ───────────────────────────────────────────────────────────── */
+.intro{padding:clamp(80px,10vw,150px) 0}
+.intro p{margin:0 0 .9em;max-width:20em;font-size:clamp(22px,2.15vw,32px);line-height:1.12;letter-spacing:-.025em}
+
+/* ── capabilities (pale section) ─────────────────────────────────────── */
+.caps{background:var(--blush);padding:clamp(80px,10vw,140px) 0}
+.caps .col{display:grid;grid-template-columns:1fr 1.45fr;gap:clamp(24px,5vw,96px)}
+.caps h2{margin:0;font-weight:430;font-size:clamp(20px,1.7vw,25px);line-height:1.1;max-width:9em}
+.acc{border-top:1px solid var(--rule)}
+.acc-item{border-bottom:1px solid var(--rule)}
+.acc-btn{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;
+  padding:clamp(14px,1.5vw,20px) 0;font-size:clamp(17px,1.4vw,21px)}
+.acc-btn .pm{font-size:20px;font-weight:300;transition:transform .35s var(--ease)}
+.acc-item.open .pm{transform:rotate(45deg)}
+.acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--ease)}
+.acc-item.open .acc-panel{grid-template-rows:1fr}
+.acc-panel>div{overflow:hidden}
+.acc-panel p{margin:0;padding:0 2.5em clamp(16px,1.6vw,22px) 0;max-width:36em;color:#4b433e}
+
+/* ── featured ────────────────────────────────────────────────────────── */
+.featured{padding:clamp(80px,10vw,140px) 0 clamp(60px,7vw,100px)}
+.f-head{display:flex;justify-content:space-between;align-items:start;gap:24px;margin-bottom:clamp(40px,5vw,72px)}
+.f-head h2{margin:0 0 14px;font-weight:450;font-size:clamp(20px,1.7vw,25px)}
+.f-head .small{color:var(--coral);max-width:30em;margin:0}
+.btn-line{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--rule-dk);
+  min-width:clamp(150px,13vw,200px);padding:12px 20px;font-size:12px;transition:border-color .25s,color .25s}
+.btn-line:hover{border-color:var(--coral);color:var(--coral)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(14px,2vw,30px)}
+.card .pic{aspect-ratio:600/780;overflow:hidden;background:var(--ink-2)}
+.card .pic img{width:100%;height:100%;object-fit:cover;transition:transform 1.1s var(--ease)}
+.card:hover .pic img{transform:scale(1.035)}
+.card h3{margin:clamp(14px,1.4vw,20px) 0 4px;font-weight:450;font-size:clamp(16px,1.3vw,19px)}
+.card .small{color:var(--coral);font-size:11px}
+
+/* clients */
+.clients{padding:clamp(40px,6vw,90px) 0 clamp(80px,10vw,140px)}
+.clients h2{margin:0 0 clamp(28px,3.5vw,48px);font-weight:430;font-size:clamp(17px,1.4vw,21px);color:var(--coral)}
+.logos{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(20px,3vw,48px);align-items:center;list-style:none;margin:0;padding:0}
+.logos li{display:flex;justify-content:center;align-items:center;height:clamp(44px,4.4vw,64px)}
+.logos img{max-height:100%;max-width:100%;width:auto;filter:brightness(0) invert(1);opacity:.92}
+.logos svg{height:62%;width:auto}
+
+/* why */
+.why{padding:clamp(40px,4vw,60px) 0 clamp(90px,11vw,150px)}
+.why .col{display:grid;grid-template-columns:1fr 1.45fr;gap:clamp(24px,5vw,96px)}
+.why h2{margin:0;font-weight:430;font-size:clamp(20px,1.7vw,25px)}
+.why ol{list-style:none;margin:0;padding:0;counter-reset:w}
+.why li{display:grid;grid-template-columns:clamp(30px,3vw,46px) 1fr;padding:clamp(12px,1.3vw,18px) 0;border-bottom:1px solid var(--rule-dk)}
+.why li::before{counter-increment:w;content:counter(w);font-size:clamp(17px,1.4vw,21px);font-weight:400}
+.why b{display:block;font-weight:450;color:var(--coral);font-size:clamp(13.5px,1vw,15px);margin-bottom:2px}
+.why .small{color:#efe9e4}
+
+/* ── work mosaic ─────────────────────────────────────────────────────── */
+.work{padding:clamp(18px,2vw,28px) clamp(14px,2vw,28px) 0;display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,22px)}
+.tile{position:relative;overflow:hidden;aspect-ratio:16/10;background:#1b1714;color:#fff}
+.tile:nth-child(4n+2),.tile:nth-child(4n+3){aspect-ratio:16/11.4}
+.tile .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s ease}
+.tile .slide.on{opacity:1}
+.tile::after{content:"";position:absolute;inset:0 0 auto 0;height:42%;pointer-events:none;
+  background:linear-gradient(rgba(0,0,0,.45),transparent)}
+.tile .cap{position:absolute;left:clamp(16px,3.6vw,56px);top:clamp(16px,3vw,44px);z-index:2;max-width:70%}
+.tile h3{margin:0 0 6px;font-weight:450;font-size:clamp(17px,1.7vw,26px)}
+.tile .small{font-size:11px;opacity:.92}
+.tile .badge{display:inline-block;margin-top:9px;padding:3px 8px;border:1px solid rgba(255,255,255,.55);
+  font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}
+.tile.tbc{background:var(--blush);color:var(--text);display:grid;place-items:center;text-align:center}
+.tile.tbc::after{display:none}
+.tile.tbc .cap{position:static;max-width:none}
+.tile.tbc .badge{border-color:var(--rule)}
+
+/* ── contact ─────────────────────────────────────────────────────────── */
+.contact{padding:clamp(80px,10vw,140px) 0 clamp(60px,7vw,90px)}
+.contact .col{display:grid;grid-template-columns:1.45fr 1fr;gap:clamp(24px,5vw,96px);align-items:end}
+.contact h2{margin:0 0 18px;font-weight:450;font-size:clamp(20px,1.7vw,26px)}
+.contact .small{max-width:34em;margin:0 0 36px;color:#4b433e}
+.contact address{font-style:normal;font-size:clamp(14px,1vw,16px);line-height:1.5}
+.contact address a:hover,.contact .side a:hover{color:var(--coral-deep)}
+.contact .side{font-size:12px;justify-self:end}
+.foot{border-top:1px solid var(--rule);padding:18px 0 28px;color:var(--muted)}
+.foot .col{display:flex;justify-content:space-between;gap:16px}
+
+/* reveal */
+.js [data-r]{opacity:0;transform:translateY(14px);transition:opacity .9s ease,transform .9s var(--ease)}
+.js [data-r].in{opacity:1;transform:none}
+
+/* ── responsive ──────────────────────────────────────────────────────── */
+@media (max-width:900px){
+  .links{display:none}
+  .menu{display:block;font-size:13px}
+  .nav.open .links{display:flex;flex-direction:column;position:absolute;top:62px;left:0;right:0;gap:0;
+    background:var(--ink);padding:6px var(--gut) 14px}
+  .nav.open .links a{padding:11px 0;border-bottom:1px solid var(--rule-dk)}
+  .hero{min-height:auto;padding-top:110px}
+  .hero .col{grid-template-columns:1fr}
+  .tiles{--t:calc((var(--col) - 2*var(--tg)) / 3)}
+  .caps .col,.why .col,.contact .col{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr 1fr}
+  .logos{grid-template-columns:repeat(3,1fr)}
+  .f-head{flex-direction:column}
+  .work{grid-template-columns:1fr}
+  .tile,.tile:nth-child(4n+2),.tile:nth-child(4n+3){aspect-ratio:16/11}
+  .contact .side{justify-self:start}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none !important;animation:none !important}
+  .js [data-r]{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="col">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Stackform</a>
+    <nav class="links" id="links" aria-label="Main">
+      <a href="#about">About</a><a href="#build">What I build</a><a href="#work">Work</a>
+      <a href="#clients">Clients</a><a href="#contact">Contact</a>
+    </nav>
+    <button class="menu" type="button" aria-expanded="false" aria-controls="links">Menu</button>
+  </div>
+</header>
+
+<section class="hero dark" id="top">
+  <div class="col">
+    <div>
+      <p class="kicker">Forward-deployed engineer, Singapore</p>
+      <h1><span class="c">Websites /</span><span class="c">Apps &amp; Admin /</span><span>Operations Systems</span></h1>
+      <p class="small">I build the websites, apps and back-office systems that sport, media and consumer
+      businesses run on: leagues, academies, studios and founders.</p>
+      <p class="small">For operators who need senior engineering without an agency in between. I sit inside
+      the business, learn how it actually runs, ship it, and stay on.</p>
+    </div>
+    <div class="tiles" id="tiles" aria-hidden="true"></div>
+  </div>
+</section>
+
+<section class="intro" id="about">
+  <div class="col">
+    <p data-r>I’m a forward-deployed engineer building websites, apps and operations systems, and the one
+    person you deal with from first call to launch day.</p>
+    <p data-r>I work with businesses that have outgrown spreadsheets and WhatsApp threads. Whether it’s a
+    league’s fixtures and payroll, an academy’s parent app or a studio’s new website, I get under the skin of
+    how things really work and turn it into software that’s live, used, and looked after.</p>
+  </div>
+</section>
+
+<section class="caps" id="build">
+  <div class="col">
+    <h2 data-r>Senior engineering where it counts</h2>
+    <div class="acc" data-r>
+      <div class="acc-item"><button class="acc-btn" aria-expanded="false"><span>1. Websites</span><span class="pm">+</span></button>
+        <div class="acc-panel"><div><p>Fast, responsive sites driven by live data, not a PDF someone re-uploads. Fixtures, news,
+        shops and sign-ups that update themselves.</p></div></div></div>
+      <div class="acc-item"><button class="acc-btn" aria-expanded="false"><span>2. Apps &amp; portals</span><span class="pm">+</span></button>
+        <div class="acc-panel"><div><p>Native iOS and Android apps and logged-in portals for parents, captains, coaches and
+        staff, on the same backbone as everything else.</p></div></div></div>
+      <div class="acc-item"><button class="acc-btn" aria-expanded="false"><span>3. Operations systems</span><span class="pm">+</span></button>
+        <div class="acc-panel"><div><p>The admin behind it all: scheduling, approvals, payments, payroll and reporting,
+        built around how the operation actually runs.</p></div></div></div>
+      <div class="acc-item"><button class="acc-btn" aria-expanded="false"><span>4. Automation &amp; AI</span><span class="pm">+</span></button>
+        <div class="acc-panel"><div><p>Enter it once. Notices, social graphics, reports and reschedule suggestions that
+        generate themselves from data entered a single time.</p></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="featured dark" id="work-featured">
+  <div class="col">
+    <div class="f-head" data-r>
+      <div><h2>Featured projects</h2>
+        <p class="small">Websites, apps and admin platforms across sport, media and food. Built, shipped and still looked after.</p></div>
+      <a class="btn-line" href="#work">View all work</a>
+    </div>
+    <div class="cards">
+      <a class="card" href="#p-kf" data-r><div class="pic"><img src="media/pt-kf.webp" alt="KlickFrame website on a phone" width="800" height="1040" loading="lazy"></div>
+        <h3>KlickFrame</h3><span class="small">View project</span></a>
+      <a class="card" href="#p-xl" data-r><div class="pic"><img src="media/pt-xl.webp" alt="X-League player profile on a phone" width="800" height="1040" loading="lazy"></div>
+        <h3>X-League</h3><span class="small">View project</span></a>
+      <a class="card" href="#p-fl" data-r><div class="pic"><img src="media/pt-fl.webp" alt="Flair parent app on a phone" width="800" height="1040" loading="lazy"></div>
+        <h3>Flair Football Academy</h3><span class="small">View project</span></a>
+      <a class="card" href="#p-d2d" data-r><div class="pic"><img src="media/pt-d2d.webp" alt="D2D Sports app on a phone" width="800" height="1040" loading="lazy"></div>
+        <h3>D2D Sports</h3><span class="small">View project</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="clients dark" id="clients">
+  <div class="col">
+    <h2 data-r>Clients I’ve built for</h2>
+    <ul class="logos" data-r>
+      <li><img src="../../assets/d2d-logo.webp" alt="D2D Sports"></li>
+      <li><img src="../../assets/xleague-logo-light.webp" alt="X-League"></li>
+      <li><img src="../../assets/nsg-logo.svg" alt="National Scout Games"></li>
+      <li><svg viewBox="0 0 168 32" role="img" aria-label="KlickFrame"><circle cx="16" cy="16" r="15" fill="none" stroke="#fdfcfb" stroke-width="2"/>
+        <path d="M10 8h3.5v16H10z" fill="#fdfcfb"/><path d="M23.5 8l-8 8 8 8h-5l-8-8 8-8z" fill="#fdfcfb"/>
+        <text x="40" y="22.5" fill="#fdfcfb" font-family="Archivo" font-weight="620" font-size="19" letter-spacing="-.5">KlickFrame</text></svg></li>
+      <li><img src="../../assets/makan-logo.webp" alt="Makan"></li>
+    </ul>
+  </div>
+</section>
+
+<section class="why dark">
+  <div class="col">
+    <h2 data-r>Why work with me?</h2>
+    <ol data-r>
+      <li><div><b>In the business, fast</b><span class="small">I join the operation, learn how it really runs and start shipping in weeks, without a long discovery phase.</span></div></li>
+      <li><div><b>One person, the whole stack</b><span class="small">Website, app, admin, database and automation. No hand-offs between people who’ve never met.</span></div></li>
+      <li><div><b>Built for the busiest day</b><span class="small">Systems that hold up when everyone needs them at once, not just in a demo.</span></div></li>
+      <li><div><b>Live, not prototyped</b><span class="small">Real users, real data, real money moving through what I’ve built.</span></div></li>
+      <li><div><b>Direct and practical</b><span class="small">No account managers, no layers. You talk to the person writing the code.</span></div></li>
+      <li><div><b>I stay on</b><span class="small">Run it, evolve it, and keep removing the next bottleneck as the business grows.</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="work" id="work" aria-label="All work">
+  <article class="tile" id="p-kf" data-slides="media/ls-kf.webp media/ls-kf-work.webp media/ls-kf-serv.webp media/ls-kf-sect.webp">
+    <div class="cap"><h3>KlickFrame</h3><span class="small">Website / Brand / Video studio</span></div></article>
+  <article class="tile" id="p-xl" data-slides="media/ls-xl.webp media/ls-xl-win.webp">
+    <div class="cap"><h3>X-League</h3><span class="small">Website / Admin suite / Captain portal / App</span></div></article>
+  <article class="tile" id="p-d2d" data-slides="media/ls-d2d.webp media/ls-d2d-site.webp">
+    <div class="cap"><h3>D2D Sports</h3><span class="small">League platform / Admin / Payroll / App</span></div></article>
+  <article class="tile" id="p-fl" data-slides="media/ls-fl.webp media/ls-fl-admin.webp media/ls-fl-comp.webp media/ls-fl-shop.webp">
+    <div class="cap"><h3>Flair Football Academy</h3><span class="small">Website / Parent &amp; coach app / Admin</span>
+      <span class="badge">Pitch prototype</span></div></article>
+  <article class="tile" id="p-mk" data-slides="media/ls-makan.webp">
+    <div class="cap"><h3>Makan</h3><span class="small">AI meal logging / iOS &amp; Android</span>
+      <span class="badge">In development</span></div></article>
+  <article class="tile tbc" id="p-kita">
+    <div class="cap"><h3>Kita Handoff</h3><span class="small">Details to come</span><br><span class="badge">Placeholder</span></div></article>
+</section>
+
+<section class="contact" id="contact">
+  <div class="col">
+    <div data-r>
+      <h2>Need a website, app or system built?</h2>
+      <p class="small">I’m available for new builds, rescues of half-finished projects, and ongoing engineering for
+      businesses that need someone senior on hand.</p>
+      <address><a href="https://wa.me/6588685483">WhatsApp +65 8868 5483</a><br>
+        <a href="mailto:hello@stackformstudios.com">hello@stackformstudios.com</a></address>
+    </div>
+    <div class="side" data-r><a href="mailto:hello@stackformstudios.com">Email</a></div>
+  </div>
+</section>
+<footer class="foot small"><div class="col"><span>© 2026 Stackform Studios · Singapore</span><a href="#top">Back to top ↑</a></div></footer>
+
+<script>
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* nav */
+  var nav = document.getElementById('nav'), menu = nav.querySelector('.menu');
+  var onScroll = function () { nav.classList.toggle('solid', scrollY > 30); };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  menu.addEventListener('click', function () {
+    var o = !nav.classList.contains('open'); nav.classList.toggle('open', o); menu.setAttribute('aria-expanded', String(o));
+  });
+  nav.querySelectorAll('.links a').forEach(function (a) {
+    a.addEventListener('click', function () { nav.classList.remove('open'); menu.setAttribute('aria-expanded', 'false'); });
+  });
+
+  /* hero tiles: 9 cells, ~5 filled at a time; every beat one cell fades out or a
+     new picture fades into an empty cell, so the grid is never the same twice */
+  var POOL = ['sq-kf', 'sq-xl', 'sq-fl-admin', 'sq-d2d-app', 'sq-makan', 'sq-xl-site',
+              'sq-fl-start', 'sq-d2d-admin', 'sq-kf-mob'];
+  var grid = document.getElementById('tiles'), cells = [];
+  for (var i = 0; i < 9; i++) {
+    var c = document.createElement('div'); c.className = 'cell';
+    for (var k = 0; k < 2; k++) { var im = new Image(); im.alt = ''; im.decoding = 'async'; c.appendChild(im); }
+    grid.appendChild(c); cells.push({ el: c, shown: null, front: 0 });
+  }
+  var start = [0, 2, 4, 5, 7];           // a checkerboard-ish opening layout
+  var used = {};
+  function show(cell, name) {
+    var imgs = cell.el.querySelectorAll('img'), nx = imgs[1 - cell.front];
+    nx.src = 'media/' + name + '.webp';
+    var go = function () { imgs[cell.front].classList.remove('on'); nx.classList.add('on'); cell.front = 1 - cell.front; };
+    nx.complete ? go() : nx.onload = go;
+    if (cell.shown) delete used[cell.shown];
+    cell.shown = name; used[name] = 1;
+  }
+  function hide(cell) {
+    cell.el.querySelectorAll('img').forEach(function (m) { m.classList.remove('on'); });
+    if (cell.shown) delete used[cell.shown]; cell.shown = null;
+  }
+  start.forEach(function (ci, n) { show(cells[ci], POOL[n]); });
+  if (!reduce) setInterval(function () {
+    var filled = cells.filter(function (c) { return c.shown; });
+    var empty = cells.filter(function (c) { return !c.shown; });
+    var free = POOL.filter(function (p) { return !used[p]; });
+    var r = Math.random();
+    if ((r < .4 && filled.length > 4) || !empty.length) hide(filled[Math.floor(Math.random() * filled.length)]);
+    else if (r < .75 && empty.length && filled.length < 7) show(empty[Math.floor(Math.random() * empty.length)], free[Math.floor(Math.random() * free.length)]);
+    else if (filled.length) show(filled[Math.floor(Math.random() * filled.length)], free[Math.floor(Math.random() * free.length)]);
+  }, 1100);
+
+  /* accordion */
+  document.querySelectorAll('.acc-item').forEach(function (it) {
+    var b = it.querySelector('.acc-btn');
+    b.addEventListener('click', function () {
+      var o = !it.classList.contains('open'); it.classList.toggle('open', o); b.setAttribute('aria-expanded', String(o));
+    });
+  });
+
+  /* work tiles: each cycles through its own frames, offset so they never change
+     together. Frames load when the tile nears the viewport, and a tile only ever
+     moves to a frame that has finished loading, so it can never show blank. */
+  var tiles = [].slice.call(document.querySelectorAll('.tile[data-slides]'));
+  function wake(t, idx) {
+    if (t.dataset.awake) return; t.dataset.awake = 1;
+    var els = t.dataset.slides.split(/\s+/).map(function (s, n) {
+      var im = new Image(); im.className = 'slide' + (n ? '' : ' on'); im.alt = ''; im.decoding = 'async'; im.src = s;
+      t.insertBefore(im, t.querySelector('.cap')); return im;
+    });
+    if (els.length < 2 || reduce) return;
+    var cur = 0;
+    setTimeout(function () {
+      setInterval(function () {
+        var nx = (cur + 1) % els.length;
+        if (!(els[nx].complete && els[nx].naturalWidth)) return;   // wait for it
+        els[cur].classList.remove('on'); els[nx].classList.add('on'); cur = nx;
+      }, 3600);
+    }, idx * 700);
+  }
+  if ('IntersectionObserver' in window) {
+    var to = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { wake(e.target, tiles.indexOf(e.target)); to.unobserve(e.target); } });
+    }, { rootMargin: '600px 0px' });
+    tiles.forEach(function (t) { to.observe(t); });
+  } else tiles.forEach(wake);
+
+  /* reveal, with a safety net */
+  var els = document.querySelectorAll('[data-r]');
+  if (reduce || !('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' });
+  els.forEach(function (e) { io.observe(e); });
+  addEventListener('load', function () { setTimeout(function () { els.forEach(function (e) { e.classList.add('in'); }); }, 2500); });
+})();
+</script>
+</body>
+</html>
