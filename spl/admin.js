@@ -171,7 +171,7 @@
   function spark(col, pts) { const W = 112, H = 42, mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * W / (pts.length - 1)).toFixed(1)} ${(H - 4 - (H - 10) * v / mx).toFixed(1)}`), id = 'sg' + col.slice(1);
     const d = 'M' + xy.join(' L'); return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".45"/><stop offset="1" stop-color="${col}" stop-opacity=".04"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
   function dial() {
-    const pool = A.ovLook === 'C' ? ROUND : TONIGHT, i = pool.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
+    const pool = TONIGHT, i = pool.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
     let frac = 0, top = m[1] === TODAY ? 'Kick-off tonight' : 'Kick-off ' + dayName(m[1]), big = '7.30PM', sub = E(m[5]);
     if (c.phase === '1H' || c.phase === '2H') { frac = Math.min(1, c.n / 90); top = c.phase === '1H' ? 'First half' : 'Second half'; big = `${s[0]}–${s[1]}`; sub = `<span data-aclock="${i}">${c.label}</span>`; }
     else if (c.phase === 'HT') { frac = .5; top = 'Half time'; big = `${s[0]}–${s[1]}`; sub = 'Back in 15 minutes'; }
@@ -224,7 +224,7 @@
           <div class="chips">${chips}</div><p class="sum">${summary}</p>
           <span class="k cap">Quick actions</span><div class="qa">${qa}</div></div>
         ${dial()}</div>
-      ${A.ovLook === 'B' ? `<div class="g rstrip"><span class="rsh"><b>Matchweek 7</b><span class="note">20–22 November</span></span>${ROUND.map(i => { const m = SPL.matches[i], c2 = clockOf(i), s2 = scoreOf(i), on = c2.phase !== 'pre'; return `<button class="rg ${m[1] === TODAY ? 'tn' : ''}" data-console="${i}"><span class="lbl ${['1H', '2H'].includes(c2.phase) ? 'live' : ''}">${on ? (c2.phase === 'FT' ? 'Full time' : 'Live · ' + c2.label) : relDay(m[1]) + ' · 7.30PM'}</span><span class="rgm">${crest(m[2], 30)}<b>${on ? s2[0] + '–' + s2[1] : 'v'}</b>${crest(m[3], 30)}</span><span class="rgn">${short(m[2])} v ${short(m[3])}</span><span class="note">${E(m[5])}</span></button>`; }).join('')}</div>` : ''}
+      ${ROUND.length ? `<div class="g rstrip"><span class="rsh"><b>Matchweek 7</b><span class="note">20–22 November</span></span>${ROUND.map(i => { const m = SPL.matches[i], c2 = clockOf(i), s2 = scoreOf(i), on = c2.phase !== 'pre'; return `<button class="rg ${m[1] === TODAY ? 'tn' : ''}" data-console="${i}"><span class="lbl ${['1H', '2H'].includes(c2.phase) ? 'live' : ''}">${on ? (c2.phase === 'FT' ? 'Full time' : 'Live · ' + c2.label) : relDay(m[1]) + ' · 7.30PM'}</span><span class="rgm">${crest(m[2], 30)}<b>${on ? s2[0] + '–' + s2[1] : 'v'}</b>${crest(m[3], 30)}</span><span class="rgn">${short(m[2])} v ${short(m[3])}</span><span class="note">${E(m[5])}</span></button>`; }).join('')}</div>` : ''}
       <div class="kpis">${kp}</div>
       <div class="g clubs"><div class="chd"><span><b>Clubs</b><span>Follows in the app, from fans' taps</span></span></div><div class="tiles">${order.map(tile).join('')}</div></div>
       <div class="grid2"><div class="panel"><h2>Latest notifications<button class="lnk" data-page="push">All</button></h2>${pushTable(D.pushes.slice(-5).reverse(), true)}</div>
@@ -503,7 +503,7 @@
     const liveNow = ROUND.some(i => { const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
     const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
     const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TONIGHT' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
-      (k === 'matchday' ? (A.ovLook === 'A' ? TONIGHT : ROUND).map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span>${A.ovLook === 'A' ? '' : `<em class="dd">${dayName(m[1]).slice(0, 3)}</em>`}${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
+      (k === 'matchday' ? ROUND.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span><em class="dd">${dayName(m[1]).slice(0, 3)}</em>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
     const now = new Date(), stamp = 'Friday 20 November · ' + now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
     root.innerHTML = `<div class="glow" aria-hidden="true"><span></span><span></span><span></span></div>
       <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
@@ -658,7 +658,7 @@
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
   const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
-  A.ovLook = q.get('ov') || 'B'; if (!CL.on) loadAudit().then(render);
+   if (!CL.on) loadAudit().then(render);
   if (CL.on) {
     CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });
     CL.onChange(() => { const el = root.querySelector('.who .cs'); if (el) el.outerHTML = statusLine(); });
