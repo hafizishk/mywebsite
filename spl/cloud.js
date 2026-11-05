@@ -63,11 +63,21 @@ var SPLCLOUD = (function () {
     return true;
   }
 
+  // the activity log (0002_spl_activity.sql): who changed what, written by the database on every save
+  async function pullAudit(limit) {
+    if (!on || !ST.admin) return null;
+    const { data, error } = await sb.from('spl_audit').select('id, at, who, section, before, after').order('id', { ascending: false }).limit(limit || 400);
+    if (error) { ST.auditError = error.message; return null; } ST.auditError = '';
+    return data.map(r => ({ id: r.id, at: Date.parse(r.at), who: r.who, section: r.section, before: r.before, after: r.after }));
+  }
+
   // staff sign-in (admin only): an email and password made in Supabase > Authentication, listed in spl_admins
   async function checkAdmin() {
     if (!on) return false; const { data: u } = await sb.auth.getUser(); ST.email = u && u.user ? u.user.email : '';
     if (!ST.email) { ST.admin = false; emit(); return false; }
-    const { data, error } = await sb.rpc('spl_is_admin'); ST.admin = !error && data === true; emit(); return ST.admin;
+    const { data, error } = await sb.rpc('spl_is_admin'); ST.admin = !error && data === true;
+    if (ST.admin) { const r = await sb.from('spl_admins').select('name').eq('user_id', u.user.id).maybeSingle(); ST.name = r.data && r.data.name ? r.data.name : ''; }
+    emit(); return ST.admin;
   }
   async function signIn(email, password) {
     if (!on) return { ok: false, msg: 'No backend set up yet.' };
@@ -79,5 +89,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, signIn, signOut, checkAdmin };
 })();

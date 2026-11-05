@@ -55,7 +55,7 @@ var SPLSTORE = (function () {
     out.live = {};
     if (isObj(d.live)) Object.keys(d.live).forEach(k => { const L = d.live[k], i = +k; if (!isObj(L) || !SPL.matches[i]) return;
       out.live[i] = { phase: ['pre', '1H', 'HT', '2H', 'FT'].includes(L.phase) ? L.phase : 'pre', t0: +L.t0 || 0, base: +L.base || 0, sheet: !!L.sheet,
-        ev: Array.isArray(L.ev) ? L.ev.filter(e => Array.isArray(e) && ['G', 'Y', 'R', 'S', 'HT', 'FT'].includes(e[3])).slice(0, 80) : [] }; });
+        ev: Array.isArray(L.ev) ? L.ev.filter(e => Array.isArray(e) && ['G', 'D', 'Y', 'R', 'S', 'HT', 'FT'].includes(e[3])).slice(0, 80).map(e => { e = e.slice(0, 10); if (e[8] != null && !SPL.clubs[e[8]]) e[8] = null; if (e[9] != null) e[9] = String(e[9]).slice(0, 40); return e; }) : [] }; });
     const g = isObj(d.gotm) ? d.gotm : {};
     out.gotm = { month: str(g.month, def.gotm.month), closes: str(g.closes, def.gotm.closes), open: g.open !== false, winner: str(g.winner, ''),
       goals: Array.isArray(g.goals) && g.goals.length ? g.goals.filter(isObj).slice(0, 8).map((x, j) => ({ id: str(x.id, 'g' + (j + 1)), player: str(x.player, ''), team: C[x.team] ? x.team : 'TAM', match: str(x.match, ''), min: str(x.min, ''), how: str(x.how, '') })) : def.gotm.goals,

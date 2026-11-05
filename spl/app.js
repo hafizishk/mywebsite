@@ -80,7 +80,9 @@
     const score = [0, 0]; fired.forEach(e => { if (e[3] === 'G') score[e[4] === m[2] ? 0 : 1]++; });
     return { started, ft: done, clock, played, fired, score, T };
   }
-  const evText = (i, e) => { const m = SPL.matches[i]; if (e[3] === 'HT') return 'Half time'; if (e[3] === 'FT') return 'Full time'; const t = short(e[4]); if (e[3] === 'G') return `Goal · ${sname(e[4], e[5])} (${t})`; if (e[3] === 'Y') return `Yellow card · ${sname(e[4], e[5])} (${t})`; if (e[3] === 'R') return `Red card · ${sname(e[4], e[5])} (${t})`; return `Sub · ${sname(e[4], e[5])} on for ${sname(e[4], e[6])} (${t})`; };
+  // a goal's scorer: an own goal (e[7] 'og') names a player from the other side (e[8]) and is credited to e[4]
+  const gname = e => sname(e[8] || e[4], e[5]) + (e[7] === 'og' ? ' (og)' : '');
+  const evText = (i, e) => { const m = SPL.matches[i]; if (e[3] === 'HT') return 'Half time'; if (e[3] === 'FT') return 'Full time'; const t = short(e[4]); if (e[3] === 'G') return `Goal · ${gname(e)} (${t})`; if (e[3] === 'D') return `No goal · VAR: ${gname(e)} (${t}), ${e[9] || 'ruled out'}`; if (e[3] === 'Y') return `Yellow card · ${sname(e[4], e[5])} (${t})`; if (e[3] === 'R') return `Red card · ${sname(e[4], e[5])} (${t})`; return `Sub · ${sname(e[4], e[5])} on for ${sname(e[4], e[6])} (${t})`; };
   const played = () => SPL.matches.map((m, i) => { const L = liveOf(i); return L && L.ft ? [m[0], m[1], m[2], m[3], L.score, m[5], m[6], 'Full time'] : m; }).filter(m => m[4]);
   const form = k => played().filter(m => m[2] === k || m[3] === k).slice(-5).map(m => {
     const h = m[2] === k, gf = h ? m[4][0] : m[4][1], ga = h ? m[4][1] : m[4][0];
@@ -100,7 +102,7 @@
   }
   const posText = k => { const r = table().find(x => x.code === k); const o = r.pos === 1 ? 'st' : r.pos === 2 ? 'nd' : r.pos === 3 ? 'rd' : 'th'; return `${r.pos}${o} · ${r.pts} pts`; };
   const goalsFor = name => { const out = []; SPL.matches.forEach(m => (m[6] || []).forEach(g => { if (g[0].replace(/ \((og|pen)\)/, '') === name) out.push({ label: `${short(m[2])} ${m[4][0]}–${m[4][1]} ${short(m[3])} · MW${m[0]}`, min: g[1] }); }));
-    LIVE_IDS.forEach(i => { const L = liveOf(i), m = SPL.matches[i]; if (L) L.fired.forEach(e => { if (e[3] === 'G' && sname(e[4], e[5]) === name) out.push({ label: `${short(m[2])} ${L.score[0]}–${L.score[1]} ${short(m[3])} · MW${m[0]}`, min: e[2] ? `${e[1]}+${e[2]}` : e[1] }); }); });
+    LIVE_IDS.forEach(i => { const L = liveOf(i), m = SPL.matches[i]; if (L) L.fired.forEach(e => { if (e[3] === 'G' && e[7] !== 'og' && sname(e[4], e[5]) === name) out.push({ label: `${short(m[2])} ${L.score[0]}–${L.score[1]} ${short(m[3])} · MW${m[0]}`, min: e[2] ? `${e[1]}+${e[2]}` : e[1] }); }); });
     return out; };
   const age = dob => { const d = new Date(dob), n = new Date('2026-11-01'); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; };
   const ics = (m) => { const d = m[1].replace(/-/g, ''); const t = `${d}T113000Z`, e = `${d}T133000Z`; const body = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SPL//Fixtures//EN','BEGIN:VEVENT',`UID:spl-${m[0]}-${m[2]}-${m[3]}@spl.sg`,`DTSTART:${t}`,`DTEND:${e}`,`SUMMARY:${short(m[2])} v ${short(m[3])} · SPL MW${m[0]}`,`LOCATION:${m[5]}`,'END:VEVENT','END:VCALENDAR'].join('\r\n'); return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(body); };
@@ -222,7 +224,7 @@
     <div style="display:flex;flex-direction:column;align-items:center"><span class="d mono" style="font-size:${r.sc === 'VS' ? 14 : 20}px;line-height:1">${r.sc}</span><span class="lbl" style="font-size:9px;text-align:center;line-height:1.3;${r.live ? 'color:#FF6B71' : ''}">${r.live ? `<span data-clock="${r.id}">${r.L.clock}</span>` : r.status}</span></div>
     <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span style="font-size:13px;font-weight:600;text-align:right">${r.aname}</span>${crest(r.away, 26)}</div>
   </button>`;
-  const scorersLine = (r, side) => { if (!r.L || !r.L.started) return ''; const k = side ? r.away : r.home; const g = r.L.fired.filter(e => e[3] === 'G' && e[4] === k).map(e => `${backName(sname(k, e[5]))} ${minLabel(e[1], e[2])}`); return g.length ? `<span style="font-size:11px;color:var(--muted);text-align:center;line-height:1.4">${g.join(', ')}</span>` : ''; };
+  const scorersLine = (r, side) => { if (!r.L || !r.L.started) return ''; const k = side ? r.away : r.home; const g = r.L.fired.filter(e => e[3] === 'G' && e[4] === k).map(e => `${backName(sname(e[8] || k, e[5]))}${e[7] === 'og' ? ' (og)' : ''} ${minLabel(e[1], e[2])}`); return g.length ? `<span style="font-size:11px;color:var(--muted);text-align:center;line-height:1.4">${g.join(', ')}</span>` : ''; };
   const heroCard = (r, blurb) => { const L = r.L, on = L && L.started, last = on ? L.fired.filter(e => e[3] !== 'FT').slice(-1)[0] : null;
     return `<button class="card hero" data-match="${r.id}">
     <div style="display:flex;justify-content:space-between;align-items:center">${on ? (L.ft ? `<span class="lbl">Full time · MW6</span>` : `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${r.id}">${L.clock}</span></span>`) : `<span class="lbl" style="color:#FFD1D3"><span class="dot" style="background:#E8363D;margin-right:6px"></span>Tonight · 7.30PM</span>`}<span class="lbl">${r.venue}</span></div>
@@ -357,10 +359,10 @@
   }
   function liveOverview(i, L) {
     const m = SPL.matches[i];
-    const icon = e => e[3] === 'G' ? BALL : e[3] === 'Y' ? CARD : e[3] === 'R' ? RCARD : SUBI(true);
+    const icon = e => e[3] === 'D' ? `<span style="opacity:.45">${BALL}</span>` : e[3] === 'G' ? BALL : e[3] === 'Y' ? CARD : e[3] === 'R' ? RCARD : SUBI(true);
     const rowsH = L.fired.slice().reverse().map(e => {
       if (e[3] === 'HT' || e[3] === 'FT') { const sc = e[3] === 'FT' ? L.score : [0, 1].map(s => L.fired.filter((x, xi) => x[3] === 'G' && xi < L.fired.indexOf(e) && (x[4] === m[2]) === (s === 0)).length); return `<div class="lbl" style="text-align:center;padding:12px 0;border-bottom:1px solid var(--line2)">${e[3] === 'FT' ? 'Full time' : 'Half time'} · ${sc[0]}–${sc[1]}</div>`; }
-      const h = e[4] === m[2], who = sname(e[4], e[5]), sub = e[3] === 'G' && e[7] ? (e[7] === 'pen' ? 'Penalty' : e[7]) : e[3] === 'G' && e[6] ? `Assist ${sname(e[4], e[6])}` : e[3] === 'S' ? `Off ${sname(e[4], e[6])}` : e[3] === 'Y' ? 'Yellow card' : e[3] === 'R' ? 'Red card' : '';
+      const h = e[4] === m[2], who = e[3] === 'G' ? gname(e) : e[3] === 'D' ? `<s style="opacity:.6">${gname(e)}</s>` : sname(e[4], e[5]), sub = e[3] === 'D' ? `<span style="color:#FF6B71;font-weight:600">No goal · VAR</span> · ${e[9] || 'ruled out'}` : e[3] === 'G' && e[7] ? (e[7] === 'pen' ? 'Penalty' : e[7] === 'og' ? 'Own goal' : e[7]) : e[3] === 'G' && e[6] ? `Assist ${sname(e[4], e[6])}` : e[3] === 'S' ? `Off ${sname(e[4], e[6])}` : e[3] === 'Y' ? 'Yellow card' : e[3] === 'R' ? 'Red card' : '';
       const cell = `<span style="display:flex;flex-direction:column;gap:2px;${h ? 'align-items:flex-end;text-align:right;padding-right:10px' : 'padding-left:10px'}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:${e[3] === 'G' ? 700 : 500}">${h ? '' : icon(e)}${who}${h ? icon(e) : ''}</span>${sub ? `<span style="font-size:11px;color:var(--muted)">${sub}</span>` : ''}</span>`;
       return `<div style="display:grid;grid-template-columns:1fr 50px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)">${h ? cell : '<span></span>'}<span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${minLabel(e[1], e[2])}</span>${h ? '<span></span>' : cell}</div>`;
     });
@@ -384,7 +386,7 @@
     return `<div style="display:grid;grid-template-columns:1fr 44px 44px 1fr;column-gap:10px;row-gap:8px;align-items:baseline;padding-top:4px">${out}</div>`;
   }
   const realGoals = m => (m[6] || []).map(g => ({ team: g[2], name: g[0], min: (/\+/.test(g[1]) ? g[1] : g[1]) + "'" }));
-  const simGoals = (i, L) => L.fired.filter(e => e[3] === 'G').map(e => ({ team: e[4], name: sname(e[4], e[5]) + (e[7] === 'pen' ? ' (pen)' : ''), min: minLabel(e[1], e[2]) }));
+  const simGoals = (i, L) => L.fired.filter(e => e[3] === 'G').map(e => ({ team: e[4], name: gname(e) + (e[7] === 'pen' ? ' (pen)' : ''), min: minLabel(e[1], e[2]) }));
 
   function formTab(m, r) {
     const h2h = SPL.matches.filter((x, i) => i !== S.match && x[4] && ((x[2] === m[2] && x[3] === m[3]) || (x[2] === m[3] && x[3] === m[2]))).map(x => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13px"><span>${short(x[2])} v ${short(x[3])} · MW${x[0]}</span><span class="d mono" style="font-size:16px">${x[4][0]}–${x[4][1]}</span></div>`);
@@ -819,7 +821,7 @@
       const scoreAt = t => { const sc = [0, 0]; EV[i].forEach(e => { if (e[3] === 'G' && evT(i, e) <= t) sc[e[4] === m[2] ? 0 : 1]++; }); return sc; };
       if (from < 0 && to >= 0 && st.kickoff) out.push({ t: 0, i, k: m[2], title: `Kick-off! ⏱️ ${short(m[2])} v ${short(m[3])}`, body: `Live from ${m[5]}. Tap to follow every goal.` });
       EV[i].forEach(e => { const t = evT(i, e); if (t <= from || t > to) return; const sc = scoreAt(t);
-        if (e[3] === 'G' && st.goals) out.push({ t, i, k: e[4], title: `GOAL! ⚽ ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: `${minLabel(e[1], e[2])} ${sname(e[4], e[5])}${e[7] === 'pen' ? ' (pen)' : ''}${fan && e[4] === P.fav ? ', for the ' + short(P.fav) + '! 🙌' : '. Tap to follow it live.'}` });
+        if (e[3] === 'G' && st.goals) out.push({ t, i, k: e[4], title: `GOAL! ⚽ ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: `${minLabel(e[1], e[2])} ${gname(e)}${e[7] === 'pen' ? ' (pen)' : ''}${fan && e[4] === P.fav ? ', for the ' + short(P.fav) + '! 🙌' : '. Tap to follow it live.'}` });
         if (e[3] === 'FT' && st.results) out.push({ t, i, k: m[2], title: `Full time 🏁 ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: 'Who was your Player of the Match? Vote now.' }); });
     });
     return out.sort((x, y) => x.t - y.t);

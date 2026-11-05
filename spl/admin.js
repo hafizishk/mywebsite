@@ -7,7 +7,9 @@
   const A = { page: 'overview', live: 23, evType: 'G', evTeam: null, news: null, flash: '', pushWhen: 'now', pushAud: 'all' };
   const TONIGHT = [23, 22];
   let D = SPLSTORE.read();
-  const save = (fn, msg) => { D = SPLSTORE.update(fn); if (msg) flash(msg); render(); };
+  const save = (fn, msg) => { const b = SPLSTORE.read(); D = SPLSTORE.update(fn); auditLocal(b, D); if (msg) flash(msg); render();
+    // with the backend on, the database writes the activity rows; fetch them once the save has gone up
+    if (CL.on) { clearTimeout(save.t); save.t = setTimeout(() => loadAudit().then(() => { if (['overview', 'activity'].includes(A.page) && !document.activeElement.matches('input,textarea,select')) render(); }), 2000); } };
   const flash = msg => { A.flash = msg; clearTimeout(flash.t); flash.t = setTimeout(() => { A.flash = ''; render(); }, 2600); };
   const short = k => C[k].short;
   const crest = (k, px) => `<span class="crest cr-${k}" style="width:${px}px;height:${px}px" role="img" aria-label="${C[k].name}"></span>`;
@@ -16,7 +18,8 @@
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const ICON = {
     overview: 'M3 12l9-8 9 8M5 10v10h14V10', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
-    push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2'
+    push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
+    activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
   };
   const icon = k => `<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="${ICON[k]}"/></svg>`;
 
@@ -39,40 +42,148 @@
   const VIEW_NAMES = { 'home:tonight': 'Home · Matchday', 'home:news': 'Home · News', watch: 'Watch', matches: 'Season · Matches', table: 'Season · Table', 'stats:players': 'Stats · Players', 'stats:clubstats': 'Stats · Clubs', clubs: 'Clubs', players: 'Players', player: 'Player profile', gotm: 'Goal of the Month', pmonth: 'Player of the Month', settings: 'Settings', search: 'Search', tickets: 'Tickets', video: 'Video', article: 'News article', onboard: 'Onboarding', partners: 'Partners screen' };
   const viewName = k => VIEW_NAMES[k] || (k.startsWith('match:') ? 'Match centre · ' + k.slice(6) : k.startsWith('club:') ? 'Club · ' + (C[k.slice(5)] ? C[k.slice(5)].short : k.slice(5)) : k);
 
-  // ---------- pages ----------
-  function overview() {
-    const st = stats(), drafts = D.news.filter(n => n.status === 'draft').length, unsold = Object.values(D.sponsors).filter(s => !s.partner).length, empty = D.partners.filter(p => !p.logo && !p.name).length;
-    const todo = [
-      D.gotm.open && !D.gotm.winner ? [`Goal of the Month (${E(D.gotm.month)}) closes ${fmt(D.gotm.closes)}`, 'votes', 'Review'] : null,
-      !D.gotm.open && !D.gotm.winner ? ['Goal of the Month is closed: publish the winner', 'votes', 'Publish'] : null,
-      drafts ? [`${drafts} news ${drafts === 1 ? 'story' : 'stories'} in draft`, 'news', 'Open'] : null,
-      unsold ? [`${unsold} of ${Object.keys(D.sponsors).length} section sponsor slots have no partner`, 'sponsors', 'Fill'] : null,
-      empty ? [`${empty} empty logo ${empty === 1 ? 'space' : 'spaces'} on the partners screen`, 'sponsors', 'Add logos'] : null
-    ].filter(Boolean);
-    const card = i => { const m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), on = c.phase !== 'pre';
-      return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between" class="lbl"><span class="${on && c.phase !== 'FT' ? 'live' : ''}">${on ? (c.phase === 'FT' ? 'Full time' : 'Live · ' + c.label) : 'Tonight · 7.30PM'}</span><span>${E(m[5])}</span></div>
-        <div class="score"><div class="t">${crest(m[2], 46)}<span class="d" style="font-size:15px">${short(m[2])}</span></div><span class="big" style="font-size:46px">${on ? s[0] + '–' + s[1] : 'VS'}</span><div class="t">${crest(m[3], 46)}<span class="d" style="font-size:15px">${short(m[3])}</span></div></div>
-        <button class="btn" data-console="${i}">${on ? 'Open the console' : 'Run this game live'}</button></div>`; };
-    return head('Overview', 'Sunday 1 November · Matchweek 6') + `
-      <div class="grid2">${TONIGHT.map(card).join('')}</div>
-      <div class="grid2">
-        <div class="panel"><h2>Waiting on you</h2>${todo.length ? todo.map(t => `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line2)"><span style="flex:1;font-size:14px">${t[0]}</span><button class="btn2 sm" data-page="${t[1]}">${t[2]}</button></div>`).join('') : '<p class="note">Nothing waiting.</p>'}</div>
-        <div class="panel"><h2>In the app<span class="lbl">${CL.on ? 'every phone' : 'this device'}</span></h2><div class="grid3" style="gap:10px">${[[st.ev.filter(e => e[1] === 'view').length, 'Screens viewed'], [st.ev.filter(e => e[1] === 'tap').length, 'Taps'], [Object.values(st.articles).reduce((a, b) => a + b, 0), 'Articles read'], [st.votes, 'Votes cast'], [Object.values(st.push).reduce((a, b) => a + b, 0), 'Alerts received'], [st.views.partners || 0, 'Partner screen shown']].map(([n, l]) => `<div style="padding:10px 0"><div class="big" style="font-size:38px">${n}</div><div class="lbl">${l}</div></div>`).join('')}</div><button class="lnk" data-page="analytics">All analytics</button></div>
-      </div>
-      <div class="panel"><h2>Latest notifications</h2>${pushTable(D.pushes.slice(-5).reverse())}</div>`;
+  // ---------- activity: who changed what ----------
+  // With the backend on, the database writes one row per part of the document that changed on each save (who, when,
+  // before, after: 0002_spl_activity.sql). In demo mode this browser keeps the same rows itself. Either way the lines
+  // below are worked out from before and after, so they say exactly what changed.
+  const AUK = 'spl-audit';
+  const localAudit = () => { try { const a = JSON.parse(localStorage.getItem(AUK) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  function auditLocal(b, a) {
+    if (CL.on) return; const rows = localAudit(), at = Date.now();
+    Object.keys(Object.assign({}, b, a)).forEach(k => { const x = JSON.stringify(b[k]), y = JSON.stringify(a[k]); if (x === y) return;
+      rows.push({ id: at + ':' + k, at, who: A.me || 'This browser', section: k, before: x && x.length < 60000 ? b[k] : null, after: y && y.length < 60000 ? a[k] : null }); });
+    if (rows.length > 300) rows.splice(0, rows.length - 300); try { localStorage.setItem(AUK, JSON.stringify(rows)); } catch (e) {}
+    AUD = rows.slice().reverse();
   }
-  const head = (t, sub, actions) => `<div class="ph"><div><h1>${t}</h1>${sub ? `<p>${sub}</p>` : ''}</div>${actions || ''}</div>`;
+  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Votes', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings' };
+  const q_ = s => `‘${E(s || 'Untitled')}’`;
+  const fixture = i => SPL.matches[i] ? `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}` : 'a game';
+  const evWords = (i, e) => { const m = SPL.matches[i], k = e[4], who = k ? E(pname(e[8] || k, e[5])) : '';
+    return { G: `goal, ${who}${e[7] === 'og' ? ' (own goal)' : e[7] === 'pen' ? ' (pen)' : ''} ${minText(e)}`, D: `goal, ${who} ${minText(e)}`, Y: `yellow card, ${who} ${minText(e)}`, R: `red card, ${who} ${minText(e)}`,
+      S: `substitution, ${who} on for ${k ? E(pname(k, e[6])) : ''} ${minText(e)}`, HT: 'half time', FT: 'full time' }[e[3]] || 'an entry'; };
+  // what one row means, as short lines; [text, tone] with tone '' | 'add' | 'del' | 'mt' (match)
+  function changeLines(r) {
+    const s = r.section, b = r.before, a = r.after, out = [];
+    if (b == null && a != null && s !== 'live' && s !== 'pushes') return [[`Set up ${SECTION[s] || s} for the first time`, 'add']];
+    if (s === 'news') { const bi = {}, ai = {}; (b || []).forEach(n => { bi[n.id] = n; }); (a || []).forEach(n => { ai[n.id] = n; });
+      Object.keys(ai).forEach(id => { const n = ai[id], o = bi[id];
+        if (!o) out.push([`${n.status === 'live' ? 'Published' : 'Drafted'} the story ${q_(n.title)}`, 'add']);
+        else if (o.status !== n.status) out.push([`${n.status === 'live' ? 'Published' : 'Unpublished'} ${q_(n.title)}`, n.status === 'live' ? 'add' : 'del']);
+        else { const f = [['title', 'headline'], ['dek', 'standfirst'], ['body', 'story'], ['img', 'picture'], ['date', 'date'], ['tag', 'kind']].filter(([k]) => o[k] !== n[k]).map(x => x[1]);
+          if (f.length) out.push([`Edited ${q_(n.title)}: ${f.join(', ')}${o.title !== n.title ? ` (was ${q_(o.title)})` : ''}`, '']); } });
+      Object.keys(bi).forEach(id => { if (!ai[id]) out.push([`Deleted the story ${q_(bi[id].title)}`, 'del']); }); }
+    else if (s === 'lead') { const n = D.news.find(x => x.id === a); out.push([`Made ${q_(n ? n.title : a)} the lead story on Home`, '']); }
+    else if (s === 'pushes') { const seen = {}; (b || []).forEach(p => { seen[p.id] = 1; });
+      (a || []).filter(p => !seen[p.id]).forEach(p => out.push([`${p.kind === 'live' ? 'Match alert' : p.at > (r.at + 60000) ? 'Scheduled a notification' : 'Sent a notification'} ${q_(p.title)}${p.kind === 'live' ? '' : ' to ' + E(audName(p.aud))}`, p.kind === 'live' ? 'mt' : 'add'])); }
+    else if (s === 'live') { const bl = b || {}, al = a || {};
+      Object.keys(Object.assign({}, bl, al)).forEach(i => { const x = bl[i], y = al[i], f = fixture(+i);
+        if (x && !y) { out.push([`Reset ${f}: score, clock and timeline cleared`, 'del']); return; }
+        const xe = (x && x.ev) || [], ye = (y && y.ev) || [], xp = x ? x.phase : 'pre';
+        if (y.phase !== xp && { '1H': 1, '2H': 1 }[y.phase]) out.push([y.phase === '1H' ? `Kicked off ${f}` : `Started the second half, ${f}`, 'mt']);
+        ye.forEach((e, j) => { const o = xe[j];
+          if (!o || o.join() !== e.join()) { if (o && o[3] === 'G' && e[3] === 'D') out.push([`VAR: ruled out the ${evWords(+i, e)}, ${E(e[9] || '')} · ${f}`, 'del']);
+            else if (!o || JSON.stringify(o.slice(0, 7)) !== JSON.stringify(e.slice(0, 7)) || o[3] !== e[3]) { if (!xe.some(z => z.join() === e.join())) out.push([`Added ${e[3] === 'HT' || e[3] === 'FT' ? '' : 'a '}${evWords(+i, e)} · ${f}`, 'mt']); } } });
+        xe.forEach(e => { if (!ye.some(z => z.join() === e.join() || (z[1] === e[1] && z[5] === e[5] && z[4] === e[4] && e[3] === 'G' && z[3] === 'D'))) out.push([`Removed the ${evWords(+i, e)} · ${f}`, 'del']); });
+        if (x && y && y.phase === xp && x.base === y.base && x.t0 !== y.t0) out.push([`Moved the clock ${y.t0 < x.t0 ? 'on' : 'back'} ${Math.round(Math.abs(x.t0 - y.t0) / 60000)} min · ${f}`, '']); }); }
+    else if (s === 'gotm') { const x = b || {}, y = a || {};
+      if (x.month !== y.month && y.winner === '' && x.winner) out.push([`Started ${E(y.month)}'s Goal of the Month`, 'add']);
+      else { if (!x.winner && y.winner) { const w = (y.goals || []).find(g => g.id === y.winner); out.push([`Published the Goal of the Month winner: ${E(w ? w.player : y.winner)}`, 'add']); }
+        else if (x.open !== y.open) out.push([y.open ? 'Reopened Goal of the Month voting' : 'Closed Goal of the Month voting', y.open ? 'add' : 'del']);
+        if (x.month !== y.month) out.push([`Goal of the Month: month ${q_(x.month)} → ${q_(y.month)}`, '']);
+        if (x.closes !== y.closes) out.push([`Goal of the Month closes ${fmt(y.closes)} (was ${fmt(x.closes)})`, '']);
+        if (JSON.stringify(x.goals) !== JSON.stringify(y.goals)) { const xn = (x.goals || []).length, yn = (y.goals || []).length;
+          out.push([yn > xn ? 'Added a goal to the shortlist' : yn < xn ? 'Removed a goal from the shortlist' : 'Edited the Goal of the Month shortlist', '']); } } }
+    else if (s === 'sponsors') { Object.keys(Object.assign({}, b, a)).forEach(k => { const x = (b || {})[k] || {}, y = (a || {})[k] || {}, nm = SPLSTORE.SLOTS[k] || k;
+      if (x.partner !== y.partner) out.push([y.partner ? `${E(nm)} sponsor: ${E(y.partner)}${x.partner ? ` (was ${E(x.partner)})` : ''}` : `Removed ${E(x.partner)} as the ${E(nm)} sponsor`, y.partner ? 'add' : 'del']);
+      if (x.from !== y.from || x.to !== y.to) out.push([`${E(nm)} sponsor dates: ${y.from ? fmt(y.from) : '…'} to ${y.to ? fmt(y.to) : '…'}`, '']); }); }
+    else if (s === 'partners') { const x = b || [], y = a || []; y.forEach((p, j) => { const o = x[j] || {};
+      if (o.name !== p.name) out.push([`Partners screen: ${p.name ? E(p.name) : 'empty space'}${o.name ? ` (was ${E(o.name)})` : ''}`, '']);
+      else if (o.logo !== p.logo) out.push([`Partners screen: ${p.logo ? 'new logo' : 'removed the logo'} for ${E(p.name || 'space ' + (j + 1))}`, p.logo ? 'add' : 'del']);
+      else if (o.tier !== p.tier) out.push([`Partners screen: ${E(p.name)} is now ${E(p.tier)}`, '']); }); }
+    else if (s === 'partnerLook') out.push([`Partners screen look: ${{ light: 'white page', mono: 'white marks on navy', colour: 'colour on tiles' }[a] || E(a)}`, '']);
+    if (!out.length) out.push([`Changed ${SECTION[s] || E(s)}`, '']);
+    return out;
+  }
+  // rows from one save share a time and a person: show them as one entry
+  function auditEntries(rows) {
+    const out = []; rows.slice().sort((x, y) => y.at - x.at).forEach(r => { const last = out[out.length - 1];
+      if (last && last.who === r.who && Math.abs(last.at - r.at) < 1500) last.rows.push(r); else out.push({ at: r.at, who: r.who, rows: [r] }); });
+    out.forEach(e => { e.sections = [...new Set(e.rows.map(r => SECTION[r.section] || r.section))]; e.lines = [].concat(...e.rows.map(changeLines)); });
+    return out;
+  }
+  let AUD = [];   // the rows, newest first
+  async function loadAudit() { if (CL.on) { const r = await CL.pullAudit(); if (r) AUD = r; } else AUD = localAudit().slice().reverse(); }
+
+  // ---------- pages ----------
+  // ---------- overview (Hafiz, 5 Nov: the Halvo layout, option B, SPL glow) ----------
+  const greet = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
+  const firstName = () => { const n = CL.on ? (CL.state.name || CL.state.email || '') : ''; return n ? E(n.replace(/@.*/, '').split(/[\s._]/)[0].replace(/^./, c => c.toUpperCase())) : ''; };
+  // count events of one kind into 10 even buckets from the first event to now, for a sparkline
+  function series(ev) { const now = Date.now(), from = ev.length ? Math.min(ev[0][0], now - 36e5) : now - 864e5, w = (now - from) / 10, o = new Array(10).fill(0);
+    ev.forEach(e => { const j = Math.min(9, Math.max(0, Math.floor((e[0] - from) / w))); o[j]++; }); return o; }
+  function spark(col, pts) { const mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * 96 / 9).toFixed(1)} ${(30 - 26 * v / mx + 2).toFixed(1)}`);
+    const d = 'M' + xy.join(' L'); return `<svg class="spk" width="96" height="34" viewBox="0 0 96 34" aria-hidden="true"><path d="${d} L96 34 L0 34Z" fill="${col}" opacity=".16"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/></svg>`; }
+  function dial() {
+    const i = TONIGHT.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
+    let frac = 0, top = 'Kick-off', big = '7.30PM', sub = E(m[5]);
+    if (c.phase === '1H' || c.phase === '2H') { frac = Math.min(1, c.n / 90); top = c.phase === '1H' ? 'First half' : 'Second half'; big = `${s[0]}–${s[1]}`; sub = `<span data-aclock="${i}">${c.label}</span>`; }
+    else if (c.phase === 'HT') { frac = .5; top = 'Half time'; big = `${s[0]}–${s[1]}`; sub = 'Back in 15 minutes'; }
+    else if (c.phase === 'FT') { frac = 1; top = 'Full time'; big = `${s[0]}–${s[1]}`; sub = E(m[5]); }
+    const ang = 2 * Math.PI * frac, dot = frac > 0 && frac < 1 ? `<circle cx="${(100 + R * Math.sin(ang)).toFixed(1)}" cy="${(100 - R * Math.cos(ang)).toFixed(1)}" r="8" fill="#fff"/>` : '';
+    const live = c.phase === '1H' || c.phase === '2H';
+    return `<div class="g dial"><div class="dhd"><b>${c.phase === 'pre' ? 'Next kick-off' : live || c.phase === 'HT' ? 'Live now' : 'Tonight'}</b><span class="dsw">${TONIGHT.map(j => `<button class="${j === i ? 'on' : ''}" data-dial="${j}">${short(SPL.matches[j][2]).slice(0, 3).toUpperCase()} v ${short(SPL.matches[j][3]).slice(0, 3).toUpperCase()}</button>`).join('')}</span></div>
+      <div class="ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--track)" stroke-width="10"/>${frac ? `<circle cx="100" cy="100" r="${R}" fill="none" stroke="#E8363D" stroke-width="10" stroke-linecap="round" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${(L * (1 - frac)).toFixed(1)}" transform="rotate(-90 100 100)"/>` : ''}${dot}</svg>
+        <div class="c"><small class="${live ? 'live' : ''}">${top}</small><b>${big}</b><span>${sub}</span></div></div>
+      <div class="vs">${crest(m[2], 30)}<b>${short(m[2])}</b><span>v</span><b>${short(m[3])}</b>${crest(m[3], 30)}</div>
+      <div class="segs">${[['pre', 'Pre-match'], ['1H', '1st half'], ['2H', '2nd half'], ['FT', 'FT']].map(([k, l]) => `<button class="${c.phase === k || (k === '1H' && c.phase === 'HT') ? 'on' : ''}" data-console="${i}">${l}</button>`).join('')}</div></div>`;
+  }
+  function overview() {
+    const st = stats(), drafts = D.news.filter(n => n.status === 'draft').length, slots = Object.keys(D.sponsors).length, unsold = Object.values(D.sponsors).filter(s => !s.partner).length;
+    const lead = SPL.table[0], liveN = TONIGHT.filter(i => ['1H', '2H', 'HT'].includes((D.live[i] || {}).phase)).length, g = D.gotm;
+    const day = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' });
+    const chips = [liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length} games tonight</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
+      g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
+      CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>'].join('');
+    const [m1, m2] = TONIGHT.map(i => SPL.matches[i]);
+    const summary = `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])}, 7.30PM; ${C[m2[3]].short} are at ${E(m2[5].replace(' Stadium', ''))}. ` +
+      (g.winner ? '' : g.open ? `Goal of the Month closes ${fmt(g.closes).replace(/^\w+ /, '')}` : 'Goal of the Month is closed and waiting for its winner') +
+      (unsold ? `${g.winner ? '' : ', and '}${unsold} sponsor ${unsold === 1 ? 'slot still has' : 'slots still have'} no partner.` : '.') + (drafts ? ` ${drafts} ${drafts === 1 ? 'story is' : 'stories are'} in draft.` : '');
+    const QA = [['push', 'push', '#E8363D', 'Send an alert', 'Goals, kick-off, news'], ['news', 'newnews', '#4A86FF', 'Post a story', drafts ? `${drafts} in draft` : 'Lead story on Home'], ['matchday', 'console', '#3DD68C', 'Run a game live', 'The matchday console'],
+      ['votes', 'votes', '#C9A227', g.winner ? 'Start a new month' : 'Publish a winner', `${E(g.month)} awards`], ['sponsors', 'sponsors', '#8B6BFF', 'Fill a sponsor slot', `${unsold} of ${slots} open`], ['app', 'app', '#A9A6C9', 'Open the app', 'See what fans see']];
+    const qa = QA.map(([ic, go, col, t, sub]) => { const attr = go === 'newnews' ? 'data-qnews="1"' : go === 'console' ? `data-console="${TONIGHT[0]}"` : go === 'app' ? '' : `data-page="${go}"`;
+      const inner = `<i style="--qc:${col}">${icon(ic === 'app' ? 'phone' : ic)}</i><span><b>${t}</b><span>${sub}</span></span>`;
+      return go === 'app' ? `<a class="q" href="index.html" target="_blank" rel="noopener">${inner}</a>` : `<button class="q" ${attr}>${inner}</button>`; }).join('');
+    const ev = st.ev, k = kind => ev.filter(e => e[1] === kind), today = new Date().setHours(0, 0, 0, 0), td = a => a.filter(e => e[0] >= today).length;
+    const kp = [['Screens viewed', k('view'), '#4A86FF', 'analytics'], ['Taps', k('tap'), '#E8363D', 'analytics'], ['Votes cast', k('vote'), '#C9A227', 'votes'], ['Alerts received', k('push'), '#3DD68C', 'push']]
+      .map(([l, a, col, go]) => `<button class="g kp" data-page="${go}"><span class="l">${l}</span><span class="v">${a.length.toLocaleString()}</span><span class="s">${td(a) ? `+${td(a).toLocaleString()} today` : 'None yet today'}</span>${spark(col, series(a))}</button>`).join('');
+    const fol = {}; ev.filter(e => e[1] === 'tap' && /^(follow|pick):/.test(e[2])).forEach(e => { const c = e[2].split(':')[1]; fol[c] = (fol[c] || 0) + 1; });
+    const order = Object.keys(C).sort((x, y) => (fol[y] || 0) - (fol[x] || 0) || C[x].short.localeCompare(C[y].short));
+    const tile = c => `<div class="tile"><span class="art" style="${c === 'TPU' ? `background:${C[c].c}` : `background-image:url(assets/banners/${c}.png)`}">${c === 'TPU' ? crest(c, 50) : ''}</span><span class="cap"><b>${short(c)}</b><span>${(fol[c] || 0).toLocaleString()} ${fol[c] === 1 ? 'follow' : 'follows'}</span></span></div>`;
+    const recent = auditEntries(AUD).slice(0, 5);
+    return `<div class="orow">
+        <div class="g ohero"><span class="k">AIA Singapore Premier League · Matchweek 6</span><h1>${greet()}${firstName() ? ', ' + firstName() : ''}</h1>
+          <div class="chips">${chips}</div><p class="sum">${summary}</p>
+          <span class="k cap">Quick actions</span><div class="qa">${qa}</div></div>
+        ${dial()}</div>
+      <div class="kpis">${kp}</div>
+      <div class="g clubs"><div class="chd"><span><b>Clubs</b><span>Follows in the app, from fans' taps</span></span></div><div class="tiles">${order.map(tile).join('')}</div></div>
+      <div class="grid2"><div class="panel"><h2>Latest notifications<button class="lnk" data-page="push">All</button></h2>${pushTable(D.pushes.slice(-5).reverse(), true)}</div>
+        <div class="panel"><h2>Recent changes<button class="lnk" data-page="activity">Activity</button></h2>${recent.length ? recent.map(e => `<div class="aent sm"><span class="av">${initials(e.who)}</span><div class="abody"><div class="ahead"><b>${whoName(e.who)}</b><span class="note">${E(dayOf(e.at) === 'Today' ? tm(e.at) : hm(e.at))}</span></div><ul class="chg">${e.lines.slice(0, 2).map(l => `<li class="${l[1]}">${l[0]}</li>`).join('')}${e.lines.length > 2 ? `<li class="more">and ${e.lines.length - 2} more</li>` : ''}</ul></div></div>`).join('') : '<p class="note">No changes saved yet.</p>'}</div></div>`;
+  }
+  // the page's name is in the top bar; under it, what the page does and its main action
+  const head = (t, sub, actions) => `<div class="ph"><p>${sub || ''}</p>${actions || ''}</div>`;
 
   function matchday() {
     const i = A.live, m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i);
     if (!A.evTeam || (A.evTeam !== m[2] && A.evTeam !== m[3])) A.evTeam = m[2];
-    const squad = SPL.squads[A.evTeam].slice().sort((a, b) => a[0] - b[0]);
+    const opp = A.evTeam === m[2] ? m[3] : m[2], og = A.evType === 'G' && A.evOg;
+    const squad = SPL.squads[og ? opp : A.evTeam].slice().sort((a, b) => a[0] - b[0]);
     const opts = (sel, none) => (none ? `<option value="">${none}</option>` : '') + squad.map(p => `<option value="${p[0]}" ${sel === p[0] ? 'selected' : ''}>${p[0]} · ${E(p[1])}</option>`).join('');
     const next = { pre: ['Kick off', '1H'], '1H': ['Half time', 'HT'], HT: ['Start second half', '2H'], '2H': ['Full time', 'FT'], FT: null }[L.phase];
     const nowMin = c.phase === 'pre' ? 1 : c.n;
     const evs = (L.ev || []).slice().sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || ((a[2] || 0) - (b[2] || 0)));
-    const label = e => e[3] === 'G' ? `Goal · <b>${E(pname(e[4], e[5]))}</b>${e[7] === 'pen' ? ' (pen)' : ''}${e[6] ? ` <span class="note">assist ${E(pname(e[4], e[6]))}</span>` : ''}` : e[3] === 'Y' ? `Yellow card · ${E(pname(e[4], e[5]))}` : e[3] === 'R' ? `Red card · ${E(pname(e[4], e[5]))}` : e[3] === 'S' ? `Sub · ${E(pname(e[4], e[5]))} on, ${E(pname(e[4], e[6]))} off` : e[3] === 'HT' ? 'Half time' : 'Full time';
-    const mark = e => e[3] === 'G' ? '<span style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
+    const label = e => e[3] === 'D' ? `<s style="opacity:.6">Goal · ${E(pname(e[8] || e[4], e[5]))}</s> <span class="live">No goal · VAR, ${E(e[9] || 'ruled out')}</span>` : e[3] === 'G' ? `Goal · <b>${E(pname(e[8] || e[4], e[5]))}</b>${e[7] === 'pen' ? ' (pen)' : e[7] === 'og' ? ' (own goal)' : ''}${e[6] ? ` <span class="note">assist ${E(pname(e[4], e[6]))}</span>` : ''}` : e[3] === 'Y' ? `Yellow card · ${E(pname(e[4], e[5]))}` : e[3] === 'R' ? `Red card · ${E(pname(e[4], e[5]))}` : e[3] === 'S' ? `Sub · ${E(pname(e[4], e[5]))} on, ${E(pname(e[4], e[6]))} off` : e[3] === 'HT' ? 'Half time' : 'Full time';
+    const mark = e => e[3] === 'D' ? '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #FF6B71;display:inline-block;box-sizing:border-box"></span>' : e[3] === 'G' ? '<span class="gball" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
     return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.') + `
       <div class="tabs">${TONIGHT.map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="row" style="gap:24px">
@@ -87,13 +198,13 @@
             <div class="tabs" style="gap:24px">${[['G', 'Goal'], ['Y', 'Yellow card'], ['R', 'Red card'], ['S', 'Substitution']].map(([k, l]) => `<button class="stab ${A.evType === k ? 'on' : ''}" data-evtype="${k}">${l}</button>`).join('')}</div>
             <div class="seg">${[m[2], m[3]].map(k => `<button class="${A.evTeam === k ? 'on' : ''}" data-evteam="${k}">${crest(k, 22)}${C[k].name}</button>`).join('')}</div>
             <div class="grid3">
-              <label class="fld"><span>${A.evType === 'S' ? 'Coming on' : 'Player'}</span><select class="in" id="evP">${opts(null)}</select></label>
-              ${A.evType === 'G' ? `<label class="fld"><span>Assist</span><select class="in" id="evA">${opts(null, 'No assist')}</select></label>` : A.evType === 'S' ? `<label class="fld"><span>Going off</span><select class="in" id="evA">${opts(null)}</select></label>` : '<span></span>'}
+              <label class="fld"><span>${A.evType === 'S' ? 'Coming on' : og ? `Scored by (${E(C[opp].short)})` : 'Player'}</span><select class="in" id="evP">${opts(null)}</select></label>
+              ${A.evType === 'G' && og ? '<span></span>' : A.evType === 'G' ? `<label class="fld"><span>Assist</span><select class="in" id="evA">${opts(null, 'No assist')}</select></label>` : A.evType === 'S' ? `<label class="fld"><span>Going off</span><select class="in" id="evA">${opts(null)}</select></label>` : '<span></span>'}
               <label class="fld"><span>Minute</span><input class="in" id="evM" value="${nowMin > (c.cap || 90) ? (c.cap + '+' + (nowMin - c.cap)) : nowMin}" inputmode="numeric" placeholder="e.g. 34 or 45+2"></label>
             </div>
-            <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">${A.evType === 'G' ? '<label class="chk"><input type="checkbox" id="evPen"> Penalty</label>' : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Send an alert to fans</label><span style="flex:1"></span><button class="btn" data-addev="1">Add ${{ G: 'goal', Y: 'yellow card', R: 'red card', S: 'substitution' }[A.evType]}</button></div>
+            <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Penalty</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal${og ? ` <span class="note">by a ${E(C[opp].short)} player, counts for ${E(C[A.evTeam].short)}</span>` : ''}</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Send an alert to fans</label><span style="flex:1"></span><button class="btn" data-addev="1">Add ${{ G: 'goal', Y: 'yellow card', R: 'red card', S: 'substitution' }[A.evType]}</button></div>
           </div>
-          <div class="panel"><h2>Timeline<span class="lbl">${evs.length} ${evs.length === 1 ? 'entry' : 'entries'}</span></h2>${evs.length ? evs.slice().reverse().map(e => `<div class="tl"><span class="big" style="font-size:18px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 16) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<button class="lnk danger" data-delev="${(L.ev || []).indexOf(e)}">Remove</button>`}</div>`).join('') : '<p class="note">Nothing yet. Kick off, then add goals, cards and changes as they happen.</p>'}</div>
+          <div class="panel"><h2>Timeline<span class="lbl">${evs.length} ${evs.length === 1 ? 'entry' : 'entries'}</span></h2>${evs.length ? evs.slice().reverse().map(e => `<div class="tl"><span class="big" style="font-size:18px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 16) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<span style="display:flex;gap:14px;align-items:center">${e[3] === 'G' ? (A.varEv === (L.ev || []).indexOf(e) ? `<select class="in" id="varWhy" style="min-height:30px;width:auto;padding:0 28px 0 10px;font-size:12px">${['Offside', 'Foul in the build-up', 'Handball', 'Other'].map(r => `<option>${r}</option>`).join('')}</select><button class="btn red sm" data-varok="${(L.ev || []).indexOf(e)}">Rule out, tell fans</button><button class="lnk" data-varno="1">Cancel</button>` : `<button class="lnk danger" data-var="${(L.ev || []).indexOf(e)}">No goal (VAR)</button>`) : ''}<button class="lnk" data-delev="${(L.ev || []).indexOf(e)}">Remove</button></span>`}</div>`).join('') : '<p class="note">Nothing yet. Kick off, then add goals, cards and changes as they happen.</p>'}</div>
           <p class="note">Possession, shots and corners need a data provider or a stats spotter; this console covers what a match official sees. Team sheets are confirmed from each club's submitted line-up in the full build.</p>
         </div>
         <div><div class="phone-cap"><span class="lbl">The app, live</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed&match=${i}" title="App preview"></iframe></div></div>
@@ -109,7 +220,7 @@
     return head('News', 'Stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + `
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
-          <div class="panel"><table class="tbl"><thead><tr><th style="width:90px">Status</th><th>Story</th><th style="width:90px">Date</th><th style="width:60px"></th></tr></thead><tbody>${list.map(x => `<tr class="click ${n && n.id === x.id ? 'sel' : ''}" data-editnews="${E(x.id)}"><td class="lbl ${x.status === 'live' ? 'ok' : ''}">${x.status === 'live' ? 'Published' : 'Draft'}</td><td><div style="display:flex;flex-direction:column;gap:3px"><span class="lbl">${E(x.tag)}${D.lead === x.id ? ' · <span style="color:#fff">Lead story</span>' : ''}</span><span style="font-weight:600">${E(x.title) || '<span class="note">Untitled</span>'}</span></div></td><td class="note">${fmt(x.date)}</td><td class="note">Edit</td></tr>`).join('')}</tbody></table></div>
+          <div class="panel"><table class="tbl"><thead><tr><th style="width:90px">Status</th><th>Story</th><th style="width:90px">Date</th><th style="width:60px"></th></tr></thead><tbody>${list.map(x => `<tr class="click ${n && n.id === x.id ? 'sel' : ''}" data-editnews="${E(x.id)}"><td class="lbl ${x.status === 'live' ? 'ok' : ''}">${x.status === 'live' ? 'Published' : 'Draft'}</td><td><div style="display:flex;flex-direction:column;gap:3px"><span class="lbl">${E(x.tag)}${D.lead === x.id ? ' · <span style="color:var(--ink)">Lead story</span>' : ''}</span><span style="font-weight:600">${E(x.title) || '<span class="note">Untitled</span>'}</span></div></td><td class="note">${fmt(x.date)}</td><td class="note">Edit</td></tr>`).join('')}</tbody></table></div>
           ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}</h2>
             <div class="grid3"><label class="fld"><span>Kind</span><select class="in" id="nTag">${TAGS.map(t => `<option ${t === n.tag ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="fld"><span>Date</span><input class="in" type="date" id="nDate" value="${E(n.date)}"></label><label class="fld"><span>Picture</span><select class="in" id="nImg">${IMGS.map(([k, l]) => `<option value="${k}" ${k === n.img ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
             <label class="fld"><span>Headline</span><input class="in" id="nTitle" value="${E(n.title)}" maxlength="120"></label>
@@ -122,7 +233,7 @@
   }
 
   const audName = a => a === 'all' ? 'Everyone' : a === 'news' ? 'News alerts on' : a.startsWith('club:') && C[a.slice(5)] ? C[a.slice(5)].short + ' followers' : a;
-  const pushTable = list => list.length ? `<table class="tbl"><thead><tr><th style="width:150px">When</th><th>Notification</th><th style="width:150px">To</th><th style="width:100px">Kind</th><th style="width:90px"></th></tr></thead><tbody>${list.map(p => `<tr><td class="note">${hm(p.at)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><b>${E(p.title)}</b><span class="note">${E(p.body)}</span></div></td><td>${audName(p.aud)}</td><td class="lbl">${p.kind === 'live' ? 'Match alert' : 'Sent by hand'}</td><td class="lbl ${p.at > Date.now() ? 'warn' : 'ok'}">${p.at > Date.now() ? 'Scheduled' : 'Sent'}</td></tr>`).join('')}</tbody></table>` : '<p class="note">No notifications sent yet.</p>';
+  const pushTable = (list, compact) => list.length ? `<table class="tbl"><thead><tr><th style="width:${compact ? 110 : 150}px">When</th><th>Notification</th>${compact ? '' : '<th style="width:150px">To</th><th style="width:100px">Kind</th>'}<th style="width:90px"></th></tr></thead><tbody>${list.map(p => `<tr><td class="note">${hm(p.at)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><b>${E(p.title)}</b><span class="note">${E(p.body)}</span></div></td>${compact ? '' : `<td>${audName(p.aud)}</td><td class="lbl">${p.kind === 'live' ? 'Match alert' : 'Sent by hand'}</td>`}<td class="lbl ${p.at > Date.now() ? 'warn' : 'ok'}">${p.at > Date.now() ? 'Scheduled' : 'Sent'}</td></tr>`).join('')}</tbody></table>` : '<p class="note">No notifications sent yet.</p>';
   // starters in the PL style (Hafiz, 5 Nov): FAS's team edits them before sending
   const PUSH_STARTERS = [['October Awards 🏆', 'Who impressed you this month? Vote for Player and Goal of the Month before Monday.'],
     ['The Eastern Derby 🔥', '2nd v 1st at Our Tampines Hub tonight. Win and you go top. Kick-off 7.30PM.'],
@@ -191,6 +302,26 @@
       <div class="grid2"><div class="panel"><h2>Sponsor sections seen</h2>${bars(top(st.imp), k => SPLSTORE.SLOTS[k] || k)}</div><div class="panel"><h2>Stories read</h2>${bars(top(st.articles), id => (D.news.find(n => n.id === id) || { title: id }).title)}</div></div>`;
   }
 
+  const initials = n => (n || '?').replace(/[\[\]]/g, '').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const whoName = n => E((n || 'Unknown').replace(/@.*/, ''));
+  const canUndo = r => r.before != null && r.section !== 'pushes' && JSON.stringify(D[r.section]) === JSON.stringify(r.after);
+  const dayOf = ts => { const d = new Date(ts), t = new Date(); const y = new Date(); y.setDate(t.getDate() - 1);
+    return d.toDateString() === t.toDateString() ? 'Today' : d.toDateString() === y.toDateString() ? 'Yesterday' : d.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long' }); };
+  const tm = ts => new Date(ts).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' });
+  function activity() {
+    const all = auditEntries(AUD), people = [...new Set(all.map(e => e.who))], secs = ['News', 'Notifications', 'Matchday', 'Votes', 'Sponsors'];
+    const list = all.filter(e => (!A.audWho || e.who === A.audWho) && (!A.audSec || e.sections.includes(A.audSec)));
+    const filters = `<div class="afil"><button class="${!A.audWho ? 'on' : ''}" data-audwho="">Everyone</button>${people.map(p => `<button class="${A.audWho === p ? 'on' : ''}" data-audwho="${E(p)}"><span class="av">${initials(p)}</span>${whoName(p)}</button>`).join('')}<span class="sep"></span><button class="${!A.audSec ? 'on' : ''}" data-audsec="">All pages</button>${secs.map(s => `<button class="${A.audSec === s ? 'on' : ''}" data-audsec="${s}">${s}</button>`).join('')}</div>`;
+    const undo = e => e.rows.filter(canUndo).map(r => `<button class="lnk" data-undo="${E(String(r.id))}">Put back${e.rows.length > 1 ? ' ' + E((SECTION[r.section] || r.section).toLowerCase()) : ''}</button>`).join('');
+    const line = l => `<li class="${l[1]}">${l[0]}</li>`;
+    let body = '';
+    if (!list.length) body = `<p class="note">${AUD.length ? 'Nothing matches.' : CL.on && CL.state.auditError ? 'The activity log isn\'t switched on in the database yet (supabase/migrations/0002_spl_activity.sql).' : 'No changes saved yet. Every save from now on shows here, with who made it.'}</p>`;
+    else { let day = ''; body = list.map(e => { const d = dayOf(e.at), h = d !== day ? `<h3 class="aday">${E(d)}</h3>` : ''; day = d;
+      return h + `<div class="aent"><span class="av lg">${initials(e.who)}</span><div class="abody"><div class="ahead"><b>${whoName(e.who)}</b><span class="note">${tm(e.at)} · ${e.sections.join(', ')}</span><span style="flex:1"></span>${undo(e)}</div><ul class="chg">${e.lines.map(line).join('')}</ul></div></div>`; }).join(''); }
+    return head('Activity', 'Every change saved in this admin: who made it, when, and what it was. Recorded by the database, so it can\'t be edited or deleted from here.', '<button class="lnk" data-audreload="1">Refresh</button>') + `
+      <div class="panel">${filters}${body}</div>`;
+  }
+
   function settings() {
     return head('Settings', 'Who can use this admin, and what each person can change.') + `
       <div class="panel"><h2>People</h2><table class="tbl"><thead><tr><th>Name</th><th>Team</th><th>Can use</th></tr></thead><tbody>
@@ -200,28 +331,56 @@
   }
 
   // ---------- shell ----------
-  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Votes', votes], sponsors: ['Sponsors', sponsors], analytics: ['Analytics', analytics], settings: ['Settings', settings] };
+  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Votes', votes], sponsors: ['Sponsors', sponsors], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
   // ---------- staff sign-in (backend.js set): only logins on the FAS staff list get past this ----------
   const CL = window.SPLCLOUD || { on: false, state: { status: 'demo' } };
   A.authed = !CL.on; A.checking = CL.on;
   function signinPage() {
-    return `<div class="signin"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><h1>App admin</h1><p class="note">Football Association of Singapore staff only.</p>
-      <label class="lbl" for="siE">Email</label><input id="siE" type="email" autocomplete="username" value="${E(A.siEmail || '')}">
+    return `<div class="sibg"><span></span><span></span><span></span><span></span></div>
+      <div class="signin"><div class="sihead"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><span class="lbl">Admin</span></div>
+      <h1>Sign in</h1>
+      <label class="lbl" for="siE">Email</label><input id="siE" type="email" autocomplete="username" placeholder="you@fas.org.sg" value="${E(A.siEmail || '')}">
       <label class="lbl" for="siP">Password</label><input id="siP" type="password" autocomplete="current-password">
-      ${A.siErr ? `<p class="err">${E(A.siErr)}</p>` : ''}<button class="btn" data-signin="1" ${A.siBusy ? 'disabled' : ''}>${A.siBusy ? 'Signing in…' : 'Sign in'}</button></div>`;
+      ${A.siErr ? `<p class="err">${E(A.siErr)}</p>` : ''}<button class="btn" data-signin="1" ${A.siBusy ? 'disabled' : ''}>${A.siBusy ? 'Signing in…' : 'Sign in'}</button>
+      <p class="sinote">For Football Association of Singapore staff. Every change you save goes live in the app.</p></div>`;
   }
+
   const statusLine = () => { const st = CL.state; if (!CL.on) return '<span class="cs demo">Demo · this browser only</span>';
     if (st.status === 'live') return `<span class="cs live">Live · saved${st.updatedAt ? ' ' + new Date(st.updatedAt).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) : ''}</span>`;
     return `<span class="cs off" title="${E(st.error || '')}">${st.status === 'connecting' ? 'Connecting…' : 'Offline · changes wait'}</span>`; };
+  const GROUPS = [['League', ['overview', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'analytics']], ['FAS', ['activity', 'settings']]];
+  try { A.look = localStorage.getItem('spl-admin-look') === 'light' ? 'light' : 'dark'; } catch (e) { A.look = 'dark'; }
+  const myName = () => CL.on ? (CL.state.name || (CL.state.email || '').replace(/@.*/, '')) : '[STAFF NAME]';
+  function searchHits(q) {
+    q = q.trim().toLowerCase(); if (!q) return [];
+    const hits = Object.keys(PAGES).filter(k => PAGES[k][0].toLowerCase().includes(q)).map(k => ['Page', PAGES[k][0], `data-page="${k}"`]);
+    D.news.filter(n => (n.title + ' ' + n.dek).toLowerCase().includes(q)).slice(0, 5).forEach(n => hits.push(['Story', n.title, `data-gonews="${E(n.id)}"`]));
+    D.pushes.slice().reverse().filter(p => (p.title + ' ' + p.body).toLowerCase().includes(q)).slice(0, 3).forEach(p => hits.push(['Alert', p.title, 'data-page="push"']));
+    TONIGHT.forEach(i => { const m = SPL.matches[i]; if ((C[m[2]].name + ' ' + C[m[3]].name).toLowerCase().includes(q)) hits.push(['Tonight', `${C[m[2]].short} v ${C[m[3]].short}`, `data-console="${i}"`]); });
+    return hits.slice(0, 10);
+  }
+  const srchDrop = () => { const h = searchHits(A.q || ''); return A.q ? `<div class="sdrop">${h.length ? h.map((x, j) => `<button class="${j === 0 ? 'on' : ''}" ${x[2]}><span class="lbl">${x[0]}</span>${E(x[1])}</button>`).join('') : '<p class="note">Nothing found.</p>'}</div>` : ''; };
   function render() {
-    if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="signin"><p class="note">Checking your sign-in…</p></div>' : signinPage(); return; }
+    document.body.dataset.look = A.look;
+    if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="sibg"><span></span><span></span><span></span><span></span></div><div class="signin"><p class="sinote">Checking your sign-in…</p></div>' : signinPage(); return; }
     const liveNow = TONIGHT.some(i => { const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
-    const keep = document.scrollingElement.scrollTop;
-    root.innerHTML = `<aside class="side"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><span class="lbl" style="margin-top:-12px">App admin · FAS</span>
-      <nav>${Object.keys(PAGES).map(k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}${PAGES[k][0]}${k === 'matchday' && liveNow ? '<span class="ct live">LIVE</span>' : k === 'news' && D.news.some(n => n.status === 'draft') ? `<span class="ct">${D.news.filter(n => n.status === 'draft').length}</span>` : ''}</button>`).join('')}</nav>
-      <div class="who">${statusLine()}<span style="font-size:13px;font-weight:600">${CL.on ? E(CL.state.email) : '[STAFF NAME]'}</span><span class="lbl">FAS staff</span>${CL.on ? '<button class="lnk" data-signout="1" style="margin-top:6px;text-align:left">Sign out</button>' : ''}<a class="lnk" href="index.html" target="_blank" rel="noopener" style="margin-top:8px">Open the app ↗</a></div></aside>
-      <main class="main">${PAGES[A.page][1]()}</main>${A.flash ? `<div class="flash">${E(A.flash)}</div>` : ''}`;
+    const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
+    const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length + ' TONIGHT'}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
+      (k === 'matchday' ? TONIGHT.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
+    const now = new Date(), stamp = 'Sunday 1 November · ' + now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
+    root.innerHTML = `<div class="glow" aria-hidden="true"><span></span><span></span><span></span></div>
+      <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
+      <nav>${GROUPS.map(([t, ks]) => `<div class="sec">${t}</div>${ks.map(nv).join('')}`).join('')}</nav>
+      <div class="foot">${statusLine()}<a class="lnk" href="index.html" target="_blank" rel="noopener">Open the app ↗</a></div></aside>
+      <div class="col"><header class="top g"><div class="tt"><b>${PAGES[A.page][0]}</b><span>${stamp}</span></div>
+        <div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
+        <button class="ib" data-look="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
+        <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
+        <span class="newwrap"><button class="new" data-newmenu="1">+ New</button>${A.newOpen ? `<div class="nmenu"><button data-qnews="1">${icon('news')}Story</button><button data-page="push">${icon('push')}Notification</button><button data-console="${TONIGHT[0]}">${icon('matchday')}Live game</button><button data-page="votes">${icon('votes')}Goal of the Month</button></div>` : ''}</span>
+        <span class="me" title="${E(CL.on ? CL.state.email : '')}">${E(initials(myName()))}${CL.on ? `<span class="mmenu"><b>${E(myName())}</b><span class="note">${E(CL.state.email)}</span><button class="lnk" data-signout="1">Sign out</button></span>` : ''}</span></header>
+      <main class="main">${PAGES[A.page][1]()}</main></div>${A.flash ? `<div class="flash">${E(A.flash)}</div>` : ''}`;
     document.scrollingElement.scrollTop = keep;
+    if (focusQ) { const el = document.getElementById('gq'); el.focus(); el.setSelectionRange(caret, caret); }
   }
 
   // ---------- actions ----------
@@ -233,18 +392,43 @@
     A.siBusy = true; A.siErr = ''; render();
     const r = await CL.signIn(A.siEmail, pw); A.siBusy = false;
     if (!r.ok) { A.siErr = r.msg; render(); return; }
-    A.authed = true; await CL.pull(); await CL.pullEvents(); D = SPLSTORE.read(); render();
+    A.authed = true; await CL.pull(); await CL.pullEvents(); await loadAudit(); D = SPLSTORE.read(); render();
   }
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { const el = document.getElementById('gq'); if (el) { e.preventDefault(); el.focus(); el.select(); } }
+    if (e.target.id === 'gq' && e.key === 'Escape') { A.q = ''; render(); }
+    if (e.target.id === 'gq' && e.key === 'Enter') { const b = document.querySelector('.sdrop button'); if (b) b.click(); } });
   root.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.target.id === 'siE' || e.target.id === 'siP')) doSignIn(); });
   root.addEventListener('click', e => {
     { const st = e.target.closest('[data-starter]'); if (st) { const p = PUSH_STARTERS[+st.dataset.starter]; A.pushPre = { title: p[0], body: p[1] }; A.pushAud = val('pAud') || A.pushAud; render(); return; } }
     if (e.target.closest('[data-signin]')) { doSignIn(); return; }
+    if (e.target.id === 'evOg') { A.evOg = e.target.checked; render(); return; }
+    { const v = e.target.closest('[data-var],[data-varok],[data-varno]'); if (v) { const d0 = v.dataset;
+      if (d0.var !== undefined) { A.varEv = +d0.var; render(); return; }
+      if (d0.varno) { A.varEv = null; render(); return; }
+      const i = A.live, m = SPL.matches[i], idx = +d0.varok, why = (val('varWhy') || 'Other').replace('Foul in the build-up', 'foul in the build-up').replace(/^(Offside|Handball|Other)$/, w => w.toLowerCase());
+      setLive(i, (L, D2) => { const ev = L.ev[idx]; if (!ev || ev[3] !== 'G') return; ev[3] = 'D'; ev[9] = why;
+        const s = [0, 0]; L.ev.forEach(x => { if (x[3] === 'G') s[x[4] === m[2] ? 0 : 1]++; });
+        livePush(D2, i, `NO GOAL ❌ ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, `VAR rules out ${pname(ev[8] || ev[4], ev[5])}'s goal for ${why}.`); });
+      A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-look],[data-newmenu],[data-qnews],[data-dial],[data-gonews]');
+    if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
-    if (d.page) { A.page = d.page; render(); document.scrollingElement.scrollTop = 0; return; }
-    if (d.console) { A.page = 'matchday'; A.live = +d.console; A.evTeam = null; render(); return; }
+    if (d.look) { A.look = d.look; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
+    if (d.newmenu) { A.newOpen = !A.newOpen; render(); return; }
+    if (d.qnews) { A.page = 'news'; A.news = 'new'; A.newOpen = false; render(); return; }
+    if (d.dial) { A.dial = +d.dial; render(); return; }
+    if (d.gonews) { A.page = 'news'; A.news = d.gonews; A.q = ''; render(); return; }
+    if (d.page) { A.page = d.page; A.newOpen = false; A.q = ''; render(); document.scrollingElement.scrollTop = 0; if (d.page === 'activity') loadAudit().then(render); return; }
+    if (d.audwho !== undefined) { A.audWho = d.audwho; render(); return; }
+    if (d.audsec !== undefined) { A.audSec = d.audsec; render(); return; }
+    if (d.audreload) { loadAudit().then(() => { flash('Up to date.'); render(); }); return; }
+    if (d.undo) { const r = AUD.find(x => String(x.id) === d.undo); if (!r || !canUndo(r)) { flash('That has changed again since; put back the latest change first.'); render(); return; }
+      if (!confirm(`Put ${(SECTION[r.section] || r.section).toLowerCase()} back as it was before ${r.who.replace(/@.*/, '')}'s change? Fans see it straight away.`)) return;
+      save(d2 => { d2[r.section] = JSON.parse(JSON.stringify(r.before)); }, 'Put back. It\'s in the app now.'); setTimeout(() => loadAudit().then(render), 1500); return; }
+    if (d.console) { A.newOpen = false; A.q = ''; A.page = 'matchday'; A.live = +d.console; A.evTeam = null; render(); return; }
     if (d.live) { A.live = +d.live; A.evTeam = null; render(); return; }
     if (d.phase) { const i = A.live, m = SPL.matches[i], ph = d.phase, notify = true;
       setLive(i, (L, D2) => { const c = clockOf(i), s = scoreOf(i);
@@ -261,10 +445,11 @@
       if (!mm) { flash('Minute: a number like 34, or 45+2.'); render(); return; }
       if (A.evType === 'S' && (!a || a === p)) { flash('Pick who comes on and who goes off.'); render(); return; }
       const min = +mm[1], add = +(mm[2] || 0), half = (min > 45 || ['2H', 'FT'].includes((D.live[i] || {}).phase)) && !(min === 45 && add && (D.live[i] || {}).phase !== '2H') ? 2 : 1;
-      const ev = [half, min, add, A.evType, k, p, A.evType === 'G' || A.evType === 'S' ? a : 0]; if (A.evType === 'G' && document.getElementById('evPen').checked) ev[7] = 'pen';
+      const og = A.evType === 'G' && A.evOg, opp = k === m[2] ? m[3] : m[2];
+      const ev = [half, min, add, A.evType, k, p, A.evType === 'S' || (A.evType === 'G' && !og) ? a : 0]; if (og) { ev[7] = 'og'; ev[8] = opp; } else if (A.evType === 'G' && document.getElementById('evPen').checked) ev[7] = 'pen';
       const alert = document.getElementById('evPush').checked;
       setLive(i, (L, D2) => { L.ev.push(ev); if (!alert) return; const s = [0, 0]; L.ev.forEach(x => { if (x[3] === 'G') s[x[4] === m[2] ? 0 : 1]++; });
-        const who = pname(k, p) + (ev[7] === 'pen' ? ' (pen)' : '');
+        const who = pname(ev[8] || k, p) + (ev[7] === 'pen' ? ' (pen)' : ev[7] === 'og' ? ' (og)' : '');
         if (ev[3] === 'G') livePush(D2, i, `GOAL! ⚽ ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, `${minText(ev)} ${who}. Tap to follow it live.`);
         if (ev[3] === 'R') livePush(D2, i, `Red card · ${short(k)}`, `${minText(ev)} ${who} is sent off`);
         if (ev[3] === 'Y') livePush(D2, i, `Yellow card · ${short(k)}`, `${minText(ev)} ${who}`);
@@ -307,15 +492,16 @@
       // shrink to at most 480px wide, as PNG, so the stored logo stays small
       const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const s = Math.min(1, 480 / img.width, 240 / img.height), c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); const url = c.toDataURL('image/png'); save(d2 => { d2.partners[+t.dataset.ptlogo].logo = url; }, 'Logo added.'); }; img.src = r.result; }; r.readAsDataURL(f); }
   });
-  root.addEventListener('input', e => { if (e.target.id === 'pTitle') { const el = document.getElementById('lkT'); if (el) el.textContent = e.target.value || 'Title'; } if (e.target.id === 'pBody') { const el = document.getElementById('lkB'); if (el) el.textContent = e.target.value || 'Message'; } });
+  root.addEventListener('input', e => { if (e.target.id === 'gq') { A.q = e.target.value; render(); return; } if (e.target.id === 'pTitle') { const el = document.getElementById('lkT'); if (el) el.textContent = e.target.value || 'Title'; } if (e.target.id === 'pBody') { const el = document.getElementById('lkB'); if (el) el.textContent = e.target.value || 'Message'; } });
   // the app writes analytics and votes into the same storage; keep the numbers current
   window.addEventListener('storage', e => { if (e.key === SPLSTORE.KEY) D = SPLSTORE.read(); if (['analytics', 'overview', 'votes', 'sponsors'].includes(A.page) && !document.activeElement.matches('input,textarea,select')) render(); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
   const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
+  if (!CL.on) loadAudit().then(render);
   if (CL.on) {
-    CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); D = SPLSTORE.read(); render(); });
+    CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });
     CL.onChange(() => { const el = root.querySelector('.who .cs'); if (el) el.outerHTML = statusLine(); });
-    setInterval(() => { if (A.authed && ['analytics', 'overview'].includes(A.page)) CL.pullEvents().then(ok => { if (ok && !document.activeElement.matches('input,textarea,select')) render(); }); }, 30000);
+    setInterval(() => { if (A.authed && ['overview', 'activity'].includes(A.page)) loadAudit(); if (A.authed && ['analytics', 'overview'].includes(A.page)) CL.pullEvents().then(ok => { if (ok && !document.activeElement.matches('input,textarea,select')) render(); }); }, 30000);
   }
   render();
 })();
