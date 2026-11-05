@@ -239,3 +239,14 @@ tr.dim td,.gl.dim{opacity:.6}
 .awc{align-items:stretch}.awc>*{width:100%;box-sizing:border-box}.awc>.lnk{width:auto;align-self:flex-start}
 .awc .vb>span>span{text-align:left}.clips .clipth.none{font-size:0}
 .awc .faces .face{width:44px!important;height:44px!important}
+/* the round on the overview (option B) and day tags in the sidebar */
+.rstrip{display:grid;grid-template-columns:170px repeat(4,minmax(0,1fr));gap:10px;padding:14px;align-items:stretch}
+.rsh{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 6px}.rsh b{font-size:15px}
+.rg{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border-radius:14px;background:var(--soft);border:1px solid var(--line2);color:var(--ink);font:inherit;cursor:pointer}
+.rg:hover{background:var(--soft2)}.rg.tn{border-color:rgba(232,54,61,.55);background:rgba(232,54,61,.1)}
+.rgm{display:flex;align-items:center;gap:12px}.rgm b{font:600 18px 'Inter',sans-serif}.rgn{font:600 13px 'Inter',sans-serif}
+.nv .dd{font-style:normal;font:600 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);width:30px;display:inline-block}
+.dsw{flex-wrap:wrap;justify-content:flex-end}.dsw button{white-space:nowrap}
+/* sign-in in the page's flow, not pinned: a phone keyboard opening or closing no longer moves the button from under the finger */
+#adm.si{display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100svh;padding:24px 16px;box-sizing:border-box}
+#adm.si .signin{position:relative;left:auto;top:auto;transform:none;margin:auto}

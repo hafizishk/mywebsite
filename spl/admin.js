@@ -4,8 +4,15 @@
 (function () {
   'use strict';
   const C = SPL.clubs, E = SPLSTORE.esc, root = document.getElementById('adm');
-  const A = { page: 'overview', live: 23, evType: 'G', evTeam: null, news: null, flash: '', pushWhen: 'now', pushAud: 'all' };
-  const TONIGHT = [23, 22];
+  const A = { page: 'overview', live: null, evType: 'G', evTeam: null, news: null, flash: '', pushWhen: 'now', pushAud: 'all' };
+  // the admin's day (Hafiz, 6 Nov): Friday 20 November, the first night of Matchweek 7. ROUND is the weekend's games, TONIGHT tonight's
+  const TODAY = '2026-11-20', ROUND = SPL.matches.map((m, i) => m[0] === 7 ? i : -1).filter(i => i >= 0), TONIGHT = ROUND.filter(i => SPL.matches[i][1] === TODAY);
+  const dayName = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'long' });
+  A.live = TONIGHT[0];
+  // the table as the admin's day sees it: the stored table plus Matchweek 6's Sunday games (kept unplayed in the data for the app's live replay; spl.sg, 1 Nov)
+  const SUNDAY6 = { 22: [0, 4], 23: [0, 0] };
+  const tableNow = () => { const t = SPL.table.map(r => r.slice()); Object.entries(SUNDAY6).forEach(([i, sc]) => { const m = SPL.matches[+i]; [[m[2], sc[0], sc[1]], [m[3], sc[1], sc[0]]].forEach(([k, f, a]) => { const r = t.find(x => x[0] === k); if (!r) return; r[1]++; if (f > a) { r[2]++; r[7] += 3; } else if (f === a) { r[3]++; r[7] += 1; } else r[4]++; r[5] += f; r[6] += a; }); }); return t.sort((x, y) => y[7] - x[7] || (y[5] - y[6]) - (x[5] - x[6]) || y[5] - x[5]); };
+  const relDay = iso => iso === TODAY ? 'Tonight' : (Date.parse(iso) - Date.parse(TODAY)) === 864e5 ? 'Tomorrow' : dayName(iso);
   let D = SPLSTORE.read();
   const save = (fn, msg) => { const b = SPLSTORE.read(); D = SPLSTORE.update(fn); auditLocal(b, D); if (msg) flash(msg); render();
     // with the backend on, the database writes the activity rows; fetch them once the save has gone up
@@ -135,14 +142,14 @@
   function spark(col, pts) { const W = 112, H = 42, mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * W / (pts.length - 1)).toFixed(1)} ${(H - 4 - (H - 10) * v / mx).toFixed(1)}`), id = 'sg' + col.slice(1);
     const d = 'M' + xy.join(' L'); return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".45"/><stop offset="1" stop-color="${col}" stop-opacity=".04"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
   function dial() {
-    const i = TONIGHT.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
-    let frac = 0, top = 'Kick-off', big = '7.30PM', sub = E(m[5]);
+    const pool = A.ovLook === 'C' ? ROUND : TONIGHT, i = pool.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
+    let frac = 0, top = m[1] === TODAY ? 'Kick-off tonight' : 'Kick-off ' + dayName(m[1]), big = '7.30PM', sub = E(m[5]);
     if (c.phase === '1H' || c.phase === '2H') { frac = Math.min(1, c.n / 90); top = c.phase === '1H' ? 'First half' : 'Second half'; big = `${s[0]}–${s[1]}`; sub = `<span data-aclock="${i}">${c.label}</span>`; }
     else if (c.phase === 'HT') { frac = .5; top = 'Half time'; big = `${s[0]}–${s[1]}`; sub = 'Back in 15 minutes'; }
     else if (c.phase === 'FT') { frac = 1; top = 'Full time'; big = `${s[0]}–${s[1]}`; sub = E(m[5]); }
     const ang = 2 * Math.PI * frac, dot = frac > 0 && frac < 1 ? `<circle cx="${(100 + R * Math.sin(ang)).toFixed(1)}" cy="${(100 - R * Math.cos(ang)).toFixed(1)}" r="8" fill="#fff"/>` : '';
     const live = c.phase === '1H' || c.phase === '2H';
-    return `<div class="g dial"><div class="dhd"><b>${c.phase === 'pre' ? 'Next kick-off' : live || c.phase === 'HT' ? 'Live now' : 'Tonight'}</b><span class="dsw">${TONIGHT.map(j => `<button class="${j === i ? 'on' : ''}" data-dial="${j}">${short(SPL.matches[j][2]).slice(0, 3).toUpperCase()} v ${short(SPL.matches[j][3]).slice(0, 3).toUpperCase()}</button>`).join('')}</span></div>
+    return `<div class="g dial"><div class="dhd"><b>${c.phase === 'pre' ? (pool.length > 1 ? 'MW7' : 'Next kick-off') : live || c.phase === 'HT' ? 'Live now' : 'Full time'}</b><span class="dsw">${(pool.length > 1 ? pool : []).map(j => `<button class="${j === i ? 'on' : ''}" data-dial="${j}">${SPL.matches[j][2]} v ${SPL.matches[j][3]}</button>`).join('')}</span></div>
       <div class="ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--track)" stroke-width="10"/>${frac ? `<circle cx="100" cy="100" r="${R}" fill="none" stroke="#E8363D" stroke-width="10" stroke-linecap="round" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${(L * (1 - frac)).toFixed(1)}" transform="rotate(-90 100 100)"/>` : ''}${dot}</svg>
         <div class="c"><small class="${live ? 'live' : ''}">${top}</small><b>${big}</b><span>${sub}</span></div></div>
       <div class="vs">${crest(m[2], 30)}<b>${short(m[2])}</b><span>v</span><b>${short(m[3])}</b>${crest(m[3], 30)}</div>
@@ -150,14 +157,15 @@
   }
   function overview() {
     const st = stats(), drafts = D.news.filter(n => n.status === 'draft').length, slots = Object.keys(D.sponsors).length, unsold = Object.values(D.sponsors).filter(s => !s.partner).length;
-    const lead = SPL.table[0], liveN = TONIGHT.filter(i => ['1H', '2H', 'HT'].includes((D.live[i] || {}).phase)).length, g = D.gotm;
+    const lead = tableNow()[0], liveN = ROUND.filter(i => ['1H', '2H', 'HT'].includes((D.live[i] || {}).phase)).length, g = D.gotm;
     const day = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' });
-    const chips = [liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length} games tonight</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
-      g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
+    const chips = [liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game tonight' : TONIGHT.length + ' games tonight'}</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
+      g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open && g.closes >= TODAY ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
       CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>'].join('');
-    const [m1, m2] = TONIGHT.map(i => SPL.matches[i]);
-    const summary = `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])}, 7.30PM; ${C[m2[3]].short} are at ${E(m2[5].replace(' Stadium', ''))}. ` +
-      (g.winner ? '' : g.open ? `Goal of the Month closes ${fmt(g.closes).replace(/^\w+ /, '')}` : 'Goal of the Month is closed and waiting for its winner') +
+    const later = ROUND.filter(i => !TONIGHT.includes(i)).map(i => SPL.matches[i]), m1 = SPL.matches[TONIGHT[0]];
+    const byDay = {}; later.forEach(m => { (byDay[m[1]] = byDay[m[1]] || []).push(`${short(m[2])} v ${short(m[3])}`); });
+    const summary = `${m1 ? `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])} tonight, 7.30PM` : 'No game tonight'}${Object.keys(byDay).length ? '; ' + Object.entries(byDay).map(([d, l]) => `${relDay(d).toLowerCase() === 'tomorrow' ? 'tomorrow' : 'on ' + dayName(d)}, ${l.join(' and ')}`).join(', then ') : ''}. ` +
+      (g.winner ? '' : g.open && g.closes >= TODAY ? `Goal of the Month closes ${fmt(g.closes).replace(/^\w+ /, '')}` : `${E(g.month)}'s vote has closed and is waiting for its winners`) +
       (unsold ? `${g.winner ? '' : ', and '}${unsold} sponsor ${unsold === 1 ? 'slot still has' : 'slots still have'} no partner.` : '.') + (drafts ? ` ${drafts} ${drafts === 1 ? 'story is' : 'stories are'} in draft.` : '');
     const QA = [['push', 'push', '#E8363D', 'Send an alert', 'Goals, kick-off, news'], ['news', 'newnews', '#4A86FF', 'Post a story', drafts ? `${drafts} in draft` : 'Lead story on Home'], ['matchday', 'console', '#3DD68C', 'Run a game live', 'The matchday console'],
       ['votes', 'votes', '#C9A227', g.winner ? 'Start a new month' : 'Publish a winner', `${E(g.month)} awards`], ['sponsors', 'sponsors', '#8B6BFF', 'Fill a sponsor slot', `${unsold} of ${slots} open`], ['app', 'app', '#A9A6C9', 'Open the app', 'See what fans see']];
@@ -183,10 +191,11 @@
     const tile = c => `<div class="tile"><span class="art" style="${c === 'TPU' ? `background:${C[c].c}` : `background-image:url(assets/banners/${c}.png)`}">${c === 'TPU' ? crest(c, 50) : ''}</span><span class="cap"><b>${short(c)}</b><span>${(fol[c] || 0).toLocaleString()} ${fol[c] === 1 ? 'follow' : 'follows'}</span></span></div>`;
     const recent = auditEntries(AUD).slice(0, 5);
     return `<div class="orow">
-        <div class="g ohero"><span class="k">AIA Singapore Premier League · Matchweek 6</span><h1>${greet()}${firstName() ? ', ' + firstName() : ''}</h1>
+        <div class="g ohero"><span class="k">AIA Singapore Premier League · Matchweek 7</span><h1>${greet()}${firstName() ? ', ' + firstName() : ''}</h1>
           <div class="chips">${chips}</div><p class="sum">${summary}</p>
           <span class="k cap">Quick actions</span><div class="qa">${qa}</div></div>
         ${dial()}</div>
+      ${A.ovLook === 'B' ? `<div class="g rstrip"><span class="rsh"><b>Matchweek 7</b><span class="note">20–22 November</span></span>${ROUND.map(i => { const m = SPL.matches[i], c2 = clockOf(i), s2 = scoreOf(i), on = c2.phase !== 'pre'; return `<button class="rg ${m[1] === TODAY ? 'tn' : ''}" data-console="${i}"><span class="lbl ${['1H', '2H'].includes(c2.phase) ? 'live' : ''}">${on ? (c2.phase === 'FT' ? 'Full time' : 'Live · ' + c2.label) : relDay(m[1]) + ' · 7.30PM'}</span><span class="rgm">${crest(m[2], 30)}<b>${on ? s2[0] + '–' + s2[1] : 'v'}</b>${crest(m[3], 30)}</span><span class="rgn">${short(m[2])} v ${short(m[3])}</span><span class="note">${E(m[5])}</span></button>`; }).join('')}</div>` : ''}
       <div class="kpis">${kp}</div>
       <div class="g clubs"><div class="chd"><span><b>Clubs</b><span>Follows in the app, from fans' taps</span></span></div><div class="tiles">${order.map(tile).join('')}</div></div>
       <div class="grid2"><div class="panel"><h2>Latest notifications<button class="lnk" data-page="push">All</button></h2>${pushTable(D.pushes.slice(-5).reverse(), true)}</div>
@@ -207,7 +216,7 @@
     const label = e => e[3] === 'D' ? `<s style="opacity:.6">Goal · ${E(pname(e[8] || e[4], e[5]))}</s> <span class="live">No goal · VAR, ${E(e[9] || 'ruled out')}</span>` : e[3] === 'G' ? `Goal · <b>${E(pname(e[8] || e[4], e[5]))}</b>${e[7] === 'pen' ? ' (pen)' : e[7] === 'og' ? ' (own goal)' : ''}${e[6] ? ` <span class="note">assist ${E(pname(e[4], e[6]))}</span>` : ''}` : e[3] === 'Y' ? `Yellow card · ${E(pname(e[4], e[5]))}` : e[3] === 'R' ? `Red card · ${E(pname(e[4], e[5]))}` : e[3] === 'S' ? `Sub · ${E(pname(e[4], e[5]))} on, ${E(pname(e[4], e[6]))} off` : e[3] === 'HT' ? 'Half time' : 'Full time';
     const mark = e => e[3] === 'D' ? '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #FF6B71;display:inline-block;box-sizing:border-box"></span>' : e[3] === 'G' ? '<span class="gball" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
     return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.') + `
-      <div class="tabs">${TONIGHT.map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
+      <div class="tabs">${ROUND.map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="row" style="gap:24px">
         <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="panel" style="display:flex;flex-direction:column;gap:16px">
@@ -258,7 +267,8 @@
   const pushTable = (list, compact) => list.length ? `<table class="tbl"><thead><tr><th style="width:${compact ? 110 : 150}px">When</th><th>Notification</th>${compact ? '' : '<th style="width:150px">To</th><th style="width:100px">Kind</th>'}<th style="width:90px"></th></tr></thead><tbody>${list.map(p => `<tr><td class="note">${hm(p.at)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><b>${E(p.title)}</b><span class="note">${E(p.body)}</span></div></td>${compact ? '' : `<td>${audName(p.aud)}</td><td class="lbl">${p.kind === 'live' ? 'Match alert' : 'Sent by hand'}</td>`}<td class="lbl ${p.at > Date.now() ? 'warn' : 'ok'}">${p.at > Date.now() ? 'Scheduled' : 'Sent'}</td></tr>`).join('')}</tbody></table>` : '<p class="note">No notifications sent yet.</p>';
   // starters in the PL style (Hafiz, 5 Nov): FAS's team edits them before sending
   const PUSH_STARTERS = [['October Awards 🏆', 'Who impressed you this month? Vote for Player and Goal of the Month before Monday.'],
-    ['The Eastern Derby 🔥', '2nd v 1st at Our Tampines Hub tonight. Win and you go top. Kick-off 7.30PM.'],
+    ['Matchweek 7 is here ⚽', 'Jurong host Balestier tonight at Jurong East, 7.30PM. Follow it live in the app.'],
+    ['Sailors v Geylang 🔥', 'Second host first at Jalan Besar on Sunday. Geylang lead by a point. Kick-off 7.30PM.'],
     ['Six. Nil. 😮', 'Sailors 6–0 Tanjong Pagar. Every goal from Jalan Besar, in under eight minutes.'],
     ['Unstoppable? 🤔', 'Higashikawa has six already. See where the scoring race stands after Matchweek 6.']];
   function push() {
@@ -276,7 +286,7 @@
           ${A.pushWhen === 'later' ? '<label class="fld"><span>Send at</span><input class="in" type="datetime-local" id="pAt"></label>' : ''}
           <div style="display:flex;gap:10px"><button class="btn" data-sendpush="1">${A.pushWhen === 'later' ? 'Schedule' : 'Send now'}</button></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">On a locked phone</span><div class="lock"><span class="lbl" style="color:#DCDAF0">Sunday 1 November</span><span class="tm">19:28</span><div class="nt"><span style="width:30px;height:30px;flex:none;background:url(assets/league/spl-lion.png) center/70% no-repeat #fff;border-radius:4px"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 11px 'Inter',sans-serif;color:#DCDAF0">SPL · now</span><b id="lkT" style="font-size:13px">${E(pre.title) || 'Title'}</b><span id="lkB" style="font-size:12px;color:#DCDAF0">${E(pre.body) || 'Message'}</span></span></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">On a locked phone</span><div class="lock"><span class="lbl" style="color:#DCDAF0">Friday 20 November</span><span class="tm">19:28</span><div class="nt"><span style="width:30px;height:30px;flex:none;background:url(assets/league/spl-lion.png) center/70% no-repeat #fff;border-radius:4px"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 11px 'Inter',sans-serif;color:#DCDAF0">SPL · now</span><b id="lkT" style="font-size:13px">${E(pre.title) || 'Title'}</b><span id="lkB" style="font-size:12px;color:#DCDAF0">${E(pre.body) || 'Message'}</span></span></div></div></div>
       </div>
       <div class="panel"><h2>Sent and scheduled</h2>${pushTable(D.pushes.slice().reverse())}</div>`;
   }
@@ -433,12 +443,12 @@
   A.authed = !CL.on; A.checking = CL.on;
   function signinPage() {
     return `<div class="sibg"><span></span><span></span><span></span><span></span></div>
-      <div class="signin"><div class="sihead"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><span class="lbl">Admin</span></div>
+      <form class="signin" id="siForm" novalidate><div class="sihead"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><span class="lbl">Admin</span></div>
       <h1>Sign in</h1>
       <label class="lbl" for="siE">Email</label><input id="siE" type="email" autocomplete="username" placeholder="you@fas.org.sg" value="${E(A.siEmail || '')}">
-      <label class="lbl" for="siP">Password</label><input id="siP" type="password" autocomplete="current-password">
-      ${A.siErr ? `<p class="err">${E(A.siErr)}</p>` : ''}<button class="btn" data-signin="1" ${A.siBusy ? 'disabled' : ''}>${A.siBusy ? 'Signing in…' : 'Sign in'}</button>
-      <p class="sinote">For Football Association of Singapore staff. Every change you save goes live in the app.</p></div>`;
+      <label class="lbl" for="siP">Password</label><input id="siP" type="password" autocomplete="current-password" enterkeyhint="go">
+      ${A.siErr ? `<p class="err">${E(A.siErr)}</p>` : ''}<button class="btn" type="submit" ${A.siBusy ? 'disabled' : ''}>${A.siBusy ? 'Signing in…' : 'Sign in'}</button>
+      <p class="sinote">For Football Association of Singapore staff. Every change you save goes live in the app.</p></form>`;
   }
 
   const statusLine = () => { const st = CL.state; if (!CL.on) return '<span class="cs demo">Demo · this browser only</span>';
@@ -452,25 +462,26 @@
     const hits = Object.keys(PAGES).filter(k => PAGES[k][0].toLowerCase().includes(q)).map(k => ['Page', PAGES[k][0], `data-page="${k}"`]);
     D.news.filter(n => (n.title + ' ' + n.dek).toLowerCase().includes(q)).slice(0, 5).forEach(n => hits.push(['Story', n.title, `data-gonews="${E(n.id)}"`]));
     D.pushes.slice().reverse().filter(p => (p.title + ' ' + p.body).toLowerCase().includes(q)).slice(0, 3).forEach(p => hits.push(['Alert', p.title, 'data-page="push"']));
-    TONIGHT.forEach(i => { const m = SPL.matches[i]; if ((C[m[2]].name + ' ' + C[m[3]].name).toLowerCase().includes(q)) hits.push(['Tonight', `${C[m[2]].short} v ${C[m[3]].short}`, `data-console="${i}"`]); });
+    ROUND.forEach(i => { const m = SPL.matches[i]; if ((C[m[2]].name + ' ' + C[m[3]].name).toLowerCase().includes(q)) hits.push(['Tonight', `${C[m[2]].short} v ${C[m[3]].short}`, `data-console="${i}"`]); });
     return hits.slice(0, 10);
   }
   const srchDrop = () => { const h = searchHits(A.q || ''); return A.q ? `<div class="sdrop">${h.length ? h.map((x, j) => `<button class="${j === 0 ? 'on' : ''}" ${x[2]}><span class="lbl">${x[0]}</span>${E(x[1])}</button>`).join('') : '<p class="note">Nothing found.</p>'}</div>` : ''; };
   function render() {
     document.body.dataset.look = A.look;
+    root.classList.toggle('si', !!(CL.on && (A.checking || !A.authed)));
     if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="sibg"><span></span><span></span><span></span><span></span></div><div class="signin"><p class="sinote">Checking your sign-in…</p></div>' : signinPage(); return; }
-    const liveNow = TONIGHT.some(i => { const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
+    const liveNow = ROUND.some(i => { const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
     const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
-    const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length + ' TONIGHT'}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
-      (k === 'matchday' ? TONIGHT.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
-    const now = new Date(), stamp = 'Sunday 1 November · ' + now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TONIGHT' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
+      (k === 'matchday' ? (A.ovLook === 'A' ? TONIGHT : ROUND).map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span>${A.ovLook === 'A' ? '' : `<em class="dd">${dayName(m[1]).slice(0, 3)}</em>`}${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
+    const now = new Date(), stamp = 'Friday 20 November · ' + now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
     root.innerHTML = `<div class="glow" aria-hidden="true"><span></span><span></span><span></span></div>
       <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
       <nav>${GROUPS.map(([t, ks]) => `<div class="sec">${t}</div>${ks.map(nv).join('')}`).join('')}</nav>
       <div class="foot">${statusLine()}<a class="lnk" href="index.html" target="_blank" rel="noopener">Open the app ↗</a></div></aside>
       <div class="col"><header class="top g"><div class="tt"><b>${PAGES[A.page][0]}</b><span>${stamp}</span></div>
         <div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
-        <button class="ib" data-look="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
+        <button class="ib" data-setlook="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
         <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
         <span class="newwrap"><button class="new" data-newmenu="1">+ New</button>${A.newOpen ? `<div class="nmenu"><button data-qnews="1">${icon('news')}Story</button><button data-page="push">${icon('push')}Notification</button><button data-console="${TONIGHT[0]}">${icon('matchday')}Live game</button><button data-page="votes">${icon('votes')}Goal of the Month</button></div>` : ''}</span>
         <span class="me" title="${E(CL.on ? CL.state.email : '')}">${E(initials(myName()))}${CL.on ? `<span class="mmenu"><b>${E(myName())}</b><span class="note">${E(CL.state.email)}</span><button class="lnk" data-signout="1">Sign out</button></span>` : ''}</span></header>
@@ -494,10 +505,9 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { const el = document.getElementById('gq'); if (el) { e.preventDefault(); el.focus(); el.select(); } }
     if (e.target.id === 'gq' && e.key === 'Escape') { A.q = ''; render(); }
     if (e.target.id === 'gq' && e.key === 'Enter') { const b = document.querySelector('.sdrop button'); if (b) b.click(); } });
-  root.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.target.id === 'siE' || e.target.id === 'siP')) doSignIn(); });
+  root.addEventListener('submit', e => { if (e.target.id === 'siForm') { e.preventDefault(); if (!A.siBusy) doSignIn(); } });
   root.addEventListener('click', e => {
     { const st = e.target.closest('[data-starter]'); if (st) { const p = PUSH_STARTERS[+st.dataset.starter]; A.pushPre = { title: p[0], body: p[1] }; A.pushAud = val('pAud') || A.pushAud; render(); return; } }
-    if (e.target.closest('[data-signin]')) { doSignIn(); return; }
     if (e.target.id === 'evOg') { A.evOg = e.target.checked; render(); return; }
     { const v = e.target.closest('[data-var],[data-varok],[data-varno]'); if (v) { const d0 = v.dataset;
       if (d0.var !== undefined) { A.varEv = +d0.var; render(); return; }
@@ -509,7 +519,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-look],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -528,7 +538,7 @@
       const wp = top(m0.potm.picks, tp), wg = top(m0.gotm.picks, tg); if (!confirm(`Close the vote and announce ${[wp && wp.name, wg && wg.player].filter(Boolean).join(' and ')}? Every fan is told.`)) return;
       awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
-    if (d.look) { A.look = d.look; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
+    if (d.setlook) { A.look = d.setlook; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
     if (d.newmenu) { A.newOpen = !A.newOpen; render(); return; }
     if (d.qnews) { A.page = 'news'; A.news = 'new'; A.newOpen = false; render(); return; }
     if (d.dial) { A.dial = +d.dial; render(); return; }
@@ -617,7 +627,7 @@
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
   const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
-  if (!CL.on) loadAudit().then(render);
+  if (q.get('ov')) A.ovLook = q.get('ov'); if (!CL.on) loadAudit().then(render);
   if (CL.on) {
     CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });
     CL.onChange(() => { const el = root.querySelector('.who .cs'); if (el) el.outerHTML = statusLine(); });
