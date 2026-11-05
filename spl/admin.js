@@ -121,8 +121,8 @@
   // count events of one kind into 10 even buckets from the first event to now, for a sparkline
   function series(ev) { const now = Date.now(), from = ev.length ? Math.min(ev[0][0], now - 36e5) : now - 864e5, w = (now - from) / 10, o = new Array(10).fill(0);
     ev.forEach(e => { const j = Math.min(9, Math.max(0, Math.floor((e[0] - from) / w))); o[j]++; }); return o; }
-  function spark(col, pts) { const mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * 96 / 9).toFixed(1)} ${(30 - 26 * v / mx + 2).toFixed(1)}`);
-    const d = 'M' + xy.join(' L'); return `<svg class="spk" width="96" height="34" viewBox="0 0 96 34" aria-hidden="true"><path d="${d} L96 34 L0 34Z" fill="${col}" opacity=".16"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/></svg>`; }
+  function spark(col, pts) { const W = 112, H = 42, mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * W / (pts.length - 1)).toFixed(1)} ${(H - 4 - (H - 10) * v / mx).toFixed(1)}`), id = 'sg' + col.slice(1);
+    const d = 'M' + xy.join(' L'); return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".45"/><stop offset="1" stop-color="${col}" stop-opacity=".04"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
   function dial() {
     const i = TONIGHT.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
     let frac = 0, top = 'Kick-off', big = '7.30PM', sub = E(m[5]);
@@ -153,9 +153,20 @@
     const qa = QA.map(([ic, go, col, t, sub]) => { const attr = go === 'newnews' ? 'data-qnews="1"' : go === 'console' ? `data-console="${TONIGHT[0]}"` : go === 'app' ? '' : `data-page="${go}"`;
       const inner = `<i style="--qc:${col}">${icon(ic === 'app' ? 'phone' : ic)}</i><span><b>${t}</b><span>${sub}</span></span>`;
       return go === 'app' ? `<a class="q" href="index.html" target="_blank" rel="noopener">${inner}</a>` : `<button class="q" ${attr}>${inner}</button>`; }).join('');
-    const ev = st.ev, k = kind => ev.filter(e => e[1] === kind), today = new Date().setHours(0, 0, 0, 0), td = a => a.filter(e => e[0] >= today).length;
-    const kp = [['Screens viewed', k('view'), '#4A86FF', 'analytics'], ['Taps', k('tap'), '#E8363D', 'analytics'], ['Votes cast', k('vote'), '#C9A227', 'votes'], ['Alerts received', k('push'), '#3DD68C', 'push']]
-      .map(([l, a, col, go]) => `<button class="g kp" data-page="${go}"><span class="l">${l}</span><span class="v">${a.length.toLocaleString()}</span><span class="s">${td(a) ? `+${td(a).toLocaleString()} today` : 'None yet today'}</span>${spark(col, series(a))}</button>`).join('');
+    // the four counts (Hafiz, 5 Nov, from the Halvo mock): fans, screens today, votes, alerts; all from what the app recorded
+    const ev = st.ev, k = kind => ev.filter(e => e[1] === kind), day0 = new Date().setHours(0, 0, 0, 0), wk = 7 * 864e5, now = Date.now();
+    const dev = (() => { if (!CL.on) return ev.map(e => [e[0], CL.device || 'this']); try { const a = JSON.parse(localStorage.getItem('spl-evdev') || '[]'); return Array.isArray(a) ? a : []; } catch (x) { return []; } })();
+    const fans = (from, to) => new Set(dev.filter(d => d[0] >= from && d[0] < to).map(d => d[1])).size;
+    const fansNow = fans(now - wk, now + 1), fansPrev = fans(now - 2 * wk, now - wk);
+    const fanSeries = (() => { const from = now - wk, w = wk / 10; return Array.from({ length: 10 }, (_, j) => fans(from + j * w, from + (j + 1) * w)); })();
+    const views = k('view'), vToday = views.filter(e => e[0] >= day0), topV = Object.entries(vToday.reduce((o, e) => { const n = e[2].split(':')[0]; o[n] = (o[n] || 0) + 1; return o; }, {})).sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => ({ home: 'Home', match: 'Match centre', club: 'Club pages', player: 'Players', stats: 'Stats', table: 'Table', matches: 'Fixtures', watch: 'Watch', article: 'News', partners: 'Partners screen', onboard: 'Onboarding', settings: 'Settings', search: 'Search', video: 'Video', pmonth: 'Player of the Month', gotm: 'Goal of the Month' }[x[0]] || x[0]));
+    const votes = k('vote'), pushes = k('push'), pl = pushes.filter(e => e[2] === 'live').length;
+    const kp = [
+      ['Fans in the app', fansNow, fansPrev ? `${fansNow >= fansPrev ? '+' : '−'}${Math.round(Math.abs(fansNow - fansPrev) * 100 / fansPrev)}% vs last week` : fansNow ? 'Phones this week' : 'No phones yet this week', '#E8363D', fanSeries, 'analytics'],
+      ['Screens viewed today', vToday.length, topV.length ? topV.join(', then ') : 'None yet today', '#4A86FF', series(views), 'analytics'],
+      ['Votes cast', votes.length, `${E(g.month)} awards`, '#C9A227', series(votes), 'votes'],
+      ['Alerts delivered', pushes.length, pushes.length ? (pl === pushes.length ? 'Goals and kick-off' : `${pl} match, ${pushes.length - pl} news and votes`) : 'None yet', '#3DD68C', series(pushes), 'push']]
+      .map(([l, v, sub, col, pts, go]) => `<button class="g kp" data-page="${go}"><span class="l">${l}</span><span class="v">${v.toLocaleString()}</span><span class="s">${sub}</span>${spark(col, pts)}</button>`).join('');
     const fol = {}; ev.filter(e => e[1] === 'tap' && /^(follow|pick):/.test(e[2])).forEach(e => { const c = e[2].split(':')[1]; fol[c] = (fol[c] || 0) + 1; });
     const order = Object.keys(C).sort((x, y) => (fol[y] || 0) - (fol[x] || 0) || C[x].short.localeCompare(C[y].short));
     const tile = c => `<div class="tile"><span class="art" style="${c === 'TPU' ? `background:${C[c].c}` : `background-image:url(assets/banners/${c}.png)`}">${c === 'TPU' ? crest(c, 50) : ''}</span><span class="cap"><b>${short(c)}</b><span>${(fol[c] || 0).toLocaleString()} ${fol[c] === 1 ? 'follow' : 'follows'}</span></span></div>`;

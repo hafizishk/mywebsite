@@ -57,9 +57,12 @@ var SPLCLOUD = (function () {
   // the admin's counts: the last 4,000 events, in the browser store's own [time, kind, name] form
   async function pullEvents() {
     if (!on || !ST.admin) return false;
-    const { data, error } = await sb.from('spl_events').select('at, kind, name').order('at', { ascending: false }).limit(4000);
+    const { data, error } = await sb.from('spl_events').select('at, kind, name, device').order('at', { ascending: false }).limit(4000);
     if (error || !data) return false;
-    try { localStorage.setItem(SPLSTORE.EVK, JSON.stringify(data.reverse().map(e => [Date.parse(e.at), e.kind, e.name]))); } catch (e) {}
+    data.reverse();
+    try { localStorage.setItem(SPLSTORE.EVK, JSON.stringify(data.map(e => [Date.parse(e.at), e.kind, e.name]))); } catch (e) {}
+    // which phone sent each event (an anonymous id, never a name): the admin counts fans from it
+    try { localStorage.setItem('spl-evdev', JSON.stringify(data.map(e => [Date.parse(e.at), e.device]))); } catch (e) {}
     return true;
   }
 
@@ -89,5 +92,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, signIn, signOut, checkAdmin };
 })();

@@ -1,18 +1,17 @@
 /* SPL admin — the office side, laid out for a laptop (Hafiz, 5 Nov: Halvo layout, option B "SPL glow", plus a light mode).
    SPL blue, red and violet light behind floating frosted panels; a grouped sidebar; a slim top bar with search and + New.
    Light mode: warm paper, white panels, black type, the same three colours as a soft wash. Toggle in the top bar. */
-body.adm{--track:rgba(255,255,255,.08);--card:rgba(20,20,34,.5);--cardb:rgba(255,255,255,.1);--soft:rgba(255,255,255,.07);--soft2:rgba(255,255,255,.1);--txt2:rgba(255,255,255,.72);
+body.adm{--track:rgba(255,255,255,.08);--card:rgba(18,18,36,.62);--cardb:rgba(255,255,255,.1);--soft:rgba(255,255,255,.07);--soft2:rgba(255,255,255,.1);--txt2:rgba(255,255,255,.72);
   background:#06081A;overflow:auto;height:auto;min-height:100%}
-body.adm[data-look=light]{--ink:#15142A;--muted:#5F5D78;--dim:#8A88A3;--line:rgba(21,20,42,.1);--line2:rgba(21,20,42,.07);--surface:rgba(255,255,255,.72);
-  --track:rgba(21,20,42,.08);--card:rgba(255,255,255,.72);--cardb:rgba(21,20,42,.07);--soft:rgba(21,20,42,.045);--soft2:rgba(21,20,42,.08);--txt2:rgba(21,20,42,.7);background:#F4F0E8;color:var(--ink)}
+body.adm[data-look=light]{--ink:#15142A;--muted:#5F5D78;--dim:#8A88A3;--line:rgba(21,20,42,.1);--line2:rgba(21,20,42,.07);--surface:rgba(255,255,255,.82);
+  --track:rgba(21,20,42,.08);--card:rgba(255,255,255,.82);--cardb:rgba(21,20,42,.07);--soft:rgba(21,20,42,.045);--soft2:rgba(21,20,42,.08);--txt2:rgba(21,20,42,.7);background:#F4F0E8;color:var(--ink)}
 #adm{position:relative;display:grid;grid-template-columns:248px minmax(0,1fr);gap:14px;padding:14px;min-height:100vh;box-sizing:border-box;color:var(--ink)}
-.glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.glow span{position:absolute;border-radius:50%;filter:blur(110px)}
-.glow span:nth-child(1){width:620px;height:620px;left:-160px;top:-200px;background:#1E50C8;opacity:.55}
-.glow span:nth-child(2){width:520px;height:520px;right:-140px;top:12%;background:#E8363D;opacity:.38}
-.glow span:nth-child(3){width:760px;height:620px;left:30%;bottom:-360px;background:#6B3FD8;opacity:.55}
-[data-look=light] .glow span{opacity:.16}[data-look=light] .glow span:nth-child(2){opacity:.12}
-.g,.panel{position:relative;z-index:1;background:var(--card);border:1px solid var(--cardb);border-radius:22px;backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+/* the glow is painted gradients, not blurred layers: big blur filters plus frosted panels made Chrome drop parts of the page (crests vanishing, dropdowns glitching) */
+.glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(620px 620px at 140px 100px,rgba(30,80,200,.5),transparent 70%),radial-gradient(560px 560px at calc(100% - 120px) 32%,rgba(232,54,61,.32),transparent 70%),radial-gradient(900px 620px at 55% calc(100% + 180px),rgba(107,63,216,.5),transparent 70%)}
+.glow span{display:none}
+[data-look=light] .glow{opacity:.3}
+.g,.panel{position:relative;z-index:1;background:var(--card);border:1px solid var(--cardb);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.top{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 [data-look=light] .g,[data-look=light] .panel{box-shadow:0 1px 2px rgba(21,20,42,.04),0 10px 30px rgba(21,20,42,.06)}
 /* sidebar */
 .side{position:sticky;top:14px;height:calc(100vh - 28px);box-sizing:border-box;padding:16px 12px;display:flex;flex-direction:column;overflow:auto}
@@ -80,9 +79,9 @@ body.adm:not([data-look=light]) .mmenu{background:rgba(18,18,34,.95)}[data-look=
 .vs{display:flex;align-items:center;gap:10px;font:600 13.5px 'Inter',sans-serif}.vs>span:not(.crest){color:var(--muted)}
 .segs{display:flex;gap:6px;align-self:stretch}.segs button{flex:1;height:32px;padding:0 4px;white-space:nowrap;border-radius:10px;border:0;background:var(--soft);color:var(--muted);font:600 11px 'Inter',sans-serif;cursor:pointer}.segs button.on{background:var(--soft2);color:var(--ink)}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.kp{padding:16px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:104px;overflow:hidden;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
-.kp .l{font:500 12px 'Inter',sans-serif;color:var(--muted)}.kp .v{font:600 28px 'Inter',sans-serif;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.kp .s{font:500 11.5px 'Inter',sans-serif;color:var(--muted)}
-.kp .spk{position:absolute;right:14px;bottom:14px}
+.kp{padding:18px 20px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:118px;overflow:hidden;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
+.kp .l{font:500 12px 'Inter',sans-serif;color:var(--muted)}.kp .v{font:600 32px 'Inter',sans-serif;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.kp .s{font:500 11.5px 'Inter',sans-serif;color:var(--muted)}
+.kp .spk{position:absolute;right:16px;bottom:16px}
 .clubs{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
 .chd b{display:block;font:600 14px 'Inter',sans-serif}.chd span span{font:500 11.5px 'Inter',sans-serif;color:var(--muted)}
 .tiles{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
@@ -208,3 +207,4 @@ body.adm[data-look=light] .tabs .stab.on,body.adm[data-look=light] .seg button.o
 /* logos are white marks (the SPL's partner strip): keep them on navy in both looks */
 body.adm .mini-partners{background:#0B0F2E;color:#fff}[data-look=light] .logo-box{background:#0B0F2E;border-color:transparent}
 [data-look=light] .mini-partners .spl-h{background-image:url(assets/league/spl-logo-horizontal-white.png)}
+.kp .s{position:relative;z-index:1;max-width:60%;line-height:1.35}
