@@ -311,3 +311,6 @@ tr.dim td,.gl.dim{opacity:.6}
   .seg button{min-height:44px;font-size:12.5px;padding:0 6px}
   .tl{grid-template-columns:40px 16px minmax(0,1fr);row-gap:6px}.tl>span:last-child{grid-column:1 / -1;justify-content:flex-end}
 }
+/* no scrollbar line under rows of tabs (Android draws one under anything that scrolls sideways) */
+body.adm .tabs,body.adm .side nav,body.adm .panel{scrollbar-width:none}
+body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm .panel::-webkit-scrollbar{display:none}
