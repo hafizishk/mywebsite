@@ -61,6 +61,8 @@
   const evSort = (a, b) => (a[0] - b[0]) || (a[1] - b[1]) || ((a[2] || 0) - (b[2] || 0));
   function consoleOf(i) {
     const A = STORE.live[i]; if (!A || !A.phase) return null;
+    // a console game left running (not finished more than four hours after kick-off) is a forgotten test: ignore it
+    if (['1H', 'HT', '2H'].includes(A.phase) && A.t0 && Date.now() - A.t0 > 4 * 36e5) return null;
     const now = Date.now(), m = SPL.matches[i], started = A.phase !== 'pre', ft = A.phase === 'FT';
     let clock = 'Pre-match', n = 0;
     if (A.phase === '1H' || A.phase === '2H') { n = A.base + Math.floor(Math.max(0, now - A.t0) / 60000) + 1; const cap = A.phase === '1H' ? 45 : 90; clock = n > cap ? `${cap}+${n - cap}'` : `${n}'`; }

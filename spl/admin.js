@@ -12,6 +12,10 @@
   // the table as the admin's day sees it: the stored table plus Matchweek 6's Sunday games (kept unplayed in the data for the app's live replay; spl.sg, 1 Nov)
   const SUNDAY6 = { 22: [0, 4], 23: [0, 0] };
   const tableNow = () => { const t = SPL.table.map(r => r.slice()); Object.entries(SUNDAY6).forEach(([i, sc]) => { const m = SPL.matches[+i]; [[m[2], sc[0], sc[1]], [m[3], sc[1], sc[0]]].forEach(([k, f, a]) => { const r = t.find(x => x[0] === k); if (!r) return; r[1]++; if (f > a) { r[2]++; r[7] += 3; } else if (f === a) { r[3]++; r[7] += 1; } else r[4]++; r[5] += f; r[6] += a; }); }); return t.sort((x, y) => y[7] - x[7] || (y[5] - y[6]) - (x[5] - x[6]) || y[5] - x[5]); };
+  // console games outside this round (a test, or a game left running): listed so they can be finished or reset
+  const LEFT = 4 * 36e5;
+  const stale = i => { const L = D.live[i]; return !!(L && ['1H', 'HT', '2H'].includes(L.phase) && L.t0 && Date.now() - L.t0 > LEFT); };
+  const consoleGames = () => ROUND.concat(Object.keys(D.live).map(Number).filter(i => SPL.matches[i] && !ROUND.includes(i) && D.live[i].phase !== 'pre').sort((a, b) => a - b));
   const relDay = iso => iso === TODAY ? 'Tonight' : (Date.parse(iso) - Date.parse(TODAY)) === 864e5 ? 'Tomorrow' : dayName(iso);
   let D = SPLSTORE.read();
   const save = (fn, msg) => { const b = SPLSTORE.read(); D = SPLSTORE.update(fn); auditLocal(b, D); if (msg) flash(msg); render();
@@ -188,7 +192,8 @@
     const st = stats(), drafts = D.news.filter(n => n.status === 'draft').length, slots = Object.keys(D.sponsors).length, unsold = Object.values(D.sponsors).filter(s => !s.partner).length;
     const lead = tableNow()[0], liveN = ROUND.filter(i => ['1H', '2H', 'HT'].includes((D.live[i] || {}).phase)).length, g = D.gotm;
     const day = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' });
-    const chips = [liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game tonight' : TONIGHT.length + ' games tonight'}</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
+    const left = Object.keys(D.live).map(Number).filter(stale);
+    const chips = [left.length ? `<button class="chip y" data-console="${left[0]}" style="border:0;cursor:pointer">⚠ ${left.length === 1 ? short(SPL.matches[left[0]][2]) + ' v ' + short(SPL.matches[left[0]][3]) + ' left running' : left.length + ' games left running'}: finish or reset</button>` : '', liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game tonight' : TONIGHT.length + ' games tonight'}</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
       g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open && g.closes >= TODAY ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
       mockTag() + (CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>')].join('');
     const later = ROUND.filter(i => !TONIGHT.includes(i)).map(i => SPL.matches[i]), m1 = SPL.matches[TONIGHT[0]];
@@ -290,7 +295,8 @@
     const nowMin = c.phase === 'pre' ? 1 : c.n;
     const evs = (L.ev || []).slice().sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || ((a[2] || 0) - (b[2] || 0)));
     return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.', `<button class="btn2 sm" data-multi="1">Side by side</button>`) + `
-      <div class="tabs">${ROUND.map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
+      ${stale(i) ? `<div class="panel lr"><b>⚠ Left running since ${E(new Date(L.t0).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}</b><span class="note">Fans don't see it: the app ignores a game still running four hours after kick-off. Reset it, or end it with Full time if it was real.</span><span style="display:flex;gap:8px"><button class="btn red sm" data-resetmatch="1">Reset this game</button>${L.phase === '2H' ? '<button class="btn2 sm" data-phase="FT">Full time</button>' : ''}</span></div>` : ''}
+      <div class="tabs">${consoleGames().map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${stale(j) ? '⚠ Left running' : !ROUND.includes(j) ? 'MW' + mm[0] : mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="row" style="gap:24px">
         <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="panel" style="display:flex;flex-direction:column;gap:16px">
@@ -553,7 +559,7 @@
     document.body.dataset.look = A.look;
     root.classList.toggle('si', !!(CL.on && (A.checking || !A.authed)));
     if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="sibg"><span></span><span></span><span></span><span></span></div><div class="signin"><p class="sinote">Checking your sign-in…</p></div>' : signinPage(); return; }
-    const liveNow = ROUND.some(i => { const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
+    const liveNow = ROUND.some(i => { if (stale(i)) return false; const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
     const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
     const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TONIGHT' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
       (k === 'matchday' ? ROUND.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span><em class="dd">${dayName(m[1]).slice(0, 3)}</em>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
@@ -651,7 +657,7 @@
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
     if (d.nudge) { setLive(A.live, L => { L.t0 -= (+d.nudge) * 60000; }); return; }
-    if (d.resetmatch) { if (!confirm('Clear this game\'s score, clock and timeline?')) return; save(d2 => { delete d2.live[A.live]; }, 'Game reset.'); return; }
+    if (d.resetmatch) { if (!confirm('Clear this game\'s score, clock and timeline?')) return; save(d2 => { delete d2.live[A.live]; }, 'Game reset.'); if (!ROUND.includes(A.live)) { A.live = TONIGHT[0] || ROUND[0]; render(); } return; }
     if (d.evtype) { A.evType = d.evtype; render(); return; }
     if (d.evteam) { A.evTeam = d.evteam; render(); return; }
     if (d.addev) { const i = A.live, m = SPL.matches[i], k = A.evTeam, p = +val('evP'), a = +val('evA') || 0, raw = val('evM').trim(), mm = raw.match(/^(\d{1,3})(?:\s*\+\s*(\d{1,2}))?$/);

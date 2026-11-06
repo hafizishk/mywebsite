@@ -314,3 +314,4 @@ tr.dim td,.gl.dim{opacity:.6}
 /* no scrollbar line under rows of tabs (Android draws one under anything that scrolls sideways) */
 body.adm .tabs,body.adm .side nav,body.adm .panel{scrollbar-width:none}
 body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm .panel::-webkit-scrollbar{display:none}
+.lr{display:flex;flex-direction:column;gap:8px;border-color:rgba(245,197,24,.5)}
