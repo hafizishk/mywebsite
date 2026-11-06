@@ -26,7 +26,7 @@
   const ICON = {
     overview: 'M3 12l9-8 9 8M5 10v10h14V10', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
     push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
-    activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
+    activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', back: 'M15 5l-7 7 7 7', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
   };
   const icon = k => `<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="${ICON[k]}"/></svg>`;
 
@@ -355,6 +355,7 @@
   }
 
   // ---------- monthly awards (Hafiz, 5 Nov): a board with a card per month; a card opens the month's four steps ----------
+  const MAXN = 8; // nominees per award at most (the store keeps eight)
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const mName = key => MONTHS[+key.slice(5, 7) - 1] || key;
   const numOf = (k, nm) => (SPL.squads[k] && SPL.squads[k].find(p => p[1] === nm) || [0])[0];
@@ -378,7 +379,9 @@
   // steps: what's done for a month
   function steps(m) {
     const P = m.potm.picks, G = m.gotm.picks;
-    return [['Shortlist', `${P.length} of 5 players, ${G.length} of 5 goals`, P.length >= 5 && G.length >= 5],
+    // any number of nominees from 2 to MAXN per award; an award left empty is skipped that month
+    const ok = n => n === 0 || n >= 2;
+    return [['Shortlist', `${P.length} ${P.length === 1 ? 'player' : 'players'}, ${G.length} ${G.length === 1 ? 'goal' : 'goals'}`, ok(P.length) && ok(G.length) && (P.length + G.length) > 0],
       ['Clips and write-ups', `${G.filter(g => ytId(g.clip)).length} of ${G.length} clips, ${P.filter(x => (x.write || x.how)).length} of ${P.length} write-ups`, G.length && G.every(g => ytId(g.clip)) && P.length && P.every(x => x.write || x.how)],
       ['Vote', m.opens ? `${dt(m.opens)} – ${dt(m.closes)}` : 'Dates to set', m.stage !== 'shortlist'],
       ['Announce', m.stage === 'announced' ? 'Done' : 'One press', m.stage === 'announced']];
@@ -433,13 +436,13 @@
       <div class="grid2">
         <div class="panel"><h2 class="awh2">Player of the Month <span class="lbl">From ${E(m.month)}'s results</span>${partnerTag('potm')}</h2>
           ${players.length ? `<table class="tbl"><thead><tr><th style="width:34px"></th><th>Player</th><th style="width:60px">Goals</th><th style="width:96px">Club</th><th style="width:70px">Photo</th></tr></thead><tbody>
-          ${players.map(x => { const n = numOf(x.team, x.name), on = P.some(y => y.name === x.name); return `<tr class="${on ? '' : 'dim'}"><td>${tick(on, `data-awp="${E(x.name)}|${x.team}"`, lock || (!on && P.length >= 5))}</td><td><span class="who2">${face(x.team, n, 34)}<span><b>${E(x.name)}</b><br><span class="note">${C[x.team].short}</span></span></span></td><td><b class="big" style="font-size:22px">${x.goals}</b></td><td class="note">W${x.r[0]} D${x.r[1]} L${x.r[2]}</td><td class="lbl ${hasPhoto(x.team, n) ? 'ok' : 'warn'}">${hasPhoto(x.team, n) ? 'Ready' : 'Needed'}</td></tr>`; }).join('')}</tbody></table>` : '<p class="note">No scorers this month yet.</p>'}
-          <p class="note" style="margin:10px 0 0">${P.length} of 5 picked. The FAS panel chooses; the list only saves digging through results.</p></div>
+          ${players.map(x => { const n = numOf(x.team, x.name), on = P.some(y => y.name === x.name); return `<tr class="${on ? '' : 'dim'}"><td>${tick(on, `data-awp="${E(x.name)}|${x.team}"`, lock || (!on && P.length >= MAXN))}</td><td><span class="who2">${face(x.team, n, 34)}<span><b>${E(x.name)}</b><br><span class="note">${C[x.team].short}</span></span></span></td><td><b class="big" style="font-size:22px">${x.goals}</b></td><td class="note">W${x.r[0]} D${x.r[1]} L${x.r[2]}</td><td class="lbl ${hasPhoto(x.team, n) ? 'ok' : 'warn'}">${hasPhoto(x.team, n) ? 'Ready' : 'Needed'}</td></tr>`; }).join('')}</tbody></table>` : '<p class="note">No scorers this month yet.</p>'}
+          <p class="note" style="margin:10px 0 0">${P.length} picked: any number from 2 to ${MAXN}, or none to skip the award this month. The FAS panel chooses; the list only saves digging through results.</p></div>
         <div class="panel"><h2 class="awh2">Goal of the Month <span class="lbl">Every ${E(m.month)} goal</span>${partnerTag('gotm')}</h2>
-          ${shownGoals.length ? shownGoals.map(g => { const j = G.findIndex(x => x.id === g.id), on = j >= 0, x = on ? G[j] : {}; return `<div class="gl ${on ? '' : 'dim'}">${tick(on, `data-awg="${E(g.id)}"`, lock || (!on && G.length >= 5))}${on ? clipTh(x.clip) : ''}<span class="gli"><b>${E(g.player)} <span class="note">${E(g.min)}</span></b><span class="note">${crest(g.team, 14)} ${E(g.match)}</span>
+          ${shownGoals.length ? shownGoals.map(g => { const j = G.findIndex(x => x.id === g.id), on = j >= 0, x = on ? G[j] : {}; return `<div class="gl ${on ? '' : 'dim'}">${tick(on, `data-awg="${E(g.id)}"`, lock || (!on && G.length >= MAXN))}${on ? clipTh(x.clip) : ''}<span class="gli"><b>${E(g.player)} <span class="note">${E(g.min)}</span></b><span class="note">${crest(g.team, 14)} ${E(g.match)}</span>
             ${on ? `<span class="glf">${fld(`g:${j}:clip`, x.clip, 'Paste the clip link (YouTube)')}${fld(`g:${j}:from`, x.from, 'Starts 1:23', 92)}${fld(`g:${j}:to`, x.to, 'Ends 1:41', 92)}</span>${fld(`g:${j}:how`, x.how, 'How it went in, one line for the vote card')}` : ''}</span></div>`; }).join('') : '<p class="note">No goals this month yet.</p>'}
           ${goals.length > shownGoals.length || A.allGoals ? `<button class="lnk" data-awall="1" style="margin-top:10px">${A.allGoals ? 'Show fewer' : `Show all ${goals.length} goals`}</button>` : ''}
-          <p class="note" style="margin:10px 0 0">${G.length} of 5 picked. The clip plays between the start and end times, in the vote and as a Short in Watch.</p></div></div>
+          <p class="note" style="margin:10px 0 0">${G.length} picked: 2 to ${MAXN}, or none to skip. The clip plays between the start and end times, in the vote and as a Short in Watch.</p></div></div>
       ${P.length ? `<div class="panel"><h2>Write-ups <span class="lbl">Drafted from the numbers; edit before the vote opens</span></h2><div class="wus">${P.map((x, j) => `<div class="wu">${face(x.team, x.n, 64)}<b>${E(x.name)}</b><textarea class="in" rows="4" data-awf="p:${j}:write" placeholder="${E(draftLine(m, x, md))}">${E(x.write || '')}</textarea>${fld(`p:${j}:line`, x.line, 'e.g. 4 goals')}</div>`).join('')}</div></div>` : ''}
       <div class="panel awvote"><h2 style="margin:0">Vote</h2><label class="fld"><span>Opens</span><input class="in" type="datetime-local" data-awf="opens" value="${E(m.opens)}"></label><label class="fld"><span>Closes</span><input class="in" type="datetime-local" data-awf="closes" value="${E(m.closes)}"></label>
         <span style="display:flex;flex-direction:column;gap:6px"><label class="chk"><input type="checkbox" checked disabled> Alert every fan when it opens</label><label class="chk"><input type="checkbox" checked disabled> Remind fans who haven't voted, 24 hours before close</label></span><span style="flex:1"></span>
@@ -533,6 +536,8 @@
     return hits.slice(0, 10);
   }
   const srchDrop = () => { const h = searchHits(A.q || ''); return A.q ? `<div class="sdrop">${h.length ? h.map((x, j) => `<button class="${j === 0 ? 'on' : ''}" ${x[2]}><span class="lbl">${x[0]}</span>${E(x[1])}</button>`).join('') : '<p class="note">Nothing found.</p>'}</div>` : ''; };
+  // where the back button goes: out of a month's awards, out of side-by-side, out of a story being edited
+  const backTo = () => A.page === 'votes' && A.awm ? 'all months' : A.page === 'matchday' && A.multi ? 'one game' : A.page === 'news' && A.news ? 'all stories' : '';
   function render() {
     document.body.dataset.look = A.look;
     root.classList.toggle('si', !!(CL.on && (A.checking || !A.authed)));
@@ -546,7 +551,7 @@
       <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
       <nav>${GROUPS.map(([t, ks]) => `<div class="sec">${t}</div>${ks.map(nv).join('')}`).join('')}</nav>
       <div class="foot">${statusLine()}<a class="lnk" href="index.html" target="_blank" rel="noopener">Open the app ↗</a></div></aside>
-      <div class="col"><header class="top g"><div class="tt"><b>${PAGES[A.page][0]}</b><span>${stamp}</span></div>
+      <div class="col"><header class="top g">${backTo() ? `<button class="ib back" data-back="1" aria-label="Back to ${E(backTo())}" title="Back to ${E(backTo())}">${icon('back')}</button>` : ''}<div class="tt"><b>${PAGES[A.page][0]}${A.page === 'votes' && A.awm ? ' · ' + E(mName(A.awm)) : ''}</b><span>${backTo() ? 'Back to ' + E(backTo()) : stamp}</span></div>
         <div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
         <button class="ib" data-setlook="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
         <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
@@ -587,7 +592,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -597,9 +602,9 @@
       awSave(d2 => { d2.awards.months.push({ key, month: mName(key), stage: 'shortlist', opens: '', closes: '', potm: { picks: [], winner: '' }, gotm: { picks: [], winner: '' } }); }, `${mName(key)} added.`); A.awm = key; render(); return; }
     if (d.awdel) { if (!confirm('Delete this month and its shortlist?')) return; awSave(d2 => { d2.awards.months = d2.awards.months.filter(m => m.key !== d.awdel); }, 'Month deleted.'); A.awm = null; render(); return; }
     if (d.awp) { const [nm, k] = d.awp.split('|'); awSave(d2 => { const m = monthOfKey(d2, A.awm), P = m.potm.picks, j = P.findIndex(x => x.name === nm);
-        if (j >= 0) P.splice(j, 1); else if (P.length < 5) { const md = monthData(m.key), x = md.players.find(y => y.name === nm); P.push({ id: 'p' + Date.now().toString(36), name: nm, team: k, n: numOf(k, nm), line: x ? `${x.goals} goal${x.goals === 1 ? '' : 's'}` : '', how: '', write: '' }); } }); return; }
+        if (j >= 0) P.splice(j, 1); else if (P.length < MAXN) { const md = monthData(m.key), x = md.players.find(y => y.name === nm); P.push({ id: 'p' + Date.now().toString(36), name: nm, team: k, n: numOf(k, nm), line: x ? `${x.goals} goal${x.goals === 1 ? '' : 's'}` : '', how: '', write: '' }); } }); return; }
     if (d.awg) { awSave(d2 => { const m = monthOfKey(d2, A.awm), G = m.gotm.picks, j = G.findIndex(x => x.id === d.awg);
-        if (j >= 0) G.splice(j, 1); else if (G.length < 5) { const g = monthData(m.key).goals.find(x => x.id === d.awg); if (g) G.push({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min, how: '', clip: '', from: '', to: '' }); } }); return; }
+        if (j >= 0) G.splice(j, 1); else if (G.length < MAXN) { const g = monthData(m.key).goals.find(x => x.id === d.awg); if (g) G.push({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min, how: '', clip: '', from: '', to: '' }); } }); return; }
     if (d.awopen) { awSave(d2 => { const m = monthOfKey(d2, d.awopen); m.stage = 'voting';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month} Awards 🏆`, body: `Who impressed you this month? Vote for Player and Goal of the Month before ${new Date(m.closes).toLocaleDateString('en-SG', { weekday: 'long' })}.`, aud: 'all', kind: 'manual', match: null }); }, 'The vote is open. Every fan has been told.'); return; }
     if (d.awclose) { const m0 = monthOfKey(D, d.awclose), tp = tallyOf(m0, 'potm'), tg = tallyOf(m0, 'gotm'), top = (list, t) => list.slice().sort((a, b) => t[b.id] - t[a.id])[0];
@@ -607,6 +612,7 @@
       awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
     if (d.mocknum) { A.mockOn = !A.mockOn; try { localStorage.setItem('spl-admin-mock', A.mockOn ? 'on' : 'off'); } catch (x) {} flash(A.mockOn ? 'Example numbers on.' : 'Showing what phones recorded.'); render(); return; }
+    if (d.back) { if (A.page === 'votes') A.awm = null; else if (A.page === 'matchday') { A.multi = null; A.qf = null; } else if (A.page === 'news') A.news = null; render(); document.scrollingElement.scrollTop = 0; return; }
     if (d.multi !== undefined) { if (d.multi === '1') { const same = ROUND.filter(j => SPL.matches[j][1] === SPL.matches[A.live][1]); A.multi = same.length > 1 ? same : ROUND.slice(0, 2); } else A.multi = null; A.qf = null; render(); return; }
     if (d.mpick) { const j = +d.mpick, on = A.multi.includes(j); A.multi = on ? A.multi.filter(x => x !== j) : A.multi.concat(j).sort((a, b) => a - b); if (!A.multi.length) A.multi = [j]; render(); return; }
     if (d.qadd) { const [k, t] = d.qadd.split('|'); A.evTeam = k; A.evType = t; A.evOg = false; A.qf = { i: A.live }; A.varEv = null; render(); const el = document.getElementById('evP'); if (el) el.focus(); return; }

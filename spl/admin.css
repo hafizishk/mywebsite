@@ -301,3 +301,4 @@ tr.dim td,.gl.dim{opacity:.6}
 .mctl .tl{grid-template-columns:44px 18px minmax(0,1fr) auto;font-size:12.5px;padding:8px 0}
 @media (max-width: 900px){.mcgrid{grid-template-columns:minmax(0,1fr)}}
 .mcpick{border:0}.mcpick .stab:disabled{opacity:.4}
+.top .back{margin-left:-6px}
