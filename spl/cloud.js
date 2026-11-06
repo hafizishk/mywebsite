@@ -96,6 +96,13 @@ var SPLCLOUD = (function () {
     if (error || !data) return null; const o = { potm: {}, gotm: {} }; data.forEach(r => { if (o[r.award]) o[r.award][r.choice] = +r.votes; }); return o;
   }
 
+  // push to locked phones (supabase/functions/push): staff only; quietly does nothing until the function is deployed
+  async function sendPush(p) {
+    if (!on || !ST.admin) return { ok: false };
+    try { const { data, error } = await sb.functions.invoke('push', { body: p }); ST.pushError = error ? (error.message || 'error') : ''; return { ok: !error, data }; }
+    catch (e) { ST.pushError = e.message; return { ok: false }; }
+  }
+
   // staff sign-in (admin only): an email and password made in Supabase > Authentication, listed in spl_admins
   async function checkAdmin() {
     if (!on) return false; const { data: u } = await sb.auth.getUser(); ST.email = u && u.user ? u.user.email : '';
@@ -114,5 +121,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, sendPush, signIn, signOut, checkAdmin };
 })();

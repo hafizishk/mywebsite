@@ -18,7 +18,11 @@
   const consoleGames = () => ROUND.concat(Object.keys(D.live).map(Number).filter(i => SPL.matches[i] && !ROUND.includes(i) && D.live[i].phase !== 'pre').sort((a, b) => a - b));
   const relDay = iso => iso === TODAY ? 'Tonight' : (Date.parse(iso) - Date.parse(TODAY)) === 864e5 ? 'Tomorrow' : dayName(iso);
   let D = SPLSTORE.read();
-  const save = (fn, msg) => { const b = SPLSTORE.read(); D = SPLSTORE.update(fn); auditLocal(b, D); if (msg) flash(msg); render();
+  // alerts saved by this save that are due now also go to locked phones (Firebase, through the push function)
+  function pushOut(b, a) { if (!CL.on) return; const seen = {}; (b.pushes || []).forEach(p => { seen[p.id] = 1; });
+    (a.pushes || []).filter(p => !seen[p.id] && p.at <= Date.now() + 30000).forEach(p => { const m = p.match !== null && SPL.matches[p.match];
+      CL.sendPush({ title: p.title, body: p.body, aud: p.aud, kind: p.kind, match: p.match, home: m ? m[2] : '', away: m ? m[3] : '' }); }); }
+  const save = (fn, msg) => { const b = SPLSTORE.read(); D = SPLSTORE.update(fn); auditLocal(b, D); pushOut(b, D); if (msg) flash(msg); render();
     // with the backend on, the database writes the activity rows; fetch them once the save has gone up
     if (CL.on) { clearTimeout(save.t); save.t = setTimeout(() => loadAudit().then(() => { if (['overview', 'activity'].includes(A.page) && !document.activeElement.matches('input,textarea,select')) render(); }), 2000); } };
   const flash = msg => { A.flash = msg; clearTimeout(flash.t); flash.t = setTimeout(() => { A.flash = ''; render(); }, 2600); };

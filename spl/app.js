@@ -6,7 +6,7 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
   const P = Object.assign({ user: null, fav: null, follows: {}, reminders: {}, cal: {}, votes: {}, potm: {}, tickets: [], settings: { lang: 'en', data: false, push: { goals: true, kickoff: true, results: true, news: false, tickets: true }, comps: { spl: true, spl2: false, cup: true, afc: true, wpl: false } } }, load());
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} };
-  const S = { view: P.user ? 'home' : 'onboard', ob: 0, htab: 'tonight', mw: 6, comp: 'spl', match: null, mtab: 'overview', ttab: 'table', club: null, ctab: 'latest', player: null, query: '', sq: '', gotm: null, more: {} };
+  const S = { view: P.user ? 'home' : 'onboard', ob: 0, htab: 'tonight', mw: 7, comp: 'spl', match: null, mtab: 'overview', ttab: 'table', club: null, ctab: 'latest', player: null, query: '', sq: '', gotm: null, more: {} };
   // ?embed: the app inside the admin's phone preview — no splash, no partners, no onboarding, no analytics
   const EMBED = /[?&]embed\b/.test(location.search);
   if (EMBED) { S.view = 'home'; const l = document.getElementById('launch'); if (l) l.remove();
@@ -28,6 +28,9 @@
   // depth to make it six wins on the trot"); minutes it gives loosely are approximate. Starting XIs other than the
   // players that report names, the stats and the Player of the Match counts are reconstructed for the demo,
   // and every live screen says "Replay".
+  // the app's day (Hafiz, 6 Nov): Friday 20 November, the first night of Matchweek 7, as the admin. MW6 is final; the
+  // replay of its Sunday games stays in Settings → Demo.
+  const TODAY = '2026-11-20', TODAY_MW = 7;
   const LIVE_IDS = [23, 22]; // tonight's games: the replay plays them, the admin's match console can run them for real
   const XI = {
     TAM: { f: '4-2-3-1', xi: [24, 2, 5, 33, 26, 49, 88, 10, 8, 81, 25], bench: [28, 71, 16, 11, 21, 15, 18, 9, 27] },
@@ -73,8 +76,9 @@
   }
   function liveOf(i) {
     const A = consoleOf(i); if (A) return A;
-    if (!S.sim || !EV[i]) return null;
-    const T = S.sim.T, m = SPL.matches[i], e1 = h1end(i), ft = ftT(i);
+    // MW6's Sunday games: final (the official result) unless the demo replay is playing them
+    if (!EV[i]) return null;
+    const T = S.sim ? S.sim.T : ftT(i) + 1, m = SPL.matches[i], e1 = h1end(i), ft = ftT(i);
     const started = T >= 0, done = T >= ft;
     let clock = 'Pre-match', played = 0;
     if (done) { clock = 'FT'; played = 90; }
@@ -187,7 +191,7 @@
 
   // Watch (the bar's last tab, Hafiz 4 Nov): live on the broadcaster, Must-see moments, last round's Moments, highlights.
   function watch() {
-    const tonight = rows().filter(r => r.date === '2026-11-01'), live = anyLive();
+    const tonight = rows().filter(r => r.date === (S.sim ? '2026-11-01' : TODAY)), live = tonight.some(r => r.live);
     const sec = (t, slot, extra) => `<div style="display:flex;align-items:center;gap:14px"><span class="d" style="font-size:20px">${t}</span><span style="flex:1;height:1px;background:var(--line)"></span>${extra || spLine(slot)}</div>`;
     return `<div style="display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:26px;line-height:1">Watch</span><span class="lbl">Live games, moments and highlights</span></div>
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--red)" ><div class="lbl" style="display:flex;justify-content:space-between"><span style="${live ? 'color:#FF6B71' : ''}">${live ? 'Live now' : 'Tonight · 7.30PM'}</span><span>meWATCH</span></div>
@@ -233,7 +237,7 @@
   const scorersLine = (r, side) => { if (!r.L || !r.L.started) return ''; const k = side ? r.away : r.home; const g = r.L.fired.filter(e => e[3] === 'G' && e[4] === k).map(e => `${backName(sname(e[8] || k, e[5]))}${e[7] === 'og' ? ' (og)' : ''} ${minLabel(e[1], e[2])}`); return g.length ? `<span style="font-size:11px;color:var(--muted);text-align:center;line-height:1.4">${g.join(', ')}</span>` : ''; };
   const heroCard = (r, blurb) => { const L = r.L, on = L && L.started, last = on ? L.fired.filter(e => e[3] !== 'FT').slice(-1)[0] : null;
     return `<button class="card hero" data-match="${r.id}">
-    <div style="display:flex;justify-content:space-between;align-items:center">${on ? (L.ft ? `<span class="lbl">Full time · MW6</span>` : `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${r.id}">${L.clock}</span></span>`) : `<span class="lbl" style="color:#FFD1D3"><span class="dot" style="background:#E8363D;margin-right:6px"></span>Tonight · 7.30PM</span>`}<span class="lbl">${r.venue}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">${on ? (L.ft ? `<span class="lbl">Full time · MW${r.mw}</span>` : `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${r.id}">${L.clock}</span></span>`) : `<span class="lbl" style="color:#FFD1D3"><span class="dot" style="background:#E8363D;margin-right:6px"></span>Tonight · 7.30PM</span>`}<span class="lbl">${r.venue}</span></div>
     <div class="teams">
       <div class="team">${crest(r.home, 52)}<span class="d" style="font-size:15px;text-align:center;line-height:1">${r.hname}</span>${on ? scorersLine(r, 0) : `<span class="lbl">${posText(r.home)}</span>`}</div>
       ${on ? `<span class="d mono" style="font-size:52px;line-height:1">${r.sc}</span>` : `<span class="d" style="font-size:40px;line-height:1;color:rgba(255,255,255,.7)">VS</span>`}
@@ -300,8 +304,10 @@
   // Me (Hafiz, 5 Nov): your initial on your club's colour, ringed in its second colour. Opens your profile and settings.
   const meBtn = () => { const f = P.fav && C[P.fav], n = P.user && P.user.name ? P.user.name.trim()[0].toUpperCase() : '';
     return `<button class="hbtn me" aria-label="Me" data-go="settings" style="background:${f ? f.c : 'rgba(255,255,255,.1)'};color:${f ? f.cf : '#fff'}">${n || ICON.user || 'Me'}</button>`; };
+  // the rest of the round under tonight's game: one row a game, by day
+  const weekendCard = list => list.length ? `<div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 4px 0">This weekend</div>${list.map(r => `<button class="pl" data-match="${r.id}" style="gap:10px">${crest(r.home, 24)}<span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">${r.hname} v ${r.aname}</span><span style="font-size:11px;color:var(--muted)">${E(r.venue)}</span></span>${crest(r.away, 24)}<span class="lbl" style="width:76px;text-align:right">${r.live ? `<span style="color:#FF6B71">${r.status.replace('Live · ', '')}</span>` : r.sc !== 'VS' ? r.sc : new Date(r.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short' }) + ' 7.30PM'}</span></button>`).join('')}</div>` : '';
   function home() {
-    const all = rows(), tonight = all.filter(r => r.date === '2026-11-01');
+    const all = rows(), demo = !!S.sim, tonight = all.filter(r => r.date === (demo ? '2026-11-01' : TODAY)), weekend = demo ? [] : all.filter(r => r.mw === TODAY_MW && r.date !== TODAY), liveN = tonight.filter(r => r.live).length;
     const latest = all.filter(r => r.sc !== 'VS').slice(-6).reverse();
     const head = `<div style="display:flex;align-items:center">
       <span class="spl-h" role="img" aria-label="Singapore Premier League" style="width:118px;height:44px;margin-left:-6px;flex:none"></span>
@@ -310,7 +316,7 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="tabs">${[['tonight', 'Matchday'], ['news', 'News']].map(([k, l]) => `<button class="stab ${S.htab === k ? 'on' : ''}" data-htab="${k}">${l}</button>`).join('')}</div>
-      <div class="lbl" style="display:flex;justify-content:space-between"><span>Sun 1 Nov · Matchweek 6</span><span>${anyLive() ? '<span style="color:#FF6B71">2 live</span>' : S.sim && S.sim.T >= 0 ? 'Full time' : '2 games tonight'}</span></div>
+      <div class="lbl" style="display:flex;justify-content:space-between"><span>${demo ? 'Replay · Sun 1 Nov · Matchweek 6' : 'Fri 20 Nov · Matchweek ' + TODAY_MW}</span><span>${liveN ? `<span style="color:#FF6B71">${liveN} live</span>` : demo && S.sim.T >= 0 ? 'Full time' : tonight.length === 1 ? 'A game tonight' : tonight.length + ' games tonight'}</span></div>
     </div>`;
     if (S.htab === 'news') return head + `<div class="card" style="padding:0 16px">${NEWS_().map(n => newsRow(n, true)).join('')}</div>`;
     if (S.htab === 'watch') S.htab = 'tonight';
@@ -320,8 +326,9 @@
     const G = GOTM_(), voted = P.votes[G.month], win = G.winner && G.goals.find(g => g.id === G.winner);
     const gotmCard = `<button class="card" data-go="gotm" style="padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;color:var(--ink);width:100%"><div style="display:flex;justify-content:space-between" class="lbl"><span style="color:#C9A227">Goal of the Month · ${E(G.month)}</span><span>${win ? 'Result' : voted ? 'Voted' : G.open ? 'Closes ' + fmtDate(G.closes) : 'Voting closed'}</span></div><span class="d" style="font-size:20px;line-height:1">${win ? E(win.player) + ' wins' : voted ? 'See how the vote stands' : G.open ? G.goals.length + ' goals. One vote.' : 'Result coming soon'}</span><span style="font-size:12px;color:var(--muted)">${win ? E(win.match) + ' · ' + E(win.min) : G.goals.map(g => E(backName(g.player))).join(' · ')}</span>${spLine('gotm')}</button>`;
     return head + favStrip + moments() + mustSee() +
-      heroCard(tonight[1], 'First against second. Geylang unbeaten; Tampines a perfect four from four. Winner sleeps top.') +
-      heroCard(tonight[0], 'Champions on three straight league wins; the Tigers are unbeaten in three.') + `<button class="rowlink" data-go="awards" style="display:flex;flex-direction:column;gap:8px;text-align:left;color:var(--ink)"><span style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">${PMONTH.month} awards</span><span class="lbl">Vote now →</span></span>${awardsGraphic()}</button>` +
+      (demo ? heroCard(tonight[1], 'First against second. Geylang unbeaten; Tampines a perfect four from four. Winner sleeps top.') +
+        heroCard(tonight[0], 'Champions on three straight league wins; the Tigers are unbeaten in three.')
+      : tonight.map(r => heroCard(r, 'The first of four this weekend. On Sunday the Sailors host leaders Geylang at Jalan Besar.')).join('') + weekendCard(weekend)) + `<button class="rowlink" data-go="awards" style="display:flex;flex-direction:column;gap:8px;text-align:left;color:var(--ink)"><span style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">${PMONTH.month} awards</span><span class="lbl">Vote now →</span></span>${awardsGraphic()}</button>` +
       `<div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">Latest results</span><button class="rowlink" data-go="matches" style="color:var(--muted);font:600 12px 'Inter',sans-serif;width:auto">Matchweek 6 →</button></div>
         <div class="scroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:0 20px">${latest.map(m => `<button class="card" data-match="${m.id}" style="flex:none;width:150px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;color:var(--ink);text-align:left"><span class="lbl">${m.when}</span><div style="display:flex;align-items:center;justify-content:space-between">${crest(m.home, 26)}<span class="d mono" style="font-size:26px">${m.sc}</span>${crest(m.away, 26)}</div><span style="font-size:11px;color:var(--muted)">${m.venue}</span></button>`).join('')}</div>
@@ -463,7 +470,7 @@
     </section>`;
   }
   // Season: Matches and Table under one tab (Hafiz, 4 Nov: MLS-style bar)
-  const liveLine = () => anyLive() ? '<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live table · as it stands</span>' : S.sim && S.sim.T >= 0 ? '<span class="lbl">After Matchweek 6</span>' : '<span class="lbl">Before tonight\'s games · updated 31 Oct</span>';
+  const liveLine = () => anyLive() ? '<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live table · as it stands</span>' : S.sim && S.sim.T >= 0 ? '<span class="lbl">After Matchweek 6</span>' : (S.sim ? '<span class="lbl">Before the replayed games</span>' : '<span class="lbl">After Matchweek 6 · spl.sg</span>');
   const seasonHead = on => `<div style="display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:26px;line-height:1">Season</span>${on === 'table' ? liveLine() : '<span class="lbl">AIA Singapore Premier League · 2026/27</span>'}</div>
       <div class="tabs">${[['matches', 'Matches'], ['table', 'Table']].map(([k, l]) => `<button class="stab ${on === k ? 'on' : ''}" data-go="${k}">${l}</button>`).join('')}</div>`;
   // Short / Full / Form (Premier League app reference), as underlined tabs
@@ -481,8 +488,12 @@
     let body;
     if (S.ttab !== 'players' && S.ttab !== 'clubstats') S.ttab = 'players';
     if (S.ttab === 'players') {
-      const P2 = arr => arr.map(x => ({ name: x[0], club: x[1], v: x[2], player: true }));
-      body = leader('goals', 'Goals', P2(SPL.scorers), '', 'spl.sg player stats, 1 Nov 2026.') + leader('assists', 'Assists', P2(SPL.assists), '', 'spl.sg player stats, 1 Nov 2026.') +
+      // the stored lists stand before MW6's Sunday games; add those games' goals and assists as they stand
+      const P2 = (arr, kind) => { const o = arr.map(x => [x[0], x[1], x[2]]);
+        LIVE_IDS.forEach(i => { const L = liveOf(i); if (!L) return; L.fired.forEach(e => { if (e[3] !== 'G' || e[7] === 'og') return; const n = kind === 'a' ? (e[6] ? sname(e[4], e[6]) : '') : sname(e[4], e[5]); if (!n) return;
+          const x = o.find(y => y[0] === n); if (x) x[2]++; else o.push([n, e[4], 1]); }); });
+        return o.sort((a, b) => b[2] - a[2]).map(x => ({ name: x[0], club: x[1], v: x[2], player: true })); };
+      body = leader('goals', 'Goals', P2(SPL.scorers, 'g'), '', 'spl.sg player stats, after Matchweek 6.') + leader('assists', 'Assists', P2(SPL.assists, 'a'), '', 'spl.sg player stats, after Matchweek 6.') +
         `<div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:14px"><span aria-hidden="true" style="width:34px;height:36px;flex:none;border:1px dashed rgba(255,255,255,.3)"></span><span style="flex:1;display:flex;flex-direction:column;gap:2px" data-slot="stats"><span class="lbl">Stats partner</span><span style="font-size:13px;color:#DCDAF0">${STORE.sponsors.stats.partner ? 'Player stats presented by ' + sp('stats') : 'A section sponsor sits here: one partner per section, sold by FAS. [PARTNER]'}</span></span></div>
         <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span class="lbl">With the match feed</span><span style="font-size:13px;line-height:1.5;color:#DCDAF0">Clean sheets by goalkeeper, minutes, cards, shots, duels won, distance covered and sprints get the same leader cards once FAS's data provider is connected.</span></div>`;
     } else {
