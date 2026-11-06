@@ -39,7 +39,7 @@ total, rendered at 4/3 density so screen text stays sharp on large displays.
 | `dev-websites` | laptop — X-League site |
 | `dev-software` | monitor — D2D admin suite |
 | `dev-operations` | tablet + phone — D2D fixtures, D2D app |
-| `dev-apps` | two phones — Makan dark splash, D2D app |
+| `dev-apps` | two phones — Makan splash (navy, new mark), D2D app |
 | `dev-automation` | laptop + phone — D2D site, D2D app |
 | `dev-sitin` | tablet — X-League player profile |
 | `dev-build` | laptop — this site's client-rail code, pulled live from `index.html` |
@@ -68,7 +68,7 @@ show them, picture above copy.
 | `d2d-logo.webp` | **Stopgap.** Keyed out of a website screenshot; the source is only 79 px wide, so it is soft. Replace with the original file. |
 | `xleague-logo-light.webp` | **Stopgap.** The original has white lettering that disappears on the white tiles; this copy recolours only the lettering. Replace with an official light-background version. |
 | `nsg-logo.svg` | The original mark with its viewBox cropped to the content. |
-| `makan-logo.webp` | From the supplied artwork. No URL yet, so its tile is not a link — add `u:` to its entry to link it. |
+| `makan-icon.webp` | Makan's app icon (Nov 2026 mark), corners rounded. No URL yet, so its tile is not a link — add `u:` to its entry to link it. |
 
 The client rail is built in JS from the `clients` array near the bottom of
 `index.html` — add an entry there to add a client.
@@ -78,7 +78,7 @@ The client rail is built in JS from the `clients` array near the bottom of
 `vercel.json` gives `assets/` a week's `max-age` with a month of
 `stale-while-revalidate`. Asset filenames are not content-hashed, so this is
 deliberately not `immutable` — **when replacing an image, give it a new
-filename** or visitors may see the old one for up to a week.
+filename or add a `?v=` query** or visitors may see the old one for up to a week.
 
 ## Local preview
 
