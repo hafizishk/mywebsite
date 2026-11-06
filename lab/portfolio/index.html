@@ -112,6 +112,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .logos li{display:flex;justify-content:center;align-items:center;height:clamp(44px,4.4vw,64px)}
 .logos img{max-height:100%;max-width:100%;width:auto;filter:brightness(0) invert(1);opacity:.92}
 .logos svg{height:62%;width:auto}
+/* Makan's mark has no wordmark; set the name beside it like the KlickFrame lock-up */
+.logos .mk{display:flex;align-items:center;gap:.45em;height:62%;font-weight:620;font-size:clamp(17px,1.6vw,23px);letter-spacing:-.02em;color:#fdfcfb}
+.logos .mk img{height:100%;width:auto;filter:brightness(0) invert(1)}
 
 /* why */
 .why{padding:clamp(40px,4vw,60px) 0 clamp(90px,11vw,150px)}
@@ -268,7 +271,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
       <li><svg viewBox="0 0 168 32" role="img" aria-label="KlickFrame"><circle cx="16" cy="16" r="15" fill="none" stroke="#fdfcfb" stroke-width="2"/>
         <path d="M10 8h3.5v16H10z" fill="#fdfcfb"/><path d="M23.5 8l-8 8 8 8h-5l-8-8 8-8z" fill="#fdfcfb"/>
         <text x="40" y="22.5" fill="#fdfcfb" font-family="Archivo" font-weight="620" font-size="19" letter-spacing="-.5">KlickFrame</text></svg></li>
-      <li><img src="../../assets/makan-logo.webp" alt="Makan"></li>
+      <li><span class="mk"><img src="screens/makan-mark.png" alt="">Makan</span></li>
     </ul>
   </div>
 </section>
@@ -298,10 +301,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     <div class="cap"><h3>Flair Football Academy</h3><span class="small">Website / Parent &amp; coach app / Admin</span>
       <span class="badge">Pitch prototype</span></div></article>
   <article class="tile" id="p-mk" data-slides="media/ls-makan.webp">
-    <div class="cap"><h3>Makan</h3><span class="small">AI meal logging / iOS &amp; Android</span>
+    <div class="cap"><h3>Makan</h3><span class="small">Nutrition coach in your pocket / iOS &amp; Android</span>
       <span class="badge">In development</span></div></article>
   <article class="tile tbc" id="p-kita">
-    <div class="cap"><h3>Kita Handoff</h3><span class="small">Details to come</span><br><span class="badge">Placeholder</span></div></article>
+    <div class="cap"><h3>Kita Handoff</h3><span class="small">Helper agency app</span><br><span class="badge">Screens to come</span></div></article>
 </section>
 
 <section class="contact" id="contact">

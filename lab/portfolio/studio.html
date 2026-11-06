@@ -142,7 +142,7 @@ const SCREENS = {
   d2dSite: { html: img(SCR + 'd2d-site.webp') },
   d2dAdmin:{ html: img(SCR + 'd2d-admin.webp', 'left top') },
   d2dApp:  { html: img(SCR + 'd2d-app.webp') },
-  makan:   { cls: 'splash', html: `<img src="${SCR}makan-splash.png" alt="">` }
+  makan:   { html: img(SCR + 'makan-splash-v2.png', 'center') }
 };
 
 /* Each project sits on its own brand colour: a base, a light pooled behind the
@@ -155,7 +155,7 @@ const BG = {
   flPk:  ['#f82878', 'rgba(255,170,200,.65)', 'rgba(120,10,60,.35)'],
   d2d:   ['#081a20', 'rgba(96,184,200,.55)', 'rgba(20,90,110,.4)'],
   d2dLt: ['#e6ecee', 'rgba(255,255,255,.8)', 'rgba(96,184,200,.3)'],
-  mk:    ['#ff6b35', 'rgba(255,190,150,.75)', 'rgba(170,50,10,.35)']
+  mk:    ['#0b1730', 'rgba(255,107,53,.55)', 'rgba(60,90,160,.35)']
 };
 const bg = (k, cx = 50, cy = 50) => { const [base, a, b] = BG[k]; return `<div class="bloom" style="background:
   radial-gradient(ellipse 55% 70% at ${cx}% ${cy}%, ${a}, transparent 72%),
