@@ -237,6 +237,17 @@
   const mark = e => e[3] === 'D' ? '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #FF6B71;display:inline-block;box-sizing:border-box"></span>' : e[3] === 'G' ? '<span class="gball" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
   // several games at once (Hafiz, 6 Nov): when kick-offs coincide, one official runs them side by side. Each panel is a compact
   // console; tapping Goal, card or Sub on a team opens the entry form inside that panel. The panel sets which game an action is for.
+  // ruling a goal out (VAR): pick a common reason or write your own; fans read "VAR rules out X's goal for <reason>."
+  const VAR_REASONS = ['offside', 'a foul in the build-up', 'handball', 'the ball out of play', 'a foul on the goalkeeper'];
+  function varForm(i, idx) {
+    const e = ((D.live[i] || {}).ev || [])[idx]; if (!e) return '';
+    const who = pname(e[8] || e[4], e[5]), why = A.varWhy || 'offside';
+    return `<div class="mcf varf"><b>Rule out ${E(who)}'s goal (${minText(e)})</b>
+      <div class="varr">${VAR_REASONS.map(r => `<button class="${r === why ? 'on' : ''}" data-varr="${E(r)}">${E(r[0].toUpperCase() + r.slice(1))}</button>`).join('')}</div>
+      <label class="fld"><span>Reason fans read · your own words if none fits</span><input class="in" id="varWhy" maxlength="40" value="${E(why)}" placeholder="e.g. offside"></label>
+      <p class="note" id="varPrev">Fans get: NO GOAL ❌ · VAR rules out ${E(who)}'s goal for <b>${E(why)}</b>.</p>
+      <div class="mcc"><span style="flex:1"></span><button class="lnk" data-varno="1">Cancel</button><button class="btn red sm" data-varok="${idx}">Rule out, tell fans</button></div></div>`;
+  }
   function miniConsole(i) {
     const m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i), live = c.phase === '1H' || c.phase === '2H';
     const next = { pre: ['Kick off', '1H'], '1H': ['Half time', 'HT'], HT: ['Second half', '2H'], '2H': ['Full time', 'FT'], FT: null }[L.phase];
@@ -258,7 +269,7 @@
       <div class="mck">${next ? `<button class="btn sm ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${live ? '<button class="btn2 sm" data-nudge="-1">−1 min</button><button class="btn2 sm" data-nudge="1">+1 min</button>' : ''}</div>
       ${team(m[2])}${team(m[3])}${form}
       <div class="mctl">${evs.length ? evs.slice(0, 6).map(([e, x]) => `<div class="tl"><span class="big" style="font-size:15px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 14) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<span style="display:flex;gap:10px">${e[3] === 'G' ? `<button class="lnk danger" data-var="${x}">VAR</button>` : ''}<button class="lnk" data-delev="${x}">Remove</button></span>`}</div>`).join('') : '<p class="note">Nothing yet.</p>'}${evs.length > 6 ? `<p class="note">and ${evs.length - 6} earlier</p>` : ''}</div>
-      ${A.varEv != null && A.live === i ? `<div class="mcf"><b>Rule out the goal</b><div class="mcc"><select class="in" id="varWhy" style="width:auto">${['Offside', 'Foul in the build-up', 'Handball', 'Other'].map(r => `<option>${r}</option>`).join('')}</select><span style="flex:1"></span><button class="lnk" data-varno="1">Cancel</button><button class="btn red sm" data-varok="${A.varEv}">Rule out, tell fans</button></div></div>` : ''}
+      ${A.varEv != null && A.live === i ? varForm(i, A.varEv) : ''}
     </div>`;
   }
   function multiday() {
@@ -298,7 +309,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Penalty</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal${og ? ` <span class="note">by a ${E(C[opp].short)} player, counts for ${E(C[A.evTeam].short)}</span>` : ''}</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Send an alert to fans</label><span style="flex:1"></span><button class="btn" data-addev="1">Add ${{ G: 'goal', Y: 'yellow card', R: 'red card', S: 'substitution' }[A.evType]}</button></div>
           </div>
-          <div class="panel"><h2>Timeline<span class="lbl">${evs.length} ${evs.length === 1 ? 'entry' : 'entries'}</span></h2>${evs.length ? evs.slice().reverse().map(e => `<div class="tl"><span class="big" style="font-size:18px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 16) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<span style="display:flex;gap:14px;align-items:center">${e[3] === 'G' ? (A.varEv === (L.ev || []).indexOf(e) ? `<select class="in" id="varWhy" style="min-height:30px;width:auto;padding:0 28px 0 10px;font-size:12px">${['Offside', 'Foul in the build-up', 'Handball', 'Other'].map(r => `<option>${r}</option>`).join('')}</select><button class="btn red sm" data-varok="${(L.ev || []).indexOf(e)}">Rule out, tell fans</button><button class="lnk" data-varno="1">Cancel</button>` : `<button class="lnk danger" data-var="${(L.ev || []).indexOf(e)}">No goal (VAR)</button>`) : ''}<button class="lnk" data-delev="${(L.ev || []).indexOf(e)}">Remove</button></span>`}</div>`).join('') : '<p class="note">Nothing yet. Kick off, then add goals, cards and changes as they happen.</p>'}</div>
+          <div class="panel"><h2>Timeline<span class="lbl">${evs.length} ${evs.length === 1 ? 'entry' : 'entries'}</span></h2>${evs.length ? evs.slice().reverse().map(e => `<div class="tl"><span class="big" style="font-size:18px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 16) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<span style="display:flex;gap:14px;align-items:center">${e[3] === 'G' && A.varEv !== (L.ev || []).indexOf(e) ? `<button class="lnk danger" data-var="${(L.ev || []).indexOf(e)}">No goal (VAR)</button>` : ''}<button class="lnk" data-delev="${(L.ev || []).indexOf(e)}">Remove</button></span>`}</div>${A.varEv === (L.ev || []).indexOf(e) && e[3] === 'G' ? varForm(i, A.varEv) : ''}`).join('') : '<p class="note">Nothing yet. Kick off, then add goals, cards and changes as they happen.</p>'}</div>
           <p class="note">Possession, shots and corners need a data provider or a stats spotter; this console covers what a match official sees. Team sheets are confirmed from each club's submitted line-up in the full build.</p>
         </div>
         <div><div class="phone-cap"><span class="lbl">The app, live</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed&match=${i}" title="App preview"></iframe></div></div>
@@ -582,10 +593,11 @@
     { const gi = e.target.closest('[data-gi]'); if (gi && +gi.dataset.gi !== A.live) { A.live = +gi.dataset.gi; } }
     { const st = e.target.closest('[data-starter]'); if (st) { const p = PUSH_STARTERS[+st.dataset.starter]; A.pushPre = { title: p[0], body: p[1] }; A.pushAud = val('pAud') || A.pushAud; render(); return; } }
     if (e.target.id === 'evOg') { A.evOg = e.target.checked; render(); return; }
+    { const r = e.target.closest('[data-varr]'); if (r) { const el = document.getElementById('varWhy'); if (el) { el.value = r.dataset.varr; el.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelectorAll('.varr button').forEach(b => b.classList.toggle('on', b === r)); return; } }
     { const v = e.target.closest('[data-var],[data-varok],[data-varno]'); if (v) { const d0 = v.dataset;
-      if (d0.var !== undefined) { A.varEv = +d0.var; render(); return; }
+      if (d0.var !== undefined) { A.varEv = +d0.var; A.varWhy = null; render(); return; }
       if (d0.varno) { A.varEv = null; render(); return; }
-      const i = A.live, m = SPL.matches[i], idx = +d0.varok, why = (val('varWhy') || 'Other').replace('Foul in the build-up', 'foul in the build-up').replace(/^(Offside|Handball|Other)$/, w => w.toLowerCase());
+      const i = A.live, m = SPL.matches[i], idx = +d0.varok, why = (val('varWhy').trim() || 'an infringement').slice(0, 40); A.varWhy = null;
       setLive(i, (L, D2) => { const ev = L.ev[idx]; if (!ev || ev[3] !== 'G') return; ev[3] = 'D'; ev[9] = why;
         const s = [0, 0]; L.ev.forEach(x => { if (x[3] === 'G') s[x[4] === m[2] ? 0 : 1]++; });
         livePush(D2, i, `NO GOAL ❌ ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, `VAR rules out ${pname(ev[8] || ev[4], ev[5])}'s goal for ${why}.`); });
@@ -695,7 +707,8 @@
       // shrink to at most 480px wide, as PNG, so the stored logo stays small
       const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const s = Math.min(1, 480 / img.width, 240 / img.height), c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); const url = c.toDataURL('image/png'); save(d2 => { d2.partners[+t.dataset.ptlogo].logo = url; }, 'Logo added.'); }; img.src = r.result; }; r.readAsDataURL(f); }
   });
-  root.addEventListener('input', e => { if (e.target.id === 'gq') { A.q = e.target.value; render(); return; } if (e.target.id === 'pTitle') { const el = document.getElementById('lkT'); if (el) el.textContent = e.target.value || 'Title'; } if (e.target.id === 'pBody') { const el = document.getElementById('lkB'); if (el) el.textContent = e.target.value || 'Message'; } });
+  root.addEventListener('input', e => { if (e.target.id === 'gq') { A.q = e.target.value; render(); return; }
+    if (e.target.id === 'varWhy') { A.varWhy = e.target.value; const pv = document.getElementById('varPrev'); if (pv) { const b = pv.querySelector('b'); if (b) b.textContent = e.target.value.trim() || 'an infringement'; } document.querySelectorAll('.varr button').forEach(b => b.classList.toggle('on', b.dataset.varr === e.target.value.trim())); return; } if (e.target.id === 'pTitle') { const el = document.getElementById('lkT'); if (el) el.textContent = e.target.value || 'Title'; } if (e.target.id === 'pBody') { const el = document.getElementById('lkB'); if (el) el.textContent = e.target.value || 'Message'; } });
   // the app writes analytics and votes into the same storage; keep the numbers current
   // another tab (the app, or the phone preview) writes to the same storage: redraw only when something we show changed,
   // and at most every few seconds for analytics, so the page never flickers while fans use the app
