@@ -386,7 +386,10 @@
   const dt = v => v ? new Date(v).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   const tallyOf = (m, which) => { const base = which === 'potm' && D.potm.month === m.month ? D.potm.base : which === 'gotm' && D.gotm.month === m.month ? D.gotm.base : {}; let mine = null;
     try { const v = JSON.parse(localStorage.getItem('spl-mock') || '{}').votes || {}; mine = which === 'potm' ? v['potm:' + m.month] : v[m.month]; } catch (x) {}
-    const t = {}; m[which].picks.forEach(x => { t[x.id] = (+base[x.id] || 0) + (mine === x.id ? 1 : 0); }); return t; };
+    const srv = CL.on ? AWV[m.month] : null; if (CL.on && !srv && !AWV['_' + m.month]) { AWV['_' + m.month] = 1; CL.voteCounts(m.month).then(o => { if (o) { AWV[m.month] = o; if (A.page === 'votes') render(); } }); }
+    const t = {}; m[which].picks.forEach(x => { t[x.id] = (+base[x.id] || 0) + (srv ? (srv[which][x.id] || 0) : CL.on ? 0 : (mine === x.id ? 1 : 0)); }); return t; };
+  // fans' votes counted on the server, by month (0003_spl_votes.sql); refreshed every 30 seconds on the Awards page
+  const AWV = {};
   // what the app reads: the latest month that is voting or announced becomes store.potm and store.gotm
   function mirror(d) {
     const pub = d.awards.months.filter(m => m.stage !== 'shortlist').sort((x, y) => x.key.localeCompare(y.key)), m = pub[pub.length - 1]; if (!m) return;
@@ -701,7 +704,7 @@
   if (CL.on) {
     CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });
     CL.onChange(() => { const el = root.querySelector('.who .cs'); if (el) el.outerHTML = statusLine(); });
-    setInterval(() => { if (A.authed && ['overview', 'activity'].includes(A.page)) loadAudit(); if (A.authed && ['analytics', 'overview'].includes(A.page)) CL.pullEvents().then(ok => { if (ok && !document.activeElement.matches('input,textarea,select')) render(); }); }, 30000);
+    setInterval(() => { if (A.authed && A.page === 'votes' && !document.activeElement.matches('input,textarea,select')) { Object.keys(AWV).forEach(k => { delete AWV[k]; }); render(); } if (A.authed && ['overview', 'activity'].includes(A.page)) loadAudit(); if (A.authed && ['analytics', 'overview'].includes(A.page)) CL.pullEvents().then(ok => { if (ok && !document.activeElement.matches('input,textarea,select')) render(); }); }, 30000);
   }
   render();
 })();

@@ -696,9 +696,18 @@
       <span style="font-size:11px;color:var(--muted);text-align:center">SPL app · demo build · Stackform Studios</span>`;
   }
 
+  // votes counted on the server (0003_spl_votes.sql): fetched once per month and after each vote; null in demo mode
+  const serverVotes = (month, award) => { const C2 = window.SPLCLOUD; if (!C2 || !C2.on) return null;
+    if (!S.vc || S.vc.month !== month) { if (!S.vcBusy) { S.vcBusy = true; C2.voteCounts(month).then(o => { S.vcBusy = false; S.vc = Object.assign({ month }, o || { potm: null, gotm: null }); if (o) render(); }); } return null; }
+    return S.vc[award]; };
+  function sendVote(award, month, choice, undo) { const C2 = window.SPLCLOUD; if (!C2 || !C2.on) return;
+    C2.vote(award, month, choice).then(r => { if (r.unavailable) return;
+      if (r.closed) { undo(); save(); }
+      if (!r.ok) S.toast = { title: r.dup ? 'Already voted' : 'Vote not counted', body: E(r.msg || ''), k: '', at: Date.now() };
+      S.vc = null; render(); }); }
   function gotm() {
     const G0 = GOTM_(), V = S.vsim && S.vsim.key === 'gotm' ? S.vsim : null, voted = P.votes[G0.month];
-    const tally = {}; G0.goals.forEach(g => { tally[g.id] = +(G0.base[g.id] || 0) + (voted === g.id ? 1 : 0) + (V ? V.add[g.id] : 0); });
+    const srv = serverVotes(G0.month, 'gotm'), tally = {}; G0.goals.forEach(g => { tally[g.id] = +(G0.base[g.id] || 0) + (srv ? (srv[g.id] || 0) : (voted === g.id ? 1 : 0)) + (V ? V.add[g.id] : 0); });
     const G = V && V.done ? Object.assign({}, G0, { winner: G0.goals.slice().sort((a, b) => tally[b.id] - tally[a.id])[0].id, open: false }) : G0, win = G.winner, show = voted || win || !G.open || !!V;
     const total = Object.values(tally).reduce((a, b) => a + b, 0) || 1;
     const sorted = G.goals.slice().sort((a, b) => win ? (b.id === win) - (a.id === win) : tally[b.id] - tally[a.id]);
@@ -777,7 +786,7 @@
   }
   function pmonth() {
     const M = PMONTH, mine = P.votes[M.key], V = S.vsim && S.vsim.key === 'pmonth' ? S.vsim : null, show = !!(mine || V || M.winner || M.open === false);
-    const tally = {}; M.list.forEach(x => { tally[x.id] = (+M.base[x.id] || 0) + (mine === x.id ? 1 : 0) + (V ? V.add[x.id] : 0); });
+    const srv = serverVotes(M.month, 'potm'), tally = {}; M.list.forEach(x => { tally[x.id] = (+M.base[x.id] || 0) + (srv ? (srv[x.id] || 0) : (mine === x.id ? 1 : 0)) + (V ? V.add[x.id] : 0); });
     const total = Object.values(tally).reduce((a, b) => a + b, 0) || 1, lead = M.list.slice().sort((a, b) => tally[b.id] - tally[a.id])[0], win = V && V.done ? lead : (M.winner && M.list.find(x => x.id === M.winner)) || null;
     const order = show ? M.list.slice().sort((a, b) => tally[b.id] - tally[a.id]) : M.list;
     const pic = (x, h) => photoOf(x.team, x.n) ? `<img src="${photoOf(x.team, x.n)}" alt="" style="height:${h}px;width:auto;display:block">` : crest(x.team, Math.round(h * .55));
@@ -976,7 +985,7 @@
     else if (d.toggle) { const [g, k] = d.toggle.split('.'); if (g === 'data') P.settings.data = !P.settings.data; else P.settings[g][k] = !P.settings[g][k]; save(); reschedule(); S.keepScroll = true; }
     else if (d.lang) { const L = ['en', 'ms', 'zh', 'ta']; P.settings.lang = L[(L.indexOf(P.settings.lang) + 1) % L.length]; save(); S.keepScroll = true; }
     else if (d.signout) { try { localStorage.removeItem(KEY); } catch (x) {} location.reload(); return; }
-    else if (d.vote) { P.votes[GOTM_().month] = d.vote; SPLSTORE.track('vote', 'gotm'); save(); S.keepScroll = true; }
+    else if (d.vote) { const mo = GOTM_().month; P.votes[mo] = d.vote; SPLSTORE.track('vote', 'gotm'); save(); S.keepScroll = true; sendVote('gotm', mo, d.vote, () => { delete P.votes[mo]; }); }
     else if (d.remind !== undefined) { P.reminders[d.remind] = !P.reminders[d.remind]; save(); S.keepScroll = true; }
     else if (d.cal !== undefined) { P.cal[d.cal] = true; save(); S.keepScroll = true; return; }
     else if (d.match !== undefined) { if (S.view !== 'match') S.from = S.view; S.view = 'match'; S.match = +d.match; S.mtab = d.to || 'overview'; }
@@ -988,7 +997,7 @@
     else if (d.ttab) { S.ttab = d.ttab; S.keepScroll = true; }
     else if (d.ctab) { S.ctab = d.ctab; S.keepScroll = true; }
     else if (d.vsim) { vsimStart(d.vsim); S.keepScroll = true; }
-    else if (d.pvote) { P.votes[PMONTH.key] = d.pvote; SPLSTORE.track('vote', 'pmonth'); save(); S.keepScroll = true; }
+    else if (d.pvote) { const key = PMONTH.key, mo = PMONTH.month; P.votes[key] = d.pvote; SPLSTORE.track('vote', 'pmonth'); save(); S.keepScroll = true; sendVote('potm', mo, d.pvote, () => { delete P.votes[key]; }); }
     else if (d.short !== undefined) { S.short = reelOf(+d.short); S.keepScroll = true; }
     else if (d.shclose) { S.short = null; S.keepScroll = true; }
     else if (d.shnav) { const t = S.short + +d.shnav; if (t < 0 || t >= REEL.length) { if (t >= REEL.length) S.short = null; } else { S.shDir = +d.shnav; S.short = t; } S.keepScroll = true; }

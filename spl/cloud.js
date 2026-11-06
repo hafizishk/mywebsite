@@ -9,7 +9,8 @@
 var SPLCLOUD = (function () {
   'use strict';
   const cfg = window.SPL_BACKEND || {}, on = !!(cfg.url && cfg.key && window.supabase && window.supabase.createClient);
-  const sb = on ? window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, storageKey: 'spl-auth' } }) : null;
+  const sb = on ? window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, storageKey: window.SPL_ADMIN ? 'spl-auth' : 'spl-fan-auth' } }) : null;
+  // the admin keeps the staff login; the app keeps a separate fan login, so on one browser the two never overwrite each other
   const ST = { status: on ? 'connecting' : 'demo', admin: false, email: '', updatedAt: '', error: '' };
   const listeners = [];
   const emit = () => listeners.forEach(f => { try { f(ST); } catch (e) {} });
@@ -74,6 +75,27 @@ var SPLCLOUD = (function () {
     return data.map(r => ({ id: r.id, at: Date.parse(r.at), who: r.who, section: r.section, before: r.before, after: r.after }));
   }
 
+  // fan votes (0003_spl_votes.sql): each phone signs in anonymously the first time it votes; the database takes one vote per
+  // fan, per award, per month, while that vote is open. Totals are public; who voted for what is not.
+  async function fanSession() {
+    const { data } = await sb.auth.getSession(); if (data && data.session) return data.session.user;
+    const r = await sb.auth.signInAnonymously(); if (r.error) throw r.error; return r.data.user;
+  }
+  async function vote(award, month, choice) {
+    if (!on) return { ok: false, offline: true };
+    // unavailable: fan logins or the votes table aren't switched on yet; the phone then keeps counting its own vote, as before
+    try { await fanSession(); } catch (e) { return { ok: false, unavailable: true, err: e.message }; }
+    const { error } = await sb.from('spl_votes').insert({ award, month, choice });
+    if (!error) return { ok: true };
+    if (error.code === '23505') return { ok: false, dup: true, msg: 'You have already voted this month.' };
+    if (error.code === '42501') return { ok: false, closed: true, msg: 'Voting is closed for this award.' };
+    return { ok: false, unavailable: true, err: error.message };
+  }
+  async function voteCounts(month) {
+    if (!on) return null; const { data, error } = await sb.rpc('spl_vote_counts', { p_month: month });
+    if (error || !data) return null; const o = { potm: {}, gotm: {} }; data.forEach(r => { if (o[r.award]) o[r.award][r.choice] = +r.votes; }); return o;
+  }
+
   // staff sign-in (admin only): an email and password made in Supabase > Authentication, listed in spl_admins
   async function checkAdmin() {
     if (!on) return false; const { data: u } = await sb.auth.getUser(); ST.email = u && u.user ? u.user.email : '';
@@ -92,5 +114,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, signIn, signOut, checkAdmin };
 })();
