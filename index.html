@@ -207,7 +207,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .nav.open .links a{padding:11px 0;border-bottom:1px solid var(--rule-dk)}
   .hero{min-height:auto;padding-top:110px}
   .hero .col{grid-template-columns:1fr}
-  .tiles{--t:calc((var(--col) - 2*var(--tg)) / 3)}
+  .tiles{--t:calc((min(440px, 100vw - 2*var(--gut)) - 2*var(--tg)) / 3);margin-top:8px}
   .caps .col,.why .col,.contact .col{grid-template-columns:1fr}
   .cards{grid-template-columns:1fr 1fr}
   .logos{grid-template-columns:repeat(3,1fr)}
