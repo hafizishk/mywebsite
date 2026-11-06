@@ -37,12 +37,15 @@
   };
   // [half, minute, added, type G goal · Y yellow · S sub · HT · FT, team, shirt, assist or player off, note]
   const EV = {
-    23: [[1, 45, 2, 'HT'], [2, 90, 4, 'FT']],
-    22: [[1, 30, 0, 'G', 'LCS', 7, 19], [1, 37, 0, 'G', 'LCS', 12, 0, 'pen'], [1, 45, 1, 'HT'], [2, 46, 0, 'S', 'LCS', 4, 26], [2, 46, 0, 'S', 'LCS', 9, 12], [2, 66, 0, 'S', 'LCS', 24, 8], [2, 66, 0, 'S', 'LCS', 29, 2], [2, 66, 0, 'S', 'LCS', 23, 11], [2, 79, 0, 'G', 'LCS', 23, 24], [2, 84, 0, 'G', 'LCS', 9, 23], [2, 90, 3, 'FT']]
+    // Tampines 0–0 Geylang: Taniguchi's 36th-minute goal for Geylang ruled out for offside (spl.sg MW6 roundup, 2 Nov)
+    23: [[1, 36, 0, 'D', 'GEY', 10, 0, null, null, 'offside'], [1, 45, 2, 'HT'], [2, 90, 4, 'FT']],
+    // Balestier 0–4 Sailors, minutes from the official roundup (spl.sg, 2 Nov): Shawal 31', Mance 37' pen, Phaëton 81', Thy 85'
+    22: [[1, 31, 0, 'G', 'LCS', 7, 19], [1, 37, 0, 'G', 'LCS', 12, 0, 'pen'], [1, 45, 1, 'HT'], [2, 46, 0, 'S', 'LCS', 4, 26], [2, 46, 0, 'S', 'LCS', 9, 12], [2, 66, 0, 'S', 'LCS', 24, 8], [2, 66, 0, 'S', 'LCS', 29, 2], [2, 66, 0, 'S', 'LCS', 23, 11], [2, 81, 0, 'G', 'LCS', 23, 24], [2, 85, 0, 'G', 'LCS', 9, 23], [2, 90, 3, 'FT']]
   };
   // full-time figures the stats grow towards: possession, shots, on target, corners, fouls, offsides (reconstructed)
   const POTM = { 23: { nom: [['Syazwan Buhari', 'TAM'], ['Milos Cupic', 'GEY'], ['Kaisei Ogawa', 'GEY']], base: [488, 517, 296] }, 22: { nom: [['Matthias Phaeton', 'LCS'], ['Shawal Anuar', 'LCS'], ['Lennart Thy', 'LCS']], base: [655, 590, 371] } };
   const HTB = 5; // half-time break, in simulated minutes
+  const VARC = 1.5; // how long a VAR check takes in the replay, in simulated minutes
   const shirt = (k, n) => SPL.squads[k].find(p => p[0] === n) || [n, '#' + n, '', ''];
   const sname = (k, n) => shirt(k, n)[1];
   // the name on the back of the shirt: family name, which comes first for Korean and Chinese names
@@ -76,7 +79,8 @@
     else if (T >= e1 + HTB) { const n = 46 + Math.floor(T - e1 - HTB); clock = n > 90 ? `90+${n - 90}'` : `${n}'`; played = Math.min(90, 45 + (T - e1 - HTB)); }
     else if (T >= e1) { clock = 'HT'; played = 45; }
     else if (started) { const n = Math.floor(T) + 1; clock = n > 45 ? `45+${n - 45}'` : `${n}'`; played = Math.min(45, T); }
-    const fired = EV[i].filter(e => evT(i, e) <= T);
+    // a goal VAR rules out stands as a goal until the check is done, then is struck through (VARC simulated minutes later)
+    const fired = EV[i].filter(e => evT(i, e) <= T).map(e => e[3] === 'D' && evT(i, e) + VARC > T ? Object.assign(e.slice(0, 9), { 3: 'G' }) : e);
     const score = [0, 0]; fired.forEach(e => { if (e[3] === 'G') score[e[4] === m[2] ? 0 : 1]++; });
     return { started, ft: done, clock, played, fired, score, T };
   }
@@ -826,9 +830,15 @@
   function alertsBetween(from, to) {
     const out = [], st = P.settings.push;
     LIVE_IDS.forEach(i => { const m = SPL.matches[i]; if (P.mute && (P.mute[m[2]] || P.mute[m[3]])) return; const fan = P.fav && (m[2] === P.fav || m[3] === P.fav);
-      const scoreAt = t => { const sc = [0, 0]; EV[i].forEach(e => { if (e[3] === 'G' && evT(i, e) <= t) sc[e[4] === m[2] ? 0 : 1]++; }); return sc; };
+      const scoreAt = t => { const sc = [0, 0]; EV[i].forEach(e => { const et = evT(i, e); if ((e[3] === 'G' && et <= t) || (e[3] === 'D' && et <= t && t < et + VARC)) sc[e[4] === m[2] ? 0 : 1]++; }); return sc; };
       if (from < 0 && to >= 0 && st.kickoff) out.push({ t: 0, i, k: m[2], title: `Kick-off! ⏱️ ${short(m[2])} v ${short(m[3])}`, body: `Live from ${m[5]}. Tap to follow every goal.` });
-      EV[i].forEach(e => { const t = evT(i, e); if (t <= from || t > to) return; const sc = scoreAt(t);
+      EV[i].forEach(e => { const t = evT(i, e);
+        // a goal VAR rules out: the goal alert when it goes in, the "no goal" alert when the check is done
+        if (e[3] === 'D') { if (!st.goals) return; const tv = t + VARC;
+          if (t > from && t <= to) { const sc = scoreAt(t); out.push({ t, i, k: e[4], title: `GOAL! ⚽ ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: `${minLabel(e[1], e[2])} ${gname(e)}. Tap to follow it live.` }); }
+          if (tv > from && tv <= to) { const s2 = scoreAt(tv); out.push({ t: tv, i, k: e[4], title: `NO GOAL ❌ ${short(m[2])} ${s2[0]}–${s2[1]} ${short(m[3])}`, body: `VAR rules out ${gname(e)}'s goal for ${e[9] || 'an infringement'}.` }); }
+          return; }
+        if (t <= from || t > to) return; const sc = scoreAt(t);
         if (e[3] === 'G' && st.goals) out.push({ t, i, k: e[4], title: `GOAL! ⚽ ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: `${minLabel(e[1], e[2])} ${gname(e)}${e[7] === 'pen' ? ' (pen)' : ''}${fan && e[4] === P.fav ? ', for the ' + short(P.fav) + '! 🙌' : '. Tap to follow it live.'}` });
         if (e[3] === 'FT' && st.results) out.push({ t, i, k: m[2], title: `Full time 🏁 ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: 'Who was your Player of the Match? Vote now.' }); });
     });
