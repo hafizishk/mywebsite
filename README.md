@@ -5,73 +5,55 @@ vanilla JS — no build step, no framework, no runtime. Vercel deploys `main`
 on every push; the directory is served as-is.
 
 ```
-index.html      the whole page (CSS + JS inlined)
-assets/         3 latin-subset woff2 fonts, 9 device scenes, 4 client
-                logos, the mark, and the Open Graph card
-tools/devices/  the scene renderer and source screens (not deployed —
-                see .vercelignore)
-vercel.json     cache and security headers
+index.html        the whole page (CSS + JS inlined)
+assets/           3 latin-subset woff2 fonts, client logos, the mark, the
+                  Open Graph card
+assets/work/      project scenes (sq-* hero tiles, pt-* featured cards,
+                  ls-* work grid), the founder portrait, Granix and Flair marks
+tools/portfolio/  the scene renderer and source screens (not deployed —
+                  see .vercelignore)
+vercel.json       cache and security headers
 ```
 
 ## Design
 
-The layout follows a reference site's structure — floating pill nav, coral
-hero with tabs that switch a full-width feature panel, overlaid-title cards, a
-moving client rail, sticky intro beside stacked capability cards, a CTA band
-and a black footer — with Stackform's own content throughout. No assets, copy
-or artwork from the reference are used.
+A project-led portfolio: dark hero with a 3×3 board of project tiles that
+slide one cell at a time into empty neighbours (and occasionally swap picture,
+appear or leave); intro; capabilities accordion; four featured project cards;
+client logo wall; "Why work with us?"; a work grid where each project tile
+cycles through its scenes; contact with the founder portrait.
 
-Type sizes are in `vw`, measured off the reference at its 2590px capture width,
-with floors for small screens. Display type is Archivo at weight 340; Archivo
-is a variable font (100–900), so it is the same file the earlier design used.
+Projects: KlickFrame, X-League, D2D Sports, Flair Football Academy, Granix
+(in development) and Helpr (in development).
 
-The mark is rendered through a CSS mask (`.mark`) so it can take the accent
-colour; the source file is black.
+Work-grid slides only advance while their tile is on screen. Both the hero
+and the slides stand still under `prefers-reduced-motion`.
 
 ## Imagery
 
-`assets/dev-*.webp` show real Stackform work on device frames — laptops, a
-monitor, a tablet and phones — lit in the site's coral. Nine scenes, ~345 KB
-total, rendered at 4/3 density so screen text stays sharp on large displays.
-
-| file | scene |
-|---|---|
-| `dev-websites` | laptop — X-League site |
-| `dev-software` | monitor — D2D admin suite |
-| `dev-operations` | tablet + phone — D2D fixtures, D2D app |
-| `dev-apps` | two phones — Granix splash (navy, new mark), D2D app |
-| `dev-automation` | laptop + phone — D2D site, D2D app |
-| `dev-sitin` | tablet — X-League player profile |
-| `dev-build` | laptop — this site's client-rail code, pulled live from `index.html` |
-| `dev-stay` | phone — D2D app |
-| `dev-about` | monitor + laptop + phone — X-League, D2D, Granix |
-
-The devices are drawn in CSS in `tools/devices/studio.html` (generic hardware,
-no brand marks); the screens are in `tools/devices/screens/`. To change a
-screen or a layout, edit those and re-render:
+Every scene is real client work on CSS-drawn devices (phones, laptops, a
+monitor, a tablet, browser windows) over each project's own brand colours.
+The devices and scenes live in `tools/portfolio/studio.html`; the screens
+they show are in `tools/portfolio/screens/`. To change one, edit those and
+re-render:
 
 ```sh
 python3 -m http.server 8898 &            # from the repo root
-node tools/devices/render.mjs            # needs playwright-core + Chromium
-python3 tools/devices/encode.py          # needs Pillow; writes assets/dev-*.webp
+CHROME=/path/to/chrome node tools/portfolio/render.mjs   # needs playwright-core + Pillow
 ```
 
-The wide scenes feed both the hero panel and the capability cards, so their
-devices stay in the right 45% of the frame: clear of the panel's glass card and
-the cards' copy, and whole in a 4:3 crop anchored right — which is how phones
-show them, picture above copy.
+`render.mjs` writes every scene to `assets/work/*.webp` (hero/card scenes at
+4/3 density). Helpr screens come from `/helpr-screens/`.
 
 ## Client logos
 
 | file | note |
 |---|---|
 | `d2d-logo.webp` | **Stopgap.** Keyed out of a website screenshot; the source is only 79 px wide, so it is soft. Replace with the original file. |
-| `xleague-logo-light.webp` | **Stopgap.** The original has white lettering that disappears on the white tiles; this copy recolours only the lettering. Replace with an official light-background version. |
+| `xleague-logo-light.webp` | **Stopgap.** Recoloured lettering; replace with an official version. |
 | `nsg-logo.svg` | The original mark with its viewBox cropped to the content. |
-| `makan-icon.webp` | Granix's app icon (file still named makan-icon) (Nov 2026 mark), corners rounded. No URL yet, so its tile is not a link — add `u:` to its entry to link it. |
-
-The client rail is built in JS from the `clients` array near the bottom of
-`index.html` — add an entry there to add a client.
+| `work/makan-mark.svg` | Granix mark, redrawn as SVG from the app icon (file name predates the rename). |
+| `work/flair-crest-white.png` | Flair crest with the navy knocked out. |
 
 ## Caching
 
