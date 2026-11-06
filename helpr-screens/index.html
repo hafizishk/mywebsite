@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Helpr screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root { --ground:#F4EFE6; --card:#FBF8F2; --ink:#1B1F1D; --muted:#646A66; --cypress:#163026; --edge:rgba(22,48,38,.12); --ochre:#E09F3E; }
+  :root[data-theme="dark"] { --ground:#0E1713; --card:#17231E; --ink:#EFE9DE; --muted:#A9AEA9; --cypress:#EFE9DE; --edge:rgba(239,233,222,.14); }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--ground); color:var(--ink); font:400 15px/1.55 "Be Vietnam Pro",system-ui,sans-serif; }
+  .wrap { max-width:1240px; margin:0 auto; padding:48px 16px 80px; }
+  header { display:flex; flex-wrap:wrap; gap:20px; align-items:flex-end; justify-content:space-between; margin-bottom:40px; }
+  h1 { font:400 clamp(34px,5vw,52px)/1.05 "Newsreader",serif; letter-spacing:-.01em; }
+  .lede { color:var(--muted); max-width:620px; margin-top:12px; }
+  .switch { display:flex; border:1px solid var(--edge); border-radius:10px; padding:3px; background:var(--card); }
+  .switch button { font:500 14px "Be Vietnam Pro",sans-serif; color:var(--muted); background:none; border:0; border-radius:8px; padding:10px 18px; min-height:44px; cursor:pointer; }
+  .switch button[aria-pressed="true"] { background:var(--cypress); color:var(--ground); }
+  h2 { font:400 30px/1.1 "Newsreader",serif; margin:48px 0 6px; }
+  .sub { color:var(--muted); margin-bottom:22px; }
+  .phones { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:28px 22px; }
+  .laptops { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,540px),1fr)); gap:28px; }
+  figure a { display:block; border-radius:20px; overflow:hidden; border:1px solid var(--edge); background:var(--card); }
+  .phones figure a { border-radius:28px; }
+  figure img { display:block; width:100%; height:auto; }
+  figcaption { margin-top:10px; font-size:14px; }
+  figcaption span { display:block; color:var(--muted); font-size:13px; }
+  footer { margin-top:56px; color:var(--muted); font-size:13px; border-top:1px solid var(--edge); padding-top:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Helpr, in screens.</h1>
+      <p class="lede">The family app and the agency console as they stand in November 2026. Every helper, agency and figure here is demo data; nothing is a real placement. Tap a screen to open it at full size.</p>
+    </div>
+    <div class="switch" role="group" aria-label="Theme">
+      <button type="button" data-t="light" aria-pressed="true">Day</button>
+      <button type="button" data-t="dark" aria-pressed="false">Night</button>
+    </div>
+  </header>
+
+  <h2>For families</h2>
+  <p class="sub">A short quiz about the home, then the people who fit it, ordered by fit.</p>
+  <div class="phones" id="family"></div>
+
+  <h2>For agencies</h2>
+  <p class="sub">One console for listings, cost sheets, requests and every family conversation.</p>
+  <div class="laptops" id="agency"></div>
+  <div class="phones" id="agencyPhone" style="margin-top:28px"></div>
+
+  <footer>Helpr is software for licensed employment agencies. Demo agency A and licence [XXXXXXX] are placeholders. Try it live at <a href="/helpr" style="color:inherit">stackformstudios.com/helpr</a>.</footer>
+</div>
+<script>
+  const family = [
+    ["family-home-welcome","Home","Before the quiz"],
+    ["family-quiz","The quiz","About the home, not about her"],
+    ["family-home","Home","Three people who fit this week"],
+    ["family-matches","Matches","Why each one fits"],
+    ["family-browse","Browse everyone","Filters, ordered by fit"],
+    ["family-profile","Her dossier","In her words, from her video"],
+    ["family-messages","Messages","One thread per helper, with her agency"],
+    ["family-me","Me","Household, payments, contracts"],
+  ];
+  const agency = [
+    ["agency-overview","Overview","What needs the agency today"],
+    ["agency-start","Overview, first day","Before any family has held anyone"],
+    ["agency-helpers","Helpers","Listings, cost sheets, where each one is"],
+    ["agency-intake","Adding a helper","Her listing is the checklist"],
+    ["agency-messages","Messages","Offers, plans and contracts inside the thread"],
+  ];
+  const agencyPhone = [["agency-phone-overview","Console on a phone","Agencies record her video on a phone"]];
+  function fill(id, list, theme) {
+    document.getElementById(id).innerHTML = list.map(([f, t, s]) => {
+      const src = `${f}-${theme}.png`;
+      return `<figure><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${t}: ${s}" loading="lazy"></a><figcaption>${t}<span>${s}</span></figcaption></figure>`;
+    }).join("");
+  }
+  function show(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.querySelectorAll(".switch button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === theme)));
+    fill("family", family, theme); fill("agency", agency, theme); fill("agencyPhone", agencyPhone, theme);
+    try { localStorage.setItem("helpr-screens-theme", theme); } catch {}
+  }
+  document.querySelectorAll(".switch button").forEach(b => b.addEventListener("click", () => show(b.dataset.t)));
+  let saved = null; try { saved = localStorage.getItem("helpr-screens-theme"); } catch {}
+  show(saved || "light");
+</script>
+</body>
+</html>

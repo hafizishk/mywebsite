@@ -2,6 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
+      "source": "/helpr-screens(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/spl(.*)",
       "headers": [
         {
