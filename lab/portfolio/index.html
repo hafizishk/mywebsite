@@ -309,8 +309,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   <article class="tile" id="p-mk" data-slides="media/ls-makan.webp">
     <div class="cap"><h3>Makan</h3><span class="small">Nutrition coach in your pocket / iOS &amp; Android</span>
       <span class="badge">In development</span></div></article>
-  <article class="tile tbc" id="p-kita">
-    <div class="cap"><h3>Kita Handoff</h3><span class="small">Helper agency app</span><br><span class="badge">Screens to come</span></div></article>
+  <article class="tile" id="p-kita" data-slides="media/ls-helpr.webp media/ls-helpr-fam.webp media/ls-helpr-ag.webp">
+    <div class="cap"><h3>Helpr</h3><span class="small">Family app / Agency dashboard / Helper matching</span></div></article>
 </section>
 
 <section class="contact" id="contact">
@@ -346,8 +346,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
      neighbour glides into it (never straight back where it came from); every
      few beats a tile swaps picture, or one leaves and another arrives, keeping
      four to six on the board. */
-  var POOL = ['sq-kf', 'sq-xl', 'sq-fl-admin', 'sq-d2d-app', 'sq-makan', 'sq-xl-site',
-              'sq-fl-start', 'sq-d2d-admin', 'sq-kf-mob'];
+  var POOL = ['sq-kf', 'sq-helpr', 'sq-xl', 'sq-fl-admin', 'sq-d2d-app', 'sq-makan', 'sq-xl-site',
+              'sq-fl-start', 'sq-d2d-admin', 'sq-kf-mob', 'sq-helpr-ag'];
   function srcOf(n) { return 'media/' + n + '.webp'; }
   var board = document.getElementById('tiles'), htiles = [], beat = 0;
   var used = function (n) { return htiles.some(function (t) { return t.name === n; }); };

@@ -142,7 +142,16 @@ const SCREENS = {
   d2dSite: { html: img(SCR + 'd2d-site.webp') },
   d2dAdmin:{ html: img(SCR + 'd2d-admin.webp', 'left top') },
   d2dApp:  { html: img(SCR + 'd2d-app.webp') },
-  makan:   { html: img(SCR + 'makan-splash-v2.png', 'center') }
+  makan:   { html: img(SCR + 'makan-splash-v2.png', 'center') },
+  hpHome:  { html: img(SCR + 'hp-fam-home.webp') },
+  hpHomeDk:{ html: img(SCR + 'hp-fam-home-dark.webp') },
+  hpMatch: { html: img(SCR + 'hp-fam-matches.webp') },
+  hpBrowse:{ html: img(SCR + 'hp-fam-browse.webp') },
+  hpProf:  { html: img(SCR + 'hp-fam-profile.webp') },
+  hpQuiz:  { html: img(SCR + 'hp-fam-quiz.webp') },
+  hpAg:    { html: img(SCR + 'hp-ag-overview.webp', 'left top') },
+  hpAgDk:  { html: img(SCR + 'hp-ag-overview-dark.webp', 'left top') },
+  hpAgHelp:{ html: img(SCR + 'hp-ag-helpers-dark.webp', 'left top') }
 };
 
 /* Each project sits on its own brand colour: a base, a light pooled behind the
@@ -155,7 +164,9 @@ const BG = {
   flPk:  ['#f82878', 'rgba(255,170,200,.65)', 'rgba(120,10,60,.35)'],
   d2d:   ['#081a20', 'rgba(96,184,200,.55)', 'rgba(20,90,110,.4)'],
   d2dLt: ['#e6ecee', 'rgba(255,255,255,.8)', 'rgba(96,184,200,.3)'],
-  mk:    ['#0b1730', 'rgba(255,107,53,.55)', 'rgba(60,90,160,.35)']
+  mk:    ['#0b1730', 'rgba(255,107,53,.55)', 'rgba(60,90,160,.35)'],
+  hp:    ['#0e1713', 'rgba(224,159,62,.42)', 'rgba(40,90,70,.45)'],
+  hpLt:  ['#f4efe6', 'rgba(255,255,255,.85)', 'rgba(224,159,62,.28)']
 };
 const bg = (k, cx = 50, cy = 50) => { const [base, a, b] = BG[k]; return `<div class="bloom" style="background:
   radial-gradient(ellipse 55% 70% at ${cx}% ${cy}%, ${a}, transparent 72%),
@@ -171,6 +182,8 @@ const SCENES = {
   'sq-fl-start':  [540, 540, () => bg('flPk', 50, 44) + phone(190, 55, 160, SCREENS.flStart, -5)],
   'sq-d2d-app':   [540, 540, () => bg('d2d', 50, 46) + phone(190, 55, 160, SCREENS.d2dApp, 4)],
   'sq-d2d-admin': [540, 540, () => bg('d2dLt', 50, 42) + monitor(80, 120, 380, SCREENS.d2dAdmin)],
+  'sq-helpr':     [540, 540, () => bg('hpLt', 50, 44) + floor(180, 470, 180, 30) + phone(190, 55, 160, SCREENS.hpHome, -4)],
+  'sq-helpr-ag':  [540, 540, () => bg('hp', 50, 50) + laptop(60, 150, 420, SCREENS.hpAgDk)],
   'sq-makan':     [540, 540, () => bg('mk', 50, 44) + phone(190, 55, 160, SCREENS.makan, -4)],
 
   'pt-kf':   [600, 780, () => bg('kf', 50, 44) + phone(150, 110, 300, SCREENS.kfMob, -4)],
@@ -196,6 +209,13 @@ const SCENES = {
   'ls-xl-win':   [1600, 1000, () => bg('xl', 62, 60) + browser(430, 250, 1060, SCREENS.xlSite, true)],
   'ls-fl-comp':  [1600, 1000, () => bg('fl', 62, 60) + browser(430, 250, 1060, SCREENS.flComp, true)],
   'ls-fl-shop':  [1600, 1000, () => bg('flPk', 62, 60) + browser(430, 250, 1060, SCREENS.flShop, true)],
+  'ls-helpr': [1600, 1000, () => bg('hp', 48, 48) + floor(260, 820, 1100, 70) +
+                laptop(230, 200, 940, SCREENS.hpAgDk) + phone(1090, 300, 250, SCREENS.hpHome, 4) +
+                phone(1300, 360, 210, SCREENS.hpMatch, 8)],
+  'ls-helpr-fam': [1600, 1000, () => bg('hpLt', 50, 46) + floor(330, 880, 940, 60) +
+                phone(330, 170, 290, SCREENS.hpBrowse, -5) + phone(655, 110, 290, SCREENS.hpProf, 0) +
+                phone(980, 170, 290, SCREENS.hpQuiz, 5)],
+  'ls-helpr-ag': [1600, 1000, () => bg('hp', 62, 60) + browser(430, 250, 1060, SCREENS.hpAgHelp, true)],
   'ls-makan': [1600, 1000, () => bg('mk', 50, 46) + floor(640, 880, 320, 50) +
                 phone(650, 90, 300, SCREENS.makan, -3)]
 };
