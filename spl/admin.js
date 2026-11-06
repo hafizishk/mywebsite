@@ -233,7 +233,43 @@
   // the page's name is in the top bar; under it, what the page does and its main action
   const head = (t, sub, actions) => `<div class="ph"><p>${sub || ''}</p>${actions || ''}</div>`;
 
+  const label = e => e[3] === 'D' ? `<s style="opacity:.6">Goal · ${E(pname(e[8] || e[4], e[5]))}</s> <span class="live">No goal · VAR, ${E(e[9] || 'ruled out')}</span>` : e[3] === 'G' ? `Goal · <b>${E(pname(e[8] || e[4], e[5]))}</b>${e[7] === 'pen' ? ' (pen)' : e[7] === 'og' ? ' (own goal)' : ''}${e[6] ? ` <span class="note">assist ${E(pname(e[4], e[6]))}</span>` : ''}` : e[3] === 'Y' ? `Yellow card · ${E(pname(e[4], e[5]))}` : e[3] === 'R' ? `Red card · ${E(pname(e[4], e[5]))}` : e[3] === 'S' ? `Sub · ${E(pname(e[4], e[5]))} on, ${E(pname(e[4], e[6]))} off` : e[3] === 'HT' ? 'Half time' : 'Full time';
+  const mark = e => e[3] === 'D' ? '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #FF6B71;display:inline-block;box-sizing:border-box"></span>' : e[3] === 'G' ? '<span class="gball" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
+  // several games at once (Hafiz, 6 Nov): when kick-offs coincide, one official runs them side by side. Each panel is a compact
+  // console; tapping Goal, card or Sub on a team opens the entry form inside that panel. The panel sets which game an action is for.
+  function miniConsole(i) {
+    const m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i), live = c.phase === '1H' || c.phase === '2H';
+    const next = { pre: ['Kick off', '1H'], '1H': ['Half time', 'HT'], HT: ['Second half', '2H'], '2H': ['Full time', 'FT'], FT: null }[L.phase];
+    const evs = (L.ev || []).map((e, x) => [e, x]).sort((a, b) => (b[0][0] - a[0][0]) || (b[0][1] - a[0][1]) || ((b[0][2] || 0) - (a[0][2] || 0)));
+    const f = A.qf && A.qf.i === i ? A.qf : null, nm = short;
+    let form = '';
+    if (f) { const og = A.evType === 'G' && A.evOg, opp = A.evTeam === m[2] ? m[3] : m[2], squad = SPL.squads[og ? opp : A.evTeam].slice().sort((a, b) => a[0] - b[0]);
+      const opts = none => (none ? `<option value="">${none}</option>` : '') + squad.map(p => `<option value="${p[0]}">${p[0]} · ${E(p[1])}</option>`).join('');
+      const nowMin = c.phase === 'pre' ? 1 : c.n;
+      form = `<div class="mcf"><b>${{ G: 'Goal', Y: 'Yellow card', R: 'Red card', S: 'Substitution' }[A.evType]} · ${crest(A.evTeam, 16)} ${short(A.evTeam)}</b>
+        <div class="mcg"><label class="fld"><span>${A.evType === 'S' ? 'On' : og ? `Scored by (${short(opp)})` : 'Player'}</span><select class="in" id="evP">${opts()}</select></label>
+        ${A.evType === 'S' ? `<label class="fld"><span>Off</span><select class="in" id="evA">${opts()}</select></label>` : A.evType === 'G' && !og ? `<label class="fld"><span>Assist</span><select class="in" id="evA">${opts('None')}</select></label>` : ''}
+        <label class="fld" style="max-width:90px"><span>Minute</span><input class="in" id="evM" inputmode="numeric" value="${nowMin > (c.cap || 90) ? c.cap + '+' + (nowMin - c.cap) : nowMin}"></label></div>
+        <div class="mcc">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Pen</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Alert</label><span style="flex:1"></span><button class="lnk" data-qclose="1">Cancel</button><button class="btn sm" data-addev="1">Add</button></div></div>`; }
+    const team = k => `<div class="mct">${crest(k, 20)}<span>${nm(k)}</span><span class="mcb">${[['G', 'Goal'], ['Y', 'Yellow'], ['R', 'Red'], ['S', 'Sub']].map(([t, l]) => `<button class="${t}" data-qadd="${k}|${t}" ${L.phase === 'pre' || L.phase === 'FT' ? 'disabled' : ''}>${l}</button>`).join('')}</span></div>`;
+    return `<div class="g mc ${live ? 'on' : ''}" data-gi="${i}">
+      <div class="mch"><span class="lbl">${m[1] === TODAY ? 'Tonight' : dayName(m[1]).slice(0, 3)} · ${E(m[5])}</span><span class="lbl ${live ? 'live' : ''}">${{ pre: 'Not started', '1H': 'First half', HT: 'Half time', '2H': 'Second half', FT: 'Full time' }[c.phase]}</span></div>
+      <div class="mcs">${crest(m[2], 36)}<span class="mcn">${nm(m[2])}</span><span class="mcx"><b>${s[0]}–${s[1]}</b><i class="${live ? 'live' : ''}" data-aclock="${i}">${c.label}</i></span><span class="mcn r">${nm(m[3])}</span>${crest(m[3], 36)}</div>
+      <div class="mck">${next ? `<button class="btn sm ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${live ? '<button class="btn2 sm" data-nudge="-1">−1 min</button><button class="btn2 sm" data-nudge="1">+1 min</button>' : ''}</div>
+      ${team(m[2])}${team(m[3])}${form}
+      <div class="mctl">${evs.length ? evs.slice(0, 6).map(([e, x]) => `<div class="tl"><span class="big" style="font-size:15px;color:var(--muted)">${minText(e)}</span><span style="display:flex;justify-content:center">${mark(e)}</span><span>${e[4] ? crest(e[4], 14) + ' ' : ''}${label(e)}</span>${e[3] === 'HT' || e[3] === 'FT' ? '<span></span>' : `<span style="display:flex;gap:10px">${e[3] === 'G' ? `<button class="lnk danger" data-var="${x}">VAR</button>` : ''}<button class="lnk" data-delev="${x}">Remove</button></span>`}</div>`).join('') : '<p class="note">Nothing yet.</p>'}${evs.length > 6 ? `<p class="note">and ${evs.length - 6} earlier</p>` : ''}</div>
+      ${A.varEv != null && A.live === i ? `<div class="mcf"><b>Rule out the goal</b><div class="mcc"><select class="in" id="varWhy" style="width:auto">${['Offside', 'Foul in the build-up', 'Handball', 'Other'].map(r => `<option>${r}</option>`).join('')}</select><span style="flex:1"></span><button class="lnk" data-varno="1">Cancel</button><button class="btn red sm" data-varok="${A.varEv}">Rule out, tell fans</button></div></div>` : ''}
+    </div>`;
+  }
+  function multiday() {
+    const games = A.multi.filter(i => SPL.matches[i]);
+    return head('Matchday console', 'Games side by side: each panel is its own console. Tap Goal, a card or Sub on a team to enter it.', '<button class="btn2 sm" data-multi="0">One game</button>') + `
+      <div class="mcpick tabs"><span class="lbl">Games</span>${ROUND.map(j => { const mm = SPL.matches[j], on = games.includes(j); return `<button class="stab ${on ? 'on' : ''}" data-mpick="${j}" ${!on && games.length >= 4 ? 'disabled' : ''}>${mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
+      <div class="mcgrid n${games.length}">${games.map(miniConsole).join('')}</div>
+      <p class="note">Each game keeps its own clock and alerts. Open the app in another window to watch them land.</p>`;
+  }
   function matchday() {
+    if (A.multi && A.multi.length > 1) return multiday();
     const i = A.live, m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i);
     if (!A.evTeam || (A.evTeam !== m[2] && A.evTeam !== m[3])) A.evTeam = m[2];
     const opp = A.evTeam === m[2] ? m[3] : m[2], og = A.evType === 'G' && A.evOg;
@@ -242,9 +278,7 @@
     const next = { pre: ['Kick off', '1H'], '1H': ['Half time', 'HT'], HT: ['Start second half', '2H'], '2H': ['Full time', 'FT'], FT: null }[L.phase];
     const nowMin = c.phase === 'pre' ? 1 : c.n;
     const evs = (L.ev || []).slice().sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || ((a[2] || 0) - (b[2] || 0)));
-    const label = e => e[3] === 'D' ? `<s style="opacity:.6">Goal · ${E(pname(e[8] || e[4], e[5]))}</s> <span class="live">No goal · VAR, ${E(e[9] || 'ruled out')}</span>` : e[3] === 'G' ? `Goal · <b>${E(pname(e[8] || e[4], e[5]))}</b>${e[7] === 'pen' ? ' (pen)' : e[7] === 'og' ? ' (own goal)' : ''}${e[6] ? ` <span class="note">assist ${E(pname(e[4], e[6]))}</span>` : ''}` : e[3] === 'Y' ? `Yellow card · ${E(pname(e[4], e[5]))}` : e[3] === 'R' ? `Red card · ${E(pname(e[4], e[5]))}` : e[3] === 'S' ? `Sub · ${E(pname(e[4], e[5]))} on, ${E(pname(e[4], e[6]))} off` : e[3] === 'HT' ? 'Half time' : 'Full time';
-    const mark = e => e[3] === 'D' ? '<span style="width:10px;height:10px;border-radius:50%;border:2px solid #FF6B71;display:inline-block;box-sizing:border-box"></span>' : e[3] === 'G' ? '<span class="gball" style="width:10px;height:10px;border-radius:50%;background:#fff;display:inline-block"></span>' : e[3] === 'Y' ? '<span style="width:8px;height:11px;background:#F5C518;display:inline-block"></span>' : e[3] === 'R' ? '<span style="width:8px;height:11px;background:#E8363D;display:inline-block"></span>' : e[3] === 'S' ? '<span class="ok" style="font-weight:700">⇅</span>' : '';
-    return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.') + `
+    return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.', `<button class="btn2 sm" data-multi="1">Side by side</button>`) + `
       <div class="tabs">${ROUND.map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="row" style="gap:24px">
         <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
@@ -537,6 +571,7 @@
     if (e.target.id === 'gq' && e.key === 'Enter') { const b = document.querySelector('.sdrop button'); if (b) b.click(); } });
   root.addEventListener('submit', e => { if (e.target.id === 'siForm') { e.preventDefault(); if (!A.siBusy) doSignIn(); } });
   root.addEventListener('click', e => {
+    { const gi = e.target.closest('[data-gi]'); if (gi && +gi.dataset.gi !== A.live) { A.live = +gi.dataset.gi; } }
     { const st = e.target.closest('[data-starter]'); if (st) { const p = PUSH_STARTERS[+st.dataset.starter]; A.pushPre = { title: p[0], body: p[1] }; A.pushAud = val('pAud') || A.pushAud; render(); return; } }
     if (e.target.id === 'evOg') { A.evOg = e.target.checked; render(); return; }
     { const v = e.target.closest('[data-var],[data-varok],[data-varno]'); if (v) { const d0 = v.dataset;
@@ -549,7 +584,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-mocknum],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -569,6 +604,10 @@
       awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
     if (d.mocknum) { A.mockOn = !A.mockOn; try { localStorage.setItem('spl-admin-mock', A.mockOn ? 'on' : 'off'); } catch (x) {} flash(A.mockOn ? 'Example numbers on.' : 'Showing what phones recorded.'); render(); return; }
+    if (d.multi !== undefined) { if (d.multi === '1') { const same = ROUND.filter(j => SPL.matches[j][1] === SPL.matches[A.live][1]); A.multi = same.length > 1 ? same : ROUND.slice(0, 2); } else A.multi = null; A.qf = null; render(); return; }
+    if (d.mpick) { const j = +d.mpick, on = A.multi.includes(j); A.multi = on ? A.multi.filter(x => x !== j) : A.multi.concat(j).sort((a, b) => a - b); if (!A.multi.length) A.multi = [j]; render(); return; }
+    if (d.qadd) { const [k, t] = d.qadd.split('|'); A.evTeam = k; A.evType = t; A.evOg = false; A.qf = { i: A.live }; A.varEv = null; render(); const el = document.getElementById('evP'); if (el) el.focus(); return; }
+    if (d.qclose) { A.qf = null; render(); return; }
     if (d.setlook) { A.look = d.setlook; try { localStorage.setItem('spl-admin-look', A.look); } catch (x) {} render(); return; }
     if (d.newmenu) { A.newOpen = !A.newOpen; render(); return; }
     if (d.qnews) { A.page = 'news'; A.news = 'new'; A.newOpen = false; render(); return; }
@@ -607,7 +646,7 @@
         if (ev[3] === 'R') livePush(D2, i, `Red card · ${short(k)}`, `${minText(ev)} ${who} is sent off`);
         if (ev[3] === 'Y') livePush(D2, i, `Yellow card · ${short(k)}`, `${minText(ev)} ${who}`);
         if (ev[3] === 'S') livePush(D2, i, `Substitution · ${short(k)}`, `${minText(ev)} ${pname(k, p)} on for ${pname(k, a)}`); });
-      flash({ G: 'Goal added', Y: 'Yellow card added', R: 'Red card added', S: 'Substitution added' }[A.evType] + (alert ? ' and sent to fans.' : '.')); render(); return; }
+      A.qf = null; flash({ G: 'Goal added', Y: 'Yellow card added', R: 'Red card added', S: 'Substitution added' }[A.evType] + (alert ? ' and sent to fans.' : '.')); render(); return; }
     if (d.delev) { setLive(A.live, L => { L.ev.splice(+d.delev, 1); }); flash('Removed.'); render(); return; }
     if (d.reloadphone) { const f = document.getElementById('phone'); if (f) f.src = f.src; return; }
     if (d.newnews) { A.news = 'new'; render(); return; }
@@ -657,7 +696,7 @@
     if (e.key === SPLSTORE.KEY) { const nd = SPLSTORE.read(), j = JSON.stringify(nd); if (j === lastDoc) return; lastDoc = j; D = nd; if (A.page !== 'matchday' && calm()) render(); return; }
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
-  const q = new URLSearchParams(location.search); if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
+  const q = new URLSearchParams(location.search); if (q.get('multi')) { A.page = 'matchday'; A.multi = q.get('multi').split(',').map(Number); A.live = A.multi[0]; } if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
    if (!CL.on) loadAudit().then(render);
   if (CL.on) {
     CL.checkAdmin().then(ok => { A.checking = false; A.authed = ok; if (ok) { CL.pullEvents().then(() => { if (A.page === 'analytics' || A.page === 'overview') render(); }); loadAudit().then(render); } D = SPLSTORE.read(); render(); });

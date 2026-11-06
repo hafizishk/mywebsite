@@ -282,3 +282,22 @@ tr.dim td,.gl.dim{opacity:.6}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .kpis{grid-template-columns:minmax(0,1fr)}
 }
+/* games side by side */
+.mcpick{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.mcpick .lbl{margin-right:6px}
+.mcgrid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.mc{padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}.mc.on{border-color:rgba(232,54,61,.5)}
+.mch{display:flex;justify-content:space-between;gap:8px}
+.mcs{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.mcn{font:700 13px 'Inter',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mcn.r{text-align:right}
+.mcx{display:flex;flex-direction:column;align-items:center;gap:2px}.mcx b{font:italic 800 40px/.9 'Archivo',sans-serif;font-stretch:75%;font-variant-numeric:tabular-nums}.mcx i{font:italic 800 16px 'Archivo',sans-serif;font-stretch:75%;color:var(--muted)}.mcx i.live{color:#FF6B71}
+.mck{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.mct{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line2);font:600 13px 'Inter',sans-serif}.mct>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcb{display:flex;gap:4px}.mcb button{height:30px;padding:0 9px;border-radius:9px;border:0;background:var(--soft);color:var(--ink);font:600 11.5px 'Inter',sans-serif;cursor:pointer}
+.mcb button:hover{background:var(--soft2)}.mcb button:disabled{opacity:.35;cursor:default}
+.mcb button.G{background:rgba(255,255,255,.14)}.mcb button.Y{box-shadow:inset 3px 0 0 #F5C518}.mcb button.R{box-shadow:inset 3px 0 0 #E8363D}
+[data-look=light] .mcb button.G{background:rgba(21,20,42,.1)}
+.mcf{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;background:var(--soft2);border:1px solid rgba(232,54,61,.35)}
+.mcg{display:flex;gap:8px}.mcg .fld{flex:1;min-width:0}.mcc{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mctl .tl{grid-template-columns:44px 18px minmax(0,1fr) auto;font-size:12.5px;padding:8px 0}
+@media (max-width: 900px){.mcgrid{grid-template-columns:minmax(0,1fr)}}
+.mcpick{border:0}.mcpick .stab:disabled{opacity:.4}
