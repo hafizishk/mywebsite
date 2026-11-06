@@ -63,13 +63,18 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .hero .small{max-width:34em;margin:clamp(36px,5vw,68px) 0 0;color:#e8e2dd}
 .hero .small+.small{margin-top:.9em}
 
-/* 3x3 tile mosaic. Cells swap in and out on their own, like the reference. */
-.tiles{display:grid;grid-template-columns:repeat(3,var(--t));grid-auto-rows:var(--t);gap:var(--tg);
-  --t:clamp(92px,9.4vw,140px);--tg:clamp(6px,.6vw,9px)}
-.cell{position:relative;overflow:hidden;background:transparent}
-.cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
-  transform:scale(1.04);transition:opacity .9s ease,transform 1.4s var(--ease)}
-.cell img.on{opacity:1;transform:none}
+/* 3x3 sliding-tile mosaic, as in the reference recording: about five tiles
+   share nine squares and keep gliding into a neighbouring empty one, with the
+   odd tile changing picture or giving way to a new one. Positions are grid
+   coordinates in --c/--r, so the layout scales with --t. */
+.tiles{position:relative;flex:none;--t:clamp(92px,9.4vw,140px);--tg:clamp(6px,.6vw,9px);
+  width:calc(3*var(--t) + 2*var(--tg));height:calc(3*var(--t) + 2*var(--tg))}
+.tile-h{position:absolute;left:0;top:0;width:var(--t);height:var(--t);overflow:hidden;
+  transform:translate(calc(var(--c)*(var(--t) + var(--tg))),calc(var(--r)*(var(--t) + var(--tg))));
+  transition:transform .62s cubic-bezier(.65,0,.35,1),opacity .45s ease;will-change:transform}
+.tile-h.out{opacity:0}
+.tile-h img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease}
+.tile-h img.back{opacity:0}
 
 /* ── intro ───────────────────────────────────────────────────────────── */
 .intro{padding:clamp(80px,10vw,150px) 0}
@@ -108,9 +113,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 /* clients */
 .clients{padding:clamp(40px,6vw,90px) 0 clamp(80px,10vw,140px)}
 .clients h2{margin:0 0 clamp(28px,3.5vw,48px);font-weight:430;font-size:clamp(17px,1.4vw,21px);color:var(--coral)}
-.logos{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(20px,3vw,48px);align-items:center;list-style:none;margin:0;padding:0}
+.logos{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(20px,3vw,48px);align-items:center;list-style:none;margin:0;padding:0}
 .logos li{display:flex;justify-content:center;align-items:center;height:clamp(44px,4.4vw,64px)}
 .logos img{max-height:100%;max-width:100%;width:auto;filter:brightness(0) invert(1);opacity:.92}
+.logos img.keep{filter:none}
 .logos svg{height:62%;width:auto}
 /* Makan's mark has no wordmark; set the name beside it like the KlickFrame lock-up */
 .logos .mk{display:flex;align-items:center;gap:.45em;height:62%;font-weight:620;font-size:clamp(17px,1.6vw,23px);letter-spacing:-.02em;color:#fdfcfb}
@@ -268,6 +274,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
       <li><img src="../../assets/d2d-logo.webp" alt="D2D Sports"></li>
       <li><img src="../../assets/xleague-logo-light.webp" alt="X-League"></li>
       <li><img src="../../assets/nsg-logo.svg" alt="National Scout Games"></li>
+      <li><img class="keep" src="screens/flair-crest-white.png" alt="Flair Football Academy"></li>
       <li><svg viewBox="0 0 168 32" role="img" aria-label="KlickFrame"><circle cx="16" cy="16" r="15" fill="none" stroke="#fdfcfb" stroke-width="2"/>
         <path d="M10 8h3.5v16H10z" fill="#fdfcfb"/><path d="M23.5 8l-8 8 8 8h-5l-8-8 8-8z" fill="#fdfcfb"/>
         <text x="40" y="22.5" fill="#fdfcfb" font-family="Archivo" font-weight="620" font-size="19" letter-spacing="-.5">KlickFrame</text></svg></li>
@@ -298,8 +305,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   <article class="tile" id="p-d2d" data-slides="media/ls-d2d.webp media/ls-d2d-site.webp">
     <div class="cap"><h3>D2D Sports</h3><span class="small">League platform / Admin / Payroll / App</span></div></article>
   <article class="tile" id="p-fl" data-slides="media/ls-fl.webp media/ls-fl-admin.webp media/ls-fl-comp.webp media/ls-fl-shop.webp">
-    <div class="cap"><h3>Flair Football Academy</h3><span class="small">Website / Parent &amp; coach app / Admin</span>
-      <span class="badge">Pitch prototype</span></div></article>
+    <div class="cap"><h3>Flair Football Academy</h3><span class="small">Website / Parent &amp; coach app / Admin</span></div></article>
   <article class="tile" id="p-mk" data-slides="media/ls-makan.webp">
     <div class="cap"><h3>Makan</h3><span class="small">Nutrition coach in your pocket / iOS &amp; Android</span>
       <span class="badge">In development</span></div></article>
@@ -336,40 +342,60 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     a.addEventListener('click', function () { nav.classList.remove('open'); menu.setAttribute('aria-expanded', 'false'); });
   });
 
-  /* hero tiles: 9 cells, ~5 filled at a time; every beat one cell fades out or a
-     new picture fades into an empty cell, so the grid is never the same twice */
+  /* hero: sliding htiles. Every beat one tile with an empty orthogonal
+     neighbour glides into it (never straight back where it came from); every
+     few beats a tile swaps picture, or one leaves and another arrives, keeping
+     four to six on the board. */
   var POOL = ['sq-kf', 'sq-xl', 'sq-fl-admin', 'sq-d2d-app', 'sq-makan', 'sq-xl-site',
               'sq-fl-start', 'sq-d2d-admin', 'sq-kf-mob'];
-  var grid = document.getElementById('tiles'), cells = [];
-  for (var i = 0; i < 9; i++) {
-    var c = document.createElement('div'); c.className = 'cell';
-    for (var k = 0; k < 2; k++) { var im = new Image(); im.alt = ''; im.decoding = 'async'; c.appendChild(im); }
-    grid.appendChild(c); cells.push({ el: c, shown: null, front: 0 });
+  function srcOf(n) { return 'media/' + n + '.webp'; }
+  var board = document.getElementById('tiles'), htiles = [], beat = 0;
+  var used = function (n) { return htiles.some(function (t) { return t.name === n; }); };
+  var free = function () { return POOL.filter(function (n) { return !used(n); }); };
+  var cellFree = function (c) { return c >= 0 && c < 9 && !htiles.some(function (t) { return t.cell === c; }); };
+  var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+  function place(t) { t.el.style.setProperty('--c', t.cell % 3); t.el.style.setProperty('--r', Math.floor(t.cell / 3)); }
+  function add(cell, name, hidden) {
+    var el = document.createElement('div'); el.className = 'tile-h' + (hidden ? ' out' : '');
+    var a = new Image(), b = new Image(); a.alt = b.alt = ''; b.className = 'back'; a.src = srcOf(name);
+    el.appendChild(a); el.appendChild(b); board.appendChild(el);
+    var t = { el: el, cell: cell, name: name, from: -1, front: a, backImg: b }; place(t); htiles.push(t);
+    if (hidden) requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.remove('out'); }); });
+    return t;
   }
-  var start = [0, 2, 4, 5, 7];           // a checkerboard-ish opening layout
-  var used = {};
-  function show(cell, name) {
-    var imgs = cell.el.querySelectorAll('img'), nx = imgs[1 - cell.front];
-    nx.src = 'media/' + name + '.webp';
-    var go = function () { imgs[cell.front].classList.remove('on'); nx.classList.add('on'); cell.front = 1 - cell.front; };
-    nx.complete ? go() : nx.onload = go;
-    if (cell.shown) delete used[cell.shown];
-    cell.shown = name; used[name] = 1;
+  function neighbours(c) {
+    var n = [], col = c % 3;
+    if (c > 2) n.push(c - 3); if (c < 6) n.push(c + 3); if (col) n.push(c - 1); if (col < 2) n.push(c + 1);
+    return n;
   }
-  function hide(cell) {
-    cell.el.querySelectorAll('img').forEach(function (m) { m.classList.remove('on'); });
-    if (cell.shown) delete used[cell.shown]; cell.shown = null;
-  }
-  start.forEach(function (ci, n) { show(cells[ci], POOL[n]); });
+  [0, 2, 4, 6, 8].forEach(function (c, i) { add(c, POOL[i]); });
   if (!reduce) setInterval(function () {
-    var filled = cells.filter(function (c) { return c.shown; });
-    var empty = cells.filter(function (c) { return !c.shown; });
-    var free = POOL.filter(function (p) { return !used[p]; });
-    var r = Math.random();
-    if ((r < .4 && filled.length > 4) || !empty.length) hide(filled[Math.floor(Math.random() * filled.length)]);
-    else if (r < .75 && empty.length && filled.length < 7) show(empty[Math.floor(Math.random() * empty.length)], free[Math.floor(Math.random() * free.length)]);
-    else if (filled.length) show(filled[Math.floor(Math.random() * filled.length)], free[Math.floor(Math.random() * free.length)]);
-  }, 1100);
+    beat++;
+    if (beat % 7 === 0) {                                  // swap a picture in place
+      var t = pick(htiles), n = free(); if (!n.length) return;
+      var nx = pick(n); t.backImg.src = srcOf(nx); t.name = nx;
+      var go = function () { t.backImg.classList.remove('back'); t.front.classList.add('back');
+        var tmp = t.front; t.front = t.backImg; t.backImg = tmp; };
+      t.backImg.complete ? go() : (t.backImg.onload = go);
+      return;
+    }
+    if (beat % 11 === 0) {                                 // one leaves, or a new one arrives
+      if (htiles.length > 4 && Math.random() < .5) {
+        var gone = pick(htiles); gone.el.classList.add('out');
+        htiles.splice(htiles.indexOf(gone), 1); setTimeout(function () { gone.el.remove(); }, 500);
+      } else if (htiles.length < 6) {
+        var empty = [0,1,2,3,4,5,6,7,8].filter(cellFree), n2 = free();
+        if (empty.length && n2.length) add(pick(empty), pick(n2), true);
+      }
+      return;
+    }
+    var movers = [];
+    htiles.forEach(function (t) {
+      neighbours(t.cell).forEach(function (c) { if (cellFree(c) && c !== t.from) movers.push([t, c]); });
+    });
+    if (!movers.length) return;
+    var m = pick(movers); m[0].from = m[0].cell; m[0].cell = m[1]; place(m[0]);
+  }, 560);
 
   /* accordion */
   document.querySelectorAll('.acc-item').forEach(function (it) {
