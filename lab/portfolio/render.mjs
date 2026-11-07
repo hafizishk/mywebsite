@@ -8,7 +8,7 @@ const out = new URL('./media/', import.meta.url).pathname;
 const tmp = new URL('./.raw/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true }); mkdirSync(tmp, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ['--no-sandbox'] });
-const probe = await browser.newPage(); await probe.goto(BASE + '?scene=sq-kf');
+const probe = await browser.newPage(); await probe.goto(BASE + '?scene=pt-kf');
 await probe.waitForSelector('body[data-ready="1"]');
 const names = await probe.evaluate(() => window.SCENE_NAMES);
 for (const name of names) {

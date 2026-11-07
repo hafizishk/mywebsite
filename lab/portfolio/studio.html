@@ -122,6 +122,12 @@ function browser(x, y, w, content, dark = false) {
     <div class="chrome"><i></i><i></i><i></i><b></b></div><div class="scr">${content.html}</div></div>`;
 }
 const floor = (x, y, w, h) => `<div class="shadow" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`;
+/* hero-tile helpers: a full-bleed crop of a real screen (image width w, placed at x,y),
+   a flat brand field with one soft light, and a brand mark at poster size */
+const crop = (src, w, x, y) => `<img src="${src}" style="position:absolute;left:${x}px;top:${y}px;width:${w}px;max-width:none">`;
+const flat = (base, light, cx = 30, cy = 25) => `<div class="bloom" style="background:
+  radial-gradient(ellipse 80% 70% at ${cx}% ${cy}%, ${light}, transparent 70%), ${base}"></div>`;
+const shade = (a = .35) => `<div class="bloom" style="background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,${a}))"></div>`;
 
 /* ── screens ── */
 const SCREENS = {
@@ -174,17 +180,22 @@ const bg = (k, cx = 50, cy = 50) => { const [base, a, b] = BG[k]; return `<div c
 
 /* ── scenes ── sq: hero tiles (540²) · pt: featured cards (600×780) · ls: mosaic (1600×1000) */
 const SCENES = {
-  'sq-kf':        [540, 540, () => bg('kf', 50, 46) + laptop(70, 140, 400, SCREENS.kfDesk)],
-  'sq-kf-mob':    [540, 540, () => bg('kfLt', 50, 40) + floor(180, 470, 180, 30) + phone(190, 60, 160, SCREENS.kfMob, -6)],
-  'sq-xl':        [540, 540, () => bg('xl', 50, 45) + phone(185, 50, 170, SCREENS.xlProf, 5)],
-  'sq-xl-site':   [540, 540, () => bg('xl', 50, 52) + laptop(60, 150, 420, SCREENS.xlSite)],
-  'sq-fl-admin':  [540, 540, () => bg('fl', 50, 50) + tablet(70, 130, 400, SCREENS.flAdmin, true, -3)],
-  'sq-fl-start':  [540, 540, () => bg('flPk', 50, 44) + phone(190, 55, 160, SCREENS.flStart, -5)],
-  'sq-d2d-app':   [540, 540, () => bg('d2d', 50, 46) + phone(190, 55, 160, SCREENS.d2dApp, 4)],
-  'sq-d2d-admin': [540, 540, () => bg('d2dLt', 50, 42) + monitor(80, 120, 380, SCREENS.d2dAdmin)],
-  'sq-helpr':     [540, 540, () => bg('hpLt', 50, 44) + floor(180, 470, 180, 30) + phone(190, 55, 160, SCREENS.hpHome, -4)],
-  'sq-helpr-ag':  [540, 540, () => bg('hp', 50, 50) + laptop(60, 150, 420, SCREENS.hpAgDk)],
-  'sq-makan':     [540, 540, () => bg('mk', 50, 44) + phone(190, 55, 160, SCREENS.makan, -4)],
+
+  /* ── hero tiles v2: bold crops, oversized devices, brand fields ── */
+  'sq-v-kf':      [540, 540, () => flat('#e6e0d6', 'rgba(255,255,255,.9)') + phone(150, 60, 330, SCREENS.kfMob, -12)],
+  'sq-v-xl':      [540, 540, () => flat('#c3301f', 'rgba(255,196,80,.55)', 70, 20) + phone(90, 70, 330, SCREENS.xlProf, 10)],
+  'sq-v-d2d':     [540, 540, () => flat('#0d5f6d', 'rgba(120,220,235,.55)') + phone(130, 80, 330, SCREENS.d2dApp, -9)],
+  'sq-v-fl':      [540, 540, () => flat('#141733', 'rgba(248,40,120,.7)', 70, 30) + phone(110, 60, 330, SCREENS.flStart, 11)],
+  'sq-v-helpr':   [540, 540, () => flat('#efe6d4', 'rgba(224,159,62,.55)', 75, 20) + phone(140, 70, 330, SCREENS.hpHome, -10)],
+  'sq-v-d2d-head':[540, 540, () => '<div class="bloom" style="background:#0d1110"></div>' + crop(SCR + 'd2d-site.webp', 720, -74, 28) + shade(.25)],
+  'sq-v-fl-head': [540, 540, () => '<div class="bloom" style="background:#0b1337"></div>' + crop(SCR + 'fl-site.webp', 820, -14, -14)],
+  'sq-v-xl-photo':[540, 540, () => crop(SCR + 'xl-site.webp', 1716, -60, -185) + shade(.2)],
+  'sq-v-kf-work': [540, 540, () => crop(SCR + 'kf-work.webp', 1296, -630, -180)],
+  'sq-v-granix':  [540, 540, () => flat('#0b1730', 'rgba(60,90,160,.5)', 20, 80) +
+                    crop(SCR + 'makan-mark.svg', 560, 40, 20)],
+  'sq-v-fl-crest':[540, 540, () => flat('#f82878', 'rgba(255,170,200,.6)', 30, 20) +
+                    crop(SCR + 'flair-crest-white.png', 360, 90, 100)],
+  'sq-v-helpr-28':[540, 540, () => crop(SCR + 'hp-ag-overview-dark.webp', 2400, -1850, -180)],
 
   'pt-kf':   [600, 780, () => bg('kf', 50, 44) + phone(150, 110, 300, SCREENS.kfMob, -4)],
   'pt-xl':   [600, 780, () => bg('xl', 50, 44) + phone(150, 110, 300, SCREENS.xlProf, 4)],
