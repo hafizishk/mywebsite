@@ -72,9 +72,9 @@
     ["agency-start","Overview, first day","Before any family has held anyone"],
     ["agency-helpers","Helpers","Listings, cost sheets, where each one is"],
     ["agency-intake","Adding a helper","Her listing is the checklist"],
-    ["agency-messages","Messages","Offers, plans and contracts inside the thread"],
+    ["agency-messages","Inbox","What needs you, what waits on families"],
   ];
-  const agencyPhone = [["agency-phone-overview","Console on a phone","Agencies record her video on a phone"]];
+  const agencyPhone = [["agency-phone-overview","Console on a phone","Agencies record her video on a phone"],["agency-phone-inbox","Inbox on a phone","Swipe to pin, remind or mark done"]];
   function fill(id, list, theme) {
     document.getElementById(id).innerHTML = list.map(([f, t, s]) => {
       const src = `${f}-${theme}.png`;
