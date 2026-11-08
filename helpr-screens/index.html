@@ -50,7 +50,7 @@
   <div class="phones" id="family"></div>
 
   <h2>For agencies</h2>
-  <p class="sub">One console for listings, cost sheets, requests and every family conversation.</p>
+  <p class="sub">One console for listings, cost sheets, the pipeline and every family conversation.</p>
   <div class="laptops" id="agency"></div>
   <div class="phones" id="agencyPhone" style="margin-top:28px"></div>
 
@@ -65,16 +65,24 @@
     ["family-browse","Browse everyone","Filters, ordered by fit"],
     ["family-profile","Her dossier","In her words, from her video"],
     ["family-messages","Messages","One thread per helper, with her agency"],
+    ["family-journey","Journey","Where things stand with her"],
+    ["family-contract","Contract","Every document, who has signed"],
+    ["family-sign","Signing","A code to your phone (demo)"],
+    ["family-household","Household","Her payslip, her answer"],
+    ["her-link","Her link","She confirms on her own phone, in her language"],
     ["family-me","Me","Household, payments, contracts"],
   ];
   const agency = [
     ["agency-overview","Overview","What needs the agency today"],
+    ["agency-pipeline","Pipeline","Every deal by stage, your move first"],
+    ["agency-by-helper","Pipeline, by helper","Every family in touch about her"],
+    ["agency-household-flag","Her salary report","Her word goes to the top, with a call-by time"],
     ["agency-start","Overview, first day","Before any family has held anyone"],
     ["agency-helpers","Helpers","Listings, cost sheets, where each one is"],
     ["agency-intake","Adding a helper","Her listing is the checklist"],
     ["agency-messages","Inbox","What needs you, what waits on families"],
   ];
-  const agencyPhone = [["agency-phone-overview","Console on a phone","Agencies record her video on a phone"],["agency-phone-inbox","Inbox on a phone","Swipe to pin, remind or mark done"]];
+  const agencyPhone = [["agency-phone-pipeline","Pipeline on a phone","One stage at a time"],["agency-phone-overview","Console on a phone","Agencies record her video on a phone"],["agency-phone-inbox","Inbox on a phone","Swipe to pin, remind or mark done"]];
   function fill(id, list, theme) {
     document.getElementById(id).innerHTML = list.map(([f, t, s]) => {
       const src = `${f}-${theme}.png`;
