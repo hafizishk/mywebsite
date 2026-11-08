@@ -235,16 +235,26 @@
     <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span style="font-size:13px;font-weight:600;text-align:right">${r.aname}</span>${crest(r.away, 26)}</div>
   </button>`;
   const scorersLine = (r, side) => { if (!r.L || !r.L.started) return ''; const k = side ? r.away : r.home; const g = r.L.fired.filter(e => e[3] === 'G' && e[4] === k).map(e => `${backName(sname(e[8] || k, e[5]))}${e[7] === 'og' ? ' (og)' : ''} ${minLabel(e[1], e[2])}`); return g.length ? `<span style="font-size:11px;color:var(--muted);text-align:center;line-height:1.4">${g.join(', ')}</span>` : ''; };
+  // Home's match card (Hafiz, 8 Nov, option A): the two clubs' colours split on the diagonal, the kick-off time (or the
+  // score once it starts) between the crests, and each club's last five league results under the positions.
+  const formL = k => played().filter(m => m[2] === k || m[3] === k).slice(-5).map(m => { const h = m[2] === k, gf = h ? m[4][0] : m[4][1], ga = h ? m[4][1] : m[4][0]; return gf > ga ? 'W' : gf < ga ? 'L' : 'D'; });
+  const FCOL = { W: '#3DD68C', D: '#A9A6C9', L: '#E8363D' };
+  const formChips = k => formL(k).map(x => `<span class="fchip" style="--fc:${FCOL[x]}">${x}</span>`).join('');
   const heroCard = (r, blurb) => { const L = r.L, on = L && L.started, last = on ? L.fired.filter(e => e[3] !== 'FT').slice(-1)[0] : null;
-    return `<button class="card hero" data-match="${r.id}">
-    <div style="display:flex;justify-content:space-between;align-items:center">${on ? (L.ft ? `<span class="lbl">Full time · MW${r.mw}</span>` : `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${r.id}">${L.clock}</span></span>`) : `<span class="lbl" style="color:#FFD1D3"><span class="dot" style="background:#E8363D;margin-right:6px"></span>Tonight · 7.30PM</span>`}<span class="lbl">${r.venue}</span></div>
-    <div class="teams">
-      <div class="team">${crest(r.home, 52)}<span class="d" style="font-size:15px;text-align:center;line-height:1">${r.hname}</span>${on ? scorersLine(r, 0) : `<span class="lbl">${posText(r.home)}</span>`}</div>
-      ${on ? `<span class="d mono" style="font-size:52px;line-height:1">${r.sc}</span>` : `<span class="d" style="font-size:40px;line-height:1;color:rgba(255,255,255,.7)">VS</span>`}
-      <div class="team">${crest(r.away, 52)}<span class="d" style="font-size:15px;text-align:center;line-height:1">${r.aname}</span>${on ? scorersLine(r, 1) : `<span class="lbl">${posText(r.away)}</span>`}</div>
+    const h = C[r.home], a = C[r.away], m = SPL.matches[r.id];
+    return `<button class="card hero split" data-match="${r.id}" style="--hc:${h.c};--hf:${h.cf};--ac:${a.c};--af:${a.cf}">
+    <div class="sp-top">
+      <span class="sp-k" style="left:16px;color:var(--hf)">${on ? (L.ft ? 'Full time' : `<span class="dot pulse sp-live"></span><span>Live · <span data-clock="${r.id}">${L.clock}</span></span>`) : '<span class="dot" style="background:currentColor;margin-right:6px"></span>Tonight'}</span>
+      <span class="sp-k" style="right:16px;color:var(--af)">Matchweek ${r.mw}</span>
+      <div class="sp-row">${crest(r.home, 76)}<span class="d mono sp-mid">${on ? r.sc : (m[7] || '').replace(/^\w+ /, '').replace(/PM$/i, '') || 'VS'}</span>${crest(r.away, 76)}</div>
+      <div class="sp-names"><span class="d" style="color:var(--hf)">${r.hname}</span><span class="d" style="color:var(--af)">${r.aname}</span></div>
     </div>
-    <div style="font-size:13px;line-height:1.45;color:#DCDAF0">${on && L.ft ? `${r.hname} ${posText(r.home).split(' · ')[0]}, ${r.aname} ${posText(r.away).split(' · ')[0]} after tonight.` : on ? (last ? `<span class="mono" style="color:var(--muted)">${last[3] === 'HT' ? '' : minLabel(last[1], last[2]) + ' '}</span>${evText(r.id, last)}` : 'Kick-off at ' + r.venue + '.') + '' : blurb}</div>
-    <div style="display:flex;gap:10px"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Player of the Match' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
+    <div class="sp-body">
+      <div class="lbl sp-meta"><span>${on ? scorersLine(r, 0) || posText(r.home) : posText(r.home)}</span><span>${E(r.venue)}</span><span>${on ? scorersLine(r, 1) || posText(r.away) : posText(r.away)}</span></div>
+      <div class="sp-form"><span>${formChips(r.home)}</span><span class="lbl">Last 5</span><span>${formChips(r.away)}</span></div>
+      <div class="sp-blurb">${on && L.ft ? `${r.hname} ${posText(r.home).split(' · ')[0]}, ${r.aname} ${posText(r.away).split(' · ')[0]} after tonight.` : on ? (last ? `<span class="mono" style="color:var(--muted)">${last[3] === 'HT' ? '' : minLabel(last[1], last[2]) + ' '}</span>${evText(r.id, last)}` : 'Kick-off at ' + r.venue + '.') + '' : blurb}</div>
+      <div style="display:flex;gap:10px"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Player of the Match' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
+    </div>
   </button>`; };
   const tableRows = (rs, clickable) => rs.map(r => `<${clickable ? 'button' : 'div'} class="trow mono" ${clickable ? `data-club="${r.code}"` : ''}><span style="color:${r.move > 0 ? '#3DD68C' : r.move < 0 ? '#FF6B71' : 'var(--muted)'}">${r.pos}</span><span style="display:flex;align-items:center;gap:8px;font-weight:500">${crest(r.code, 22)}${r.name}${r.live ? '<span class="dot pulse" style="width:6px;height:6px;background:#E8363D" aria-label="playing now"></span>' : ''}</span><span style="text-align:right;color:var(--muted)">${r.p}</span><span style="text-align:right;color:var(--muted)">${r.gd}</span><span style="text-align:right;font-weight:700">${r.pts}</span><span style="display:flex;gap:3px;justify-content:flex-end">${dots(r.form)}</span></${clickable ? 'button' : 'div'}>`).join('');
   const ytThumb = id => P.settings.data ? '' : `background-image:url(https://i.ytimg.com/vi/${id}/hqdefault.jpg)`;

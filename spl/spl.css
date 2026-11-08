@@ -388,3 +388,19 @@ button:disabled{cursor:default}
 .crg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.crg>div{padding:10px;border-radius:14px;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:2px}
 .crg>div.w{background:rgba(201,162,39,.16)}.crg b{font-size:22px}.crg span:last-child{font-size:11px;color:var(--muted)}
 #app[data-look=light] .crg>div{background:rgba(21,20,42,.05)}
+/* Home's match card, option A (Hafiz, 8 Nov): the clubs' colours split on the diagonal; last five under the positions */
+.hero.split{padding:0;gap:0;overflow:hidden}
+.hero.split .sp-top{position:relative;height:178px;background:linear-gradient(115deg,var(--hc) 0 49.6%,rgba(11,15,46,.9) 49.6% 50.4%,var(--ac) 50.4%)}
+.hero.split .sp-top::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.28));pointer-events:none}
+.hero.split .sp-k{position:absolute;top:14px;z-index:1;font:700 11px 'Inter',sans-serif;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:center}
+.hero.split .sp-row{position:absolute;left:0;right:0;top:40px;z-index:1;display:flex;justify-content:space-around;align-items:center}
+.hero.split .sp-mid{font-size:42px;line-height:1;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.55)}
+.hero.split .sp-names{position:absolute;left:0;right:0;bottom:12px;z-index:1;display:flex;justify-content:space-around}.hero.split .sp-names .d{font-size:17px;line-height:1;width:40%;text-align:center}
+.hero.split .sp-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.hero.split .sp-meta{display:flex;justify-content:space-between;gap:8px}.hero.split .sp-meta span:nth-child(2){text-align:center}.hero.split .sp-meta span:last-child{text-align:right}
+.hero.split .sp-form{display:flex;justify-content:space-between;align-items:center}.hero.split .sp-form>span:not(.lbl){display:flex;gap:4px}
+.fchip{width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Inter',sans-serif;color:var(--fc);background:color-mix(in srgb,var(--fc) 16%,transparent)}
+.hero.split .sp-live{background:#E8363D;box-shadow:0 0 0 2px #fff;margin-right:8px}
+.hero.split .sp-blurb{font-size:13px;line-height:1.45;color:#DCDAF0}#app[data-look=light] .hero.split .sp-blurb{color:var(--ink)}
+#app[data-look=light] .hero.split .sp-mid{color:#fff!important}
+.hero.split .sp-k .dot{border-radius:50%!important}
