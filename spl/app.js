@@ -374,6 +374,31 @@
       <div class="lbl" style="padding-top:12px">Coach</div><div style="font-size:12px;padding-top:2px">${C[k].coach}</div></div>`).join('')}</div>
       <span style="font-size:11px;color:var(--muted)">Replay: goals and changes from the clubs' match reports; the rest of the team sheets is reconstructed until FAS's feed supplies them.</span>`;
   }
+  // Guess the crowd (Hafiz, 7 Nov): guess tonight's attendance before half time; the official publishes the turnstile count,
+  // the closest guess wins and the stadium screen shows the winner (by name only if they agreed). Also shows the attendance.
+  // Phase 1 (Hafiz, 7 Nov): the attendance only. The guessing waits for Phase 2, when e-ticket check-in means only fans at
+  // the ground can guess; GUESS turns it back on.
+  const GUESS = false;
+  const dispName = () => { const n = (P.user && P.user.name || '').trim().split(/\s+/).filter(Boolean); return n.length ? (n[0] + (n[1] ? ' ' + n[1][0].toUpperCase() + '.' : '')).slice(0, 24) : ''; };
+  function crowdCard(i) {
+    const x = STORE.crowd && STORE.crowd[i]; if (!x || ((!GUESS || !x.open) && x.attendance === null)) return '';
+    const m = SPL.matches[i], mine = GUESS && (P.guess || {})[i], prize = x.prize || `a signed ${C[m[2]].short} jersey`;
+    if (x.attendance !== null && !GUESS) return `<div class="card crowdc done"><span class="lbl">Tonight's crowd</span><span class="d mono" style="font-size:52px;line-height:.9">${x.attendance.toLocaleString()}</span><span style="font-size:12px;color:var(--muted)">The official attendance at ${E(m[5])}, from the turnstiles.</span></div>`;
+    if (x.attendance !== null) {
+      const me = S.cm && S.cm[i]; if (mine && window.SPLCLOUD && SPLCLOUD.on && !me && !(S.cmAsk || {})[i]) { S.cmAsk = Object.assign(S.cmAsk || {}, { [i]: 1 }); SPLCLOUD.crowdMine(i).then(r => { if (r) { S.cm = Object.assign(S.cm || {}, { [i]: r }); render(); } }); }
+      const off = mine ? Math.abs(mine.guess - x.attendance) : 0;
+      return `<div class="card crowdc done"><span class="lbl" style="color:#C9A227">${x.winner ? 'Guess the crowd · result' : 'Attendance'}</span><span class="lbl">Tonight's crowd</span><span class="d mono" style="font-size:52px;line-height:.9">${x.attendance.toLocaleString()}</span>
+        ${mine || x.winner ? `<div class="crg">${mine ? `<div><span class="lbl" style="font-size:9px">Your guess</span><b class="d mono">${mine.guess.toLocaleString()}</b><span>${off.toLocaleString()} off${me && me.rank ? ` · ${me.rank === 1 ? 'you won!' : ordinal(+me.rank) + ' closest'}` : ''}</span></div>` : ''}${x.winner ? `<div class="w"><span class="lbl" style="font-size:9px;color:#C9A227">Winner</span><b class="d mono">${x.winner.guess.toLocaleString()}</b><span>${E(x.winner.name)} · ${x.winner.off.toLocaleString()} off</span></div>` : ''}</div>` : ''}
+        ${x.winner ? `<span style="font-size:11px;color:var(--muted)">The winner gets ${E(prize.replace(/^A /, 'a '))} and a message in the app on how to collect it.</span>` : ''}</div>`;
+    }
+    if (mine) return `<div class="card crowdc"><span class="lbl" style="color:#FF6B71">Guess the crowd · closes at half time</span><span class="d" style="font-size:20px;line-height:1">Your guess: ${mine.guess.toLocaleString()}</span><span style="font-size:13px;color:#DCDAF0">Locked in. The official crowd and the winner come at half time${mine.show ? ', with your name on the big screen if you win' : ''}.</span></div>`;
+    const nm = dispName();
+    return `<div class="card crowdc open"><span class="lbl" style="color:#FF6B71">Guess the crowd · closes at half time</span><span class="d" style="font-size:22px;line-height:1">How many are at ${E(m[5].replace(' Stadium', ''))} tonight?</span>
+      <span style="font-size:13px;color:#DCDAF0;line-height:1.45">Closest guess to the official attendance wins ${E(prize.replace(/^A /, 'a '))}. One guess per fan.</span>
+      <div style="display:flex;gap:8px"><input class="search" id="crG" inputmode="numeric" placeholder="Your guess" value="${E((S.crIn || {}).g || '')}" style="flex:1;font:700 20px Inter;text-align:center;border-radius:14px;height:48px"><button class="btn" data-crguess="${i}" style="border-radius:14px">Lock in</button></div>
+      <label style="display:flex;gap:10px;align-items:center;font-size:12px;color:#DCDAF0"><input type="checkbox" id="crShow" ${nm ? '' : 'disabled'} ${(S.crIn || {}).show ? 'checked' : ''} style="width:18px;height:18px;accent-color:#E8363D"> ${nm ? `Show my name (${E(nm)}) on the stadium screen if I win` : 'Add your name in Settings to be named on the stadium screen'}</label></div>`;
+  }
+  const ordinal = n => n + (n % 100 > 10 && n % 100 < 14 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
   function liveOverview(i, L) {
     const m = SPL.matches[i];
     const icon = e => e[3] === 'D' ? `<span style="opacity:.45">${BALL}</span>` : e[3] === 'G' ? BALL : e[3] === 'Y' ? CARD : e[3] === 'R' ? RCARD : SUBI(true);
@@ -383,7 +408,7 @@
       const cell = `<span style="display:flex;flex-direction:column;gap:2px;${h ? 'align-items:flex-end;text-align:right;padding-right:10px' : 'padding-left:10px'}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:${e[3] === 'G' ? 700 : 500}">${h ? '' : icon(e)}${who}${h ? icon(e) : ''}</span>${sub ? `<span style="font-size:11px;color:var(--muted)">${sub}</span>` : ''}</span>`;
       return `<div style="display:grid;grid-template-columns:1fr 50px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)">${h ? cell : '<span></span>'}<span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${minLabel(e[1], e[2])}</span>${h ? '<span></span>' : cell}</div>`;
     });
-    return `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · 7.30PM</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off 7.30PM.</div>'}</div>
+    return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · 7.30PM</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off 7.30PM.</div>'}</div>
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH</span></div>`;
   }
   function potmTab(i) {
@@ -437,7 +462,7 @@
     const events = (m[6] || []).map(g => { const h = g[2] === m[2]; return `<div style="display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)"><span style="font-size:13px;text-align:right;padding-right:8px;font-weight:${h ? 600 : 400}">${h ? g[0] : ''}</span><span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${g[1]}'</span><span style="font-size:13px;padding-left:8px;font-weight:${h ? 400 : 600}">${h ? '' : g[0]}</span></div>`; });
     const squad = k => SPL.squads[k].map(p => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:11px"><span class="mono" style="color:var(--muted);width:18px">${p[0]}</span><span style="flex:1">${p[1]}</span><span style="color:var(--muted)">${p[2]}</span></div>`).join('');
     let body = '';
-    if (S.mtab === 'overview') body = (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off 7.30PM. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
+    if (S.mtab === 'overview') body = crowdCard(S.match) + (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off 7.30PM. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
@@ -499,7 +524,11 @@
     } else {
       const T = table(), cs = k => played().filter(m => (m[2] === k && m[4][1] === 0) || (m[3] === k && m[4][0] === 0)).length;
       const by = (fn, asc) => T.map(r => ({ name: C[r.code].name, club: r.code, v: fn(r) })).sort((a, b) => asc ? a.v - b.v : b.v - a.v);
-      body = leader('gf', 'Goals scored', by(r => r.gf)) + leader('cs', 'Clean sheets', by(r => cs(r.code))) + leader('ga', 'Fewest conceded', by(r => r.ga, true), '', 'Worked out from the results, so it moves with the live table.');
+      // crowds: average official attendance at home, from the figures the matchday officials publish
+      const cr = {}; Object.keys(STORE.crowd || {}).forEach(k => { const x = STORE.crowd[k], mm = SPL.matches[+k]; if (!mm || x.attendance === null) return; const h = mm[2]; (cr[h] = cr[h] || []).push(x.attendance); });
+      const crRows = Object.keys(cr).map(k => ({ k, avg: Math.round(cr[k].reduce((a, b) => a + b, 0) / cr[k].length), n: cr[k].length })).sort((a, b) => b.avg - a.avg);
+      const crowds = crRows.length ? `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px"><span class="d" style="font-size:20px">Crowds</span><span class="lbl">Average at home</span></div>${crRows.map((r, j) => `<button class="pl" data-club="${r.k}" style="gap:10px;padding:9px 0"><span class="mono" style="width:16px;color:var(--muted)">${j + 1}</span>${crest(r.k, 22)}<span style="flex:1;font-size:14px;font-weight:600">${C[r.k].short}</span><span class="lbl" style="margin-right:8px">${r.n} ${r.n === 1 ? 'game' : 'games'}</span><span class="d mono" style="font-size:18px">${r.avg.toLocaleString()}</span></button>`).join('')}<span style="font-size:11px;color:var(--muted);padding:8px 0">Official attendances published by FAS on matchday.</span></div>` : '';
+      body = crowds + leader('gf', 'Goals scored', by(r => r.gf)) + leader('cs', 'Clean sheets', by(r => cs(r.code))) + leader('ga', 'Fewest conceded', by(r => r.ga, true), '', 'Worked out from the results, so it moves with the live table.');
     }
     return `<div style="display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:26px;line-height:1">Stats</span><span class="lbl">AIA Singapore Premier League · 2026/27</span></div>
       <div class="tabs">${[['players', 'Players'], ['clubstats', 'Clubs']].map(([k, l]) => `<button class="stab ${S.ttab === k ? 'on' : ''}" data-ttab="${k}">${l}</button>`).join('')}</div>${body}`;
@@ -941,7 +970,7 @@
   }
   let lastView = '';
   function render() {
-    const el = app.querySelector('.screen'), top = el ? el.scrollTop : 0;
+    const el = app.querySelector('.screen'), top = el ? el.scrollTop : 0, fid = document.activeElement && document.activeElement.id;
     const bare = S.view === 'onboard';
     app.dataset.club = theme(); app.dataset.look = P.settings.look === 'light' ? 'light' : 'dark';
     app.innerHTML = `<div class="screen" style="${S.view === 'home' ? '' : S.view === 'club' ? 'padding-top:0' : 'padding-top:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 54px)'}${bare ? ';padding-bottom:30px' : ''}">${SCREEN[S.view]()}</div>
@@ -950,14 +979,19 @@
     if (S.view === 'club') { const sc = app.querySelector('.screen'), sb = app.querySelector('.sbar'); const f = () => sb.classList.toggle('clear', sc.scrollTop < 380); sc.addEventListener('scroll', f, { passive: true }); f(); }
     const stage = app.querySelector('#pickstage');
     if (stage) { let x0 = null; stage.addEventListener('pointerdown', e => { x0 = e.clientX; }); stage.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) pickBy(dx < 0 ? 1 : -1); }); const on = app.querySelector('.pk-c.on'), strip = app.querySelector('#pkstrip'); if (on && strip) strip.scrollLeft = on.offsetLeft - strip.clientWidth / 2 + on.clientWidth / 2; S.pickDir = 0; }
+    if (fid === 'crG') { const g = app.querySelector('#crG'); if (g) { g.focus(); g.setSelectionRange(g.value.length, g.value.length); } }
     const sq = app.querySelector('#sq'); if (sq) { sq.focus(); sq.setSelectionRange(sq.value.length, sq.value.length); sq.oninput = e => { S.sq = e.target.value; S.keepScroll = true; render(); }; }
     const shf = app.querySelector('.shorts iframe'); if (shf) shf.addEventListener('load', () => ytListen(shf)); else { clearInterval(ytPing); ytFor = null; }
     if (S.keepScroll) { app.querySelector('.screen').scrollTop = top; S.keepScroll = false; }
     const vk = S.view + (S.view === 'home' ? ':' + S.htab : S.view === 'match' ? ':' + S.mtab : S.view === 'stats' ? ':' + S.ttab : S.view === 'club' ? ':' + S.club : '');
     if (vk !== lastView) { lastView = vk; if (!EMBED) { SPLSTORE.track('view', vk); app.querySelectorAll('[data-slot]').forEach(x => SPLSTORE.track('imp', x.dataset.slot)); } }
   }
+  // the live screens redraw every few seconds; keep what the fan is typing in Guess the crowd
+  app.addEventListener('input', e => { if (e.target.id === 'crG') S.crIn = Object.assign(S.crIn || {}, { g: e.target.value }); });
+  app.addEventListener('change', e => { if (e.target.id === 'crShow') S.crIn = Object.assign(S.crIn || {}, { show: e.target.checked }); });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    const t = e.target.closest('[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    if (t === app || e.target.closest('input,label,select,textarea')) return; // #app carries data-club (the theme): never a link
     const d = t.dataset;
     if (!EMBED) { const k = Object.keys(d)[0]; SPLSTORE.track('tap', k + (d[k] && d[k].length < 24 ? ':' + d[k] : '')); }
     if (d.sim) { if (d.sim === 'start') { simStart(); S.view = 'home'; S.htab = 'tonight'; } else if (d.sim === 'pause') S.sim.run = false; else if (d.sim === 'play') S.sim.run = true; else if (d.sim === 'rate') S.sim.rate = { 1: 4, 4: 10, 10: 1 }[S.sim.rate]; else if (d.sim === 'ht') { S.sim.T = 48; S.sim.run = false; } else if (d.sim === 'ft') { const end = Math.max(...LIVE_IDS.map(ftT)); fire(S.sim.T, end, true); S.sim.T = end; S.sim.run = false; } else if (d.sim === 'stop') { S.sim = null; S.toast = null; } reschedule(); S.keepScroll = true; render(); return; }
@@ -998,6 +1032,13 @@
     else if (d.toggle) { const [g, k] = d.toggle.split('.'); if (g === 'data') P.settings.data = !P.settings.data; else P.settings[g][k] = !P.settings[g][k]; save(); reschedule(); S.keepScroll = true; }
     else if (d.lang) { const L = ['en', 'ms', 'zh', 'ta']; P.settings.lang = L[(L.indexOf(P.settings.lang) + 1) % L.length]; save(); S.keepScroll = true; }
     else if (d.signout) { try { localStorage.removeItem(KEY); } catch (x) {} location.reload(); return; }
+    else if (d.crguess) { const i = +d.crguess, el = document.getElementById('crG'), v = parseInt(String(el && el.value || '').replace(/[^0-9]/g, ''), 10);
+      if (!(v > 0 && v < 100000)) { S.toast = { title: 'Your guess', body: 'Enter a number, e.g. 2400.', k: '', at: Date.now() }; render(); return; }
+      const show = !!(document.getElementById('crShow') || {}).checked, nm = dispName(); S.crIn = null;
+      P.guess = Object.assign(P.guess || {}, { [i]: { guess: v, show, at: Date.now() } }); save(); SPLSTORE.track('tap', 'crowd:' + i);
+      try { const all = JSON.parse(localStorage.getItem('spl-guesses') || '{}'); (all[i] = all[i] || []).push({ guess: v, name: nm, show, club: P.fav || '', at: Date.now() }); localStorage.setItem('spl-guesses', JSON.stringify(all)); } catch (e) {}
+      if (window.SPLCLOUD && SPLCLOUD.on) SPLCLOUD.guess(i, v, nm, show, P.fav || '').then(r => { if (r.closed) { delete P.guess[i]; save(); } if (!r.ok && !r.unavailable) { S.toast = { title: r.dup ? 'Already guessed' : 'Guess not counted', body: E(r.msg || ''), k: '', at: Date.now() }; render(); } });
+      S.keepScroll = true; }
     else if (d.vote) { const mo = GOTM_().month; P.votes[mo] = d.vote; SPLSTORE.track('vote', 'gotm'); save(); S.keepScroll = true; sendVote('gotm', mo, d.vote, () => { delete P.votes[mo]; }); }
     else if (d.remind !== undefined) { P.reminders[d.remind] = !P.reminders[d.remind]; save(); S.keepScroll = true; }
     else if (d.cal !== undefined) { P.cal[d.cal] = true; save(); S.keepScroll = true; return; }

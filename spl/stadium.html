@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPL · Big screen</title>
+<link rel="icon" href="assets/league/spl-lion.png">
+<link rel="stylesheet" href="spl.css">
+<style>
+/* The stadium's big screen (Hafiz, 7 Nov): open stadium.html?match=24 full screen on the screen's computer. It follows the admin
+   live: "guess the crowd" while guessing is open, then tonight's crowd and the winner the moment the official publishes. */
+html,body{margin:0;height:100%;background:#06081A;overflow:hidden}
+.st{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;gap:3vh;padding:17vh 7vw 6vh;box-sizing:border-box;color:#fff;font-family:Inter,sans-serif;
+  background:radial-gradient(60vw 60vh at 0% 0%,rgba(30,80,200,.55),transparent 70%),radial-gradient(55vw 55vh at 100% 20%,rgba(232,54,61,.42),transparent 70%),radial-gradient(80vw 60vh at 50% 120%,rgba(107,63,216,.55),transparent 70%),#06081A}
+.top{position:absolute;left:7vw;right:7vw;top:5vh;display:flex;align-items:center;gap:2vw}
+.top .spl-h{width:16vw;height:6vw;max-height:90px}.top .m{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:1.4vw;font:700 2.2vw Inter;letter-spacing:.04em}
+.top .crest{width:4vw;height:4vw}
+.k{font:700 2vw Inter;letter-spacing:.2em;text-transform:uppercase;color:#FF8A8F}
+.h{font-family:'Archivo',sans-serif;font-style:italic;font-weight:800;font-stretch:75%;text-transform:uppercase;line-height:.88;margin:0}
+.big{font-size:17vw;font-variant-numeric:tabular-nums}
+.w{display:flex;align-items:flex-end;gap:4vw;flex-wrap:wrap}.w .nm{font-size:7vw}.w .g{font:600 3vw Inter;color:#DCDAF0}
+.ask{font-size:9vw}.sub{font:500 2.6vw/1.35 Inter;color:#DCDAF0;max-width:70vw}
+.pr{align-self:flex-start;margin-top:1vh;display:flex;align-items:center;gap:1vw;padding:1vh 1.4vw;border-radius:1vw;background:#fff}
+.pr span{font:700 1vw Inter;letter-spacing:.16em;color:#6B6890}.pr img{height:3.2vw}
+.idle{font:500 2vw Inter;color:#A9A6C9}
+</style>
+</head>
+<body>
+<div class="st" id="st"></div>
+<script src="data.js"></script>
+<script src="store.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="backend.js"></script>
+<script src="cloud.js"></script>
+<script>
+(function () {
+  'use strict';
+  const C = SPL.clubs, E = SPLSTORE.esc, q = new URLSearchParams(location.search), i = +q.get('match'), m = SPL.matches[i], el = document.getElementById('st');
+  const partner = q.get('partner') || 'adidas';
+  const GUESS = false; // Phase 1: tonight's crowd only; guess the crowd comes in Phase 2 with e-ticket check-in
+  function draw() {
+    if (!m) { el.innerHTML = '<p class="idle">Open this page from the admin\'s matchday console: Big screen.</p>'; return; }
+    const D = SPLSTORE.read(), x = D.crowd[i] || {}, prize = x.prize || `A signed ${C[m[2]].short} jersey`;
+    const top = `<div class="top"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><span class="m"><span class="crest cr-${m[2]}"></span>${E(C[m[2]].short)} v ${E(C[m[3]].short)}<span class="crest cr-${m[3]}"></span></span></div>`;
+    const pr = `<div class="pr"><span>PRESENTED BY</span><img src="assets/partners/colour/${E(partner)}.png" alt=""></div>`;
+    if (Number.isInteger(x.attendance)) el.innerHTML = top + `<span class="k">Tonight's crowd</span><p class="h big">${x.attendance.toLocaleString()}</p>` +
+      (GUESS && x.winner ? `<div class="w"><span class="k" style="color:#E2C46A">Guess the crowd · winner</span></div><div class="w"><p class="h nm">${E(x.winner.name)}</p><span class="g">guessed ${x.winner.guess.toLocaleString()} · ${x.winner.off ? x.winner.off.toLocaleString() + ' off' : 'spot on'} · wins ${E(prize.replace(/^A /, 'a '))}</span></div>` : '<p class="sub">Thank you for coming tonight.</p>') + pr;
+    else if (GUESS && x.open) el.innerHTML = top + `<span class="k">Guess the crowd</span><p class="h ask">How many are here tonight?</p><p class="sub">Guess in the SPL app before half time. Closest wins ${E(prize.replace(/^A /, 'a '))}.</p>` + pr;
+    else el.innerHTML = top + `<p class="h ask">${E(C[m[2]].short)} v ${E(C[m[3]].short)}</p><p class="sub">${E(m[5])} · AIA Singapore Premier League</p>`;
+  }
+  draw();
+  window.addEventListener('storage', draw);
+  setInterval(() => { if (window.SPLCLOUD && SPLCLOUD.on) SPLCLOUD.pull(); }, 30000);
+})();
+</script>
+</body>
+</html>

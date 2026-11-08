@@ -257,6 +257,45 @@
       <p class="note" id="varPrev">Fans get: NO GOAL ❌ · VAR rules out ${E(who)}'s goal for <b>${E(why)}</b>.</p>
       <div class="mcc"><span style="flex:1"></span><button class="lnk" data-varno="1">Cancel</button><button class="btn red sm" data-varok="${idx}">Rule out, tell fans</button></div></div>`;
   }
+  // Attendance and Guess the crowd (Hafiz, 7 Nov): fans guess tonight's crowd before half time; at half time the official
+  // enters the turnstile count, the closest guess wins, an alert goes to both clubs' fans and the big screen shows the winner.
+  // Phase 1: the attendance only; the guessing (GUESS) comes in Phase 2 with e-ticket check-in.
+  const GUESS = false;
+  const crowdOf = i => D.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null };
+  const localGuesses = i => { try { return (JSON.parse(localStorage.getItem('spl-guesses') || '{}')[i]) || []; } catch (e) { return []; } };
+  const CROWDN = {};
+  function crowdPanel(i) {
+    const m = SPL.matches[i], x = crowdOf(i), n = CL.on ? CROWDN[i] : localGuesses(i).length;
+    if (CL.on && CROWDN[i] === undefined) { CROWDN[i] = 0; CL.crowdCount(i).then(v => { if (v !== null) { CROWDN[i] = v; if (A.page === 'matchday' && !document.activeElement.matches('input,textarea,select')) render(); } }); }
+    const prize = x.prize || `A signed ${C[m[2]].short} jersey`;
+    if (!GUESS && x.attendance === null) return `<div class="panel crowdp"><h2>Attendance<span class="lbl">Usually at half time</span></h2>
+      <div class="crow"><label class="fld" style="width:220px"><span>Official crowd (turnstiles)</span><input class="in" id="crAtt" inputmode="numeric" placeholder="e.g. 2431"></label>
+        <button class="btn red" data-crowdpub="${i}">Publish attendance</button><span style="flex:1"></span><a class="btn2 sm" href="stadium.html?match=${i}" target="_blank" rel="noopener">Big screen ↗</a></div>
+      <p class="note" style="margin:0">Publishing shows tonight's crowd on the match page and the big screen, adds it to the Crowds table in Stats and tells both clubs' fans.</p></div>`;
+    if (x.attendance !== null) return `<div class="panel crowdp done"><h2>Attendance<span class="lbl">Published</span></h2>
+      <div class="crow"><span><span class="lbl">Official crowd</span><b class="big" style="font-size:40px">${x.attendance.toLocaleString()}</b></span>
+      ${!GUESS ? '' : x.winner ? `<span><span class="lbl">Guess the crowd winner</span><b>${E(x.winner.name)}</b><span class="note">guessed ${x.winner.guess.toLocaleString()} · ${x.winner.off.toLocaleString()} off · ${x.guesses.toLocaleString()} guesses</span></span>` : '<span class="note">No guessing game this match.</span>'}
+      <span style="flex:1"></span><a class="btn2 sm" href="stadium.html?match=${i}" target="_blank" rel="noopener">Big screen ↗</a><button class="lnk" data-crowdedit="${i}">Change</button></div></div>`;
+    return `<div class="panel crowdp"><h2>Attendance<span class="lbl">${x.open ? 'Guess the crowd is open · closes when you publish' : 'Guess the crowd is off'}</span></h2>
+      <div class="crow"><label class="chk"><input type="checkbox" data-crowdopen="${i}" ${x.open ? 'checked' : ''}> Guess the crowd</label>
+        <label class="fld" style="flex:1;min-width:200px"><span>Prize</span><input class="in" id="crPrize" value="${E(x.prize)}" placeholder="${E(prize)}" maxlength="80"></label>
+        <span><span class="lbl">Guesses</span><b class="big" style="font-size:24px">${(n || 0).toLocaleString()}</b></span></div>
+      <div class="crow"><label class="fld" style="width:220px"><span>Official crowd (turnstiles)</span><input class="in" id="crAtt" inputmode="numeric" placeholder="e.g. 2431"></label>
+        <button class="btn red" data-crowdpub="${i}">${x.open ? 'Publish, tell the winner' : 'Publish attendance'}</button><span style="flex:1"></span><a class="btn2 sm" href="stadium.html?match=${i}" target="_blank" rel="noopener">Big screen ↗</a></div>
+      <p class="note" style="margin:0">Usually at half time. Publishing closes the guessing, picks the closest guess (the earlier one on a tie), alerts both clubs' fans and puts the result on the big screen. A winner's name shows only if they agreed to it.</p></div>`;
+  }
+  async function publishCrowd(i) {
+    const att = parseInt(String(val('crAtt')).replace(/[^0-9]/g, ''), 10); if (!(att > 0 && att < 100000)) { flash('Enter the official crowd, e.g. 2431.'); render(); return; }
+    const x = crowdOf(i), m = SPL.matches[i]; let w = null, count = 0;
+    if (GUESS && x.open) { if (CL.on) { const r = await CL.crowdWinner(i, att); if (r) { count = +r.guesses || 0; if (r.name !== undefined && r.guess !== undefined) w = { name: r.show_name && r.name ? r.name : `A ${(C[r.club] || C[m[2]]).short} fan`, guess: r.guess, off: r.off }; } }
+      else { const gs = localGuesses(i); count = gs.length; const b = gs.slice().sort((a, c) => Math.abs(a.guess - att) - Math.abs(c.guess - att) || a.at - c.at)[0]; if (b) w = { name: b.show && b.name ? b.name : `A ${(C[b.club] || C[m[2]]).short} fan`, guess: b.guess, off: Math.abs(b.guess - att) }; } }
+    const prize = x.prize || `a signed ${C[m[2]].short} jersey`;
+    if (!confirm(`Publish tonight's crowd as ${att.toLocaleString()}${w ? ` and announce ${w.name} (guessed ${w.guess.toLocaleString()}) as the winner` : ''}? Fans are told.`)) return;
+    save(d2 => { d2.crowd[i] = { open: false, prize: x.prize, attendance: att, guesses: count, winner: w, at: Date.now() };
+      d2.pushes.push({ id: uid('p'), at: Date.now(), title: `Tonight's crowd: ${att.toLocaleString()} 🏟️ ${short(m[2])} v ${short(m[3])}`,
+        body: w ? `${w.name} guessed ${w.guess.toLocaleString()} and wins ${prize.replace(/^A /, 'a ')}. How close were you?` : `Thank you for coming to ${m[5]}.`, aud: 'all', kind: 'live', match: i }); },
+      w ? 'Published. The winner is on the big screen.' : 'Attendance published.');
+  }
   function miniConsole(i) {
     const m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i), live = c.phase === '1H' || c.phase === '2H';
     const next = { pre: ['Kick off', '1H'], '1H': ['Half time', 'HT'], HT: ['Second half', '2H'], '2H': ['Full time', 'FT'], FT: null }[L.phase];
@@ -308,6 +347,7 @@
             <div class="score"><div class="t">${crest(m[2], 64)}<span class="d" style="font-size:18px">${C[m[2]].name}</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span class="big" style="font-size:72px">${s[0]}–${s[1]}</span><span class="big ${c.phase === '1H' || c.phase === '2H' ? 'live' : ''}" style="font-size:28px" data-aclock="${i}">${c.label}</span></div><div class="t">${crest(m[3], 64)}<span class="d" style="font-size:18px">${C[m[3]].name}</span></div></div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${next ? `<button class="btn ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${c.phase === '1H' || c.phase === '2H' ? '<button class="btn2" data-nudge="-1">Clock −1 min</button><button class="btn2" data-nudge="1">Clock +1 min</button>' : ''}${L.phase !== 'pre' ? '<button class="lnk danger" data-resetmatch="1" style="margin-left:8px">Reset this game</button>' : ''}</div>
           </div>
+          ${crowdPanel(i)}
           <div class="panel" style="display:flex;flex-direction:column;gap:14px;${L.phase === 'pre' ? 'opacity:.45;pointer-events:none' : ''}">
             <h2 style="margin:0">Add to the match</h2>
             <div class="tabs" style="gap:24px">${[['G', 'Goal'], ['Y', 'Yellow card'], ['R', 'Red card'], ['S', 'Substitution']].map(([k, l]) => `<button class="stab ${A.evType === k ? 'on' : ''}" data-evtype="${k}">${l}</button>`).join('')}</div>
@@ -614,7 +654,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -635,6 +675,8 @@
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month}'s winners 🏆`, body: [wp && `${wp.name} is the Dongfeng Player of the Month`, wg && `${wg.player} wins MSIG Goal of the Month`].filter(Boolean).join('. ') + '.', aud: 'all', kind: 'manual', match: null }); }, 'Announced. The app shows the winners.'); return; }
     if (d.mocknum) { A.mockOn = !A.mockOn; try { localStorage.setItem('spl-admin-mock', A.mockOn ? 'on' : 'off'); } catch (x) {} flash(A.mockOn ? 'Example numbers on.' : 'Showing what phones recorded.'); render(); return; }
     if (d.back) { if (A.page === 'votes') A.awm = null; else if (A.page === 'matchday') { A.multi = null; A.qf = null; } else if (A.page === 'news') A.news = null; render(); document.scrollingElement.scrollTop = 0; return; }
+    if (d.crowdpub) { publishCrowd(+d.crowdpub); return; }
+    if (d.crowdedit) { if (!confirm('Change the published attendance? The winner stays as announced until you publish again.')) return; save(d2 => { const x = d2.crowd[+d.crowdedit]; if (x) { x.attendance = null; } }); return; }
     if (d.multi !== undefined) { if (d.multi === '1') { const same = ROUND.filter(j => SPL.matches[j][1] === SPL.matches[A.live][1]); A.multi = same.length > 1 ? same : ROUND.slice(0, 2); } else A.multi = null; A.qf = null; render(); return; }
     if (d.mpick) { const j = +d.mpick, on = A.multi.includes(j); A.multi = on ? A.multi.filter(x => x !== j) : A.multi.concat(j).sort((a, b) => a - b); if (!A.multi.length) A.multi = [j]; render(); return; }
     if (d.qadd) { const [k, t] = d.qadd.split('|'); A.evTeam = k; A.evType = t; A.evOg = false; A.qf = { i: A.live }; A.varEv = null; render(); const el = document.getElementById('evP'); if (el) el.focus(); return; }
@@ -710,6 +752,8 @@
   });
   root.addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset && t.dataset.crowdopen) { const i = +t.dataset.crowdopen; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.open = t.checked; d2.crowd[i] = x; }, t.checked ? 'Guess the crowd is open in the app.' : 'Guess the crowd closed.'); return; }
+    if (t.id === 'crPrize') { const i = A.live; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.prize = t.value.trim().slice(0, 80); d2.crowd[i] = x; }, 'Prize saved.'); return; }
     if (t.dataset && t.dataset.awf) { const [w, j, f] = t.dataset.awf.split(':'), v = t.value.trim();
       awSave(d2 => { const m = monthOfKey(d2, A.awm); if (!m) return; if (w === 'opens' || w === 'closes') m[w] = v; else { const x = (w === 'p' ? m.potm.picks : m.gotm.picks)[+j]; if (x) x[f] = v.slice(0, 600); } }); return; }
     if (t.id === 'pWhen') { A.pushWhen = t.value; A.pushPre = { title: val('pTitle'), body: val('pBody') }; A.pushAud = val('pAud'); render(); }

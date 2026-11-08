@@ -96,6 +96,18 @@ var SPLCLOUD = (function () {
     if (error || !data) return null; const o = { potm: {}, gotm: {} }; data.forEach(r => { if (o[r.award]) o[r.award][r.choice] = +r.votes; }); return o;
   }
 
+  // Guess the crowd (0004_spl_crowd.sql)
+  async function guess(match, value, name, show, club) {
+    if (!on) return { ok: false, offline: true };
+    try { await fanSession(); } catch (e) { return { ok: false, unavailable: true }; }
+    const { error } = await sb.from('spl_guesses').insert({ match, guess: value, name: String(name || '').slice(0, 24), show_name: !!show, club: String(club || '').slice(0, 3) });
+    if (!error) return { ok: true }; if (error.code === '23505') return { ok: false, dup: true, msg: 'You have already guessed for this game.' };
+    if (error.code === '42501') return { ok: false, closed: true, msg: 'Guessing has closed for this game.' }; return { ok: false, unavailable: true };
+  }
+  async function crowdCount(match) { if (!on) return null; const { data, error } = await sb.rpc('spl_crowd_count', { p_match: match }); return error ? null : +data; }
+  async function crowdWinner(match, attendance) { if (!on || !ST.admin) return null; const { data, error } = await sb.rpc('spl_crowd_winner', { p_match: match, p_attendance: attendance }); return error || !data ? null : (data[0] || { guesses: 0 }); }
+  async function crowdMine(match) { if (!on) return null; const { data: s } = await sb.auth.getSession(); if (!s || !s.session) return null; const { data, error } = await sb.rpc('spl_crowd_mine', { p_match: match }); return error || !data ? null : data[0] || null; }
+
   // push to locked phones (supabase/functions/push): staff only; quietly does nothing until the function is deployed
   async function sendPush(p) {
     if (!on || !ST.admin) return { ok: false };
@@ -121,5 +133,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, sendPush, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, guess, crowdCount, crowdWinner, crowdMine, sendPush, signIn, signOut, checkAdmin };
 })();

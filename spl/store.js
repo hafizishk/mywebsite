@@ -65,7 +65,7 @@ var SPLSTORE = (function () {
   const PL = [['Singapore Pools', 'singapore-pools', 60], ['adidas', 'adidas', 44], ['Trip.com', 'trip-com', 32], ['Dongfeng by Volt Auto', 'dongfeng', 42], ['MSIG', 'msig', 44], ['Polar', 'polar', 34], ['Playback', 'playback', 15], ['Pan Pacific Leasing Group', 'pan-pacific', 36]];
   const seedPartners = () => [{ name: 'AIA', tier: 'Title partner', logo: 'aia' }].concat(PL.map(([name, f, h]) => ({ name, tier: 'Official partner', logo: `assets/partners/${f}.png`, h })));
   const withClips = g => { g.goals.forEach(x => { x.clip = OCT_CLIPS[x.id] ? 'https://youtu.be/' + OCT_CLIPS[x.id] : ''; x.from = ''; x.to = ''; }); return g; };
-  const DEF = () => ({ news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm() });
+  const DEF = () => ({ news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
@@ -97,6 +97,10 @@ var SPLSTORE = (function () {
     out.awards = { months: aw.months.filter(isObj).slice(-24).map(m => ({ key: str(m.key, ''), month: str(m.month, ''), stage: ['shortlist', 'voting', 'announced'].includes(m.stage) ? m.stage : 'shortlist', opens: str(m.opens, ''), closes: str(m.closes, ''),
       potm: { picks: isObj(m.potm) && Array.isArray(m.potm.picks) ? m.potm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.potm) ? str(m.potm.winner, '') : '' },
       gotm: { picks: isObj(m.gotm) && Array.isArray(m.gotm.picks) ? m.gotm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.gotm) ? str(m.gotm.winner, '') : '' } })) };
+    // Guess the crowd and attendance, per match: open for guesses, the prize, the official attendance and the winner
+    out.crowd = {}; if (isObj(d.crowd)) Object.keys(d.crowd).forEach(k => { const x = d.crowd[k], i = +k; if (!isObj(x) || !SPL.matches[i]) return;
+      const w = isObj(x.winner) ? { name: str(x.winner.name, '').slice(0, 24), guess: +x.winner.guess || 0, off: +x.winner.off || 0 } : null;
+      out.crowd[i] = { open: !!x.open, prize: str(x.prize, '').slice(0, 80), attendance: Number.isInteger(x.attendance) ? x.attendance : null, guesses: +x.guesses || 0, winner: w, at: +x.at || 0 }; });
     const pm = isObj(d.potm) ? d.potm : def.potm;
     out.potm = { month: str(pm.month, def.potm.month), mkey: str(pm.mkey, def.potm.mkey), closes: str(pm.closes, ''), open: pm.open !== false, winner: str(pm.winner, ''),
       list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };

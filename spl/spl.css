@@ -383,3 +383,8 @@ button:disabled{cursor:default}
 .vgo{margin-top:auto;height:36px;border-radius:999px;background:#E8363D;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Inter',sans-serif}
 .vbar{margin-top:auto;height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}.vbar span{display:block;height:4px;transition:width .25s}
 #app[data-look=light] .vst b{color:#C42A31}#app[data-look=light] .vpos{color:#C42A31}
+/* Guess the crowd and attendance (Hafiz, 7 Nov) */
+.crowdc{padding:16px;display:flex;flex-direction:column;gap:10px;border-top:3px solid #E8363D}.crowdc.done{border-top-color:#C9A227}
+.crg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.crg>div{padding:10px;border-radius:14px;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:2px}
+.crg>div.w{background:rgba(201,162,39,.16)}.crg b{font-size:22px}.crg span:last-child{font-size:11px;color:var(--muted)}
+#app[data-look=light] .crg>div{background:rgba(21,20,42,.05)}

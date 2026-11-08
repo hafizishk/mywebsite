@@ -315,3 +315,5 @@ tr.dim td,.gl.dim{opacity:.6}
 body.adm .tabs,body.adm .side nav,body.adm .panel{scrollbar-width:none}
 body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm .panel::-webkit-scrollbar{display:none}
 .lr{display:flex;flex-direction:column;gap:8px;border-color:rgba(245,197,24,.5)}
+.crowdp{display:flex;flex-direction:column;gap:12px;border-color:rgba(201,162,39,.45)}.crowdp h2{margin:0}
+.crow{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}.crow>span{display:flex;flex-direction:column;gap:2px}
