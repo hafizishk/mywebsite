@@ -104,6 +104,7 @@ var SPLSTORE = (function () {
     ['', 'Lion City Sailors 26/27 Home Jersey, Stripes Of Home', 'clubs', 'jersey', '99.00', 0, '', '', 0, 0, '', 'LCS', 'lcs-home'],
     ['lcs-away', 'Lion City Sailors 26/27 Away Jersey, Charting The Course', 'clubs', 'jersey', '99.00', 0, '50% 30%', '', 0, 0, 'lcs-awayb', 'LCS'],
     ['', 'BG Tampines Rovers FC 2024/25 Home Jersey', 'clubs', 'jersey', '60.99', 0, '', '', 0, 0, '', 'TAM', 'tam-home'],
+    ['', 'FBT x GIFC 2026 Jersey, Unisex Home (Green/White)', 'clubs', 'jersey', '', 0, '', '', 0, 0, '', 'GEY', 'gey-home'],
     ['', 'Lion City Sailors Varsity Tee, The Varsity Edit', 'clubs', 'gear', '59.00', 0, '', '', 0, 0, '', 'LCS', 'lcs-varsity']
   ].map((p, j) => ({ id: p[12] || p[0] || 'p' + (j + 1), name: p[1], tab: p[2], club: p[11] || '', kind: p[3], price: p[4], off: p[5], pos: p[6] || '50% 50%', rating: p[7], sold: p[8], out: !!p[9], url: '',
     imgs: [p[0], p[10]].filter(Boolean).map(k => 'shop:' + k) }));
