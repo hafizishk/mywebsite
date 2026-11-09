@@ -890,7 +890,7 @@
       if (url && !SPLSTORE.shopLink(url)) { flash('That isn\'t a web address. Copy it from the product page: it starts https://'); return; }
       if (r.tab === 'clubs' && !C[r.club]) { flash('Pick the club under More.'); return; }
       const pr = String(r.price || '').replace(/^S?\$\s*/i, '').trim(); if (pr && !/^\d{1,4}(\.\d{1,2})?$/.test(pr)) { flash('Price as a number, like 35 or 14.90.'); return; }
-      const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, club: r.tab === 'clubs' ? r.club : '', kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: String(r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url, imgs: (A.sImgs || []).slice(0, 4) };
+      const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, club: r.tab === 'clubs' ? r.club : '', kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: String(r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url: SPLSTORE.shopLink(url), imgs: (A.sImgs || []).slice(0, 4) };
       const isNew = A.shopE === 'new';
       save(d2 => { if (isNew) d2.shop.push(x); else d2.shop[A.shopE] = x; }, isNew ? 'Added to the shop. It\'s in the app now.' : 'Saved. The app has it now.');
       if (isNew) { A.shopE = D.shop.length - 1; A.sFor = A.shopE; } A.sDraft = null; render(); return; }

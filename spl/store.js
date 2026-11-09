@@ -110,8 +110,10 @@ var SPLSTORE = (function () {
   ].map((p, j) => ({ id: p[12] || p[0] || 'p' + (j + 1), name: p[1], tab: p[2], club: p[11] || '', kind: p[3], price: p[4], off: p[5], pos: p[6] || '50% 50%', rating: p[7], sold: p[8], out: !!p[9], url: '',
     imgs: [p[0], p[10]].filter(Boolean).map(k => 'shop:' + k) }));
   // a Shopee address: the product page, a short link, or the store
-  const shopeeUrl = u => typeof u === 'string' && /^https:\/\/(shopee\.sg|s\.shopee\.sg|shp\.ee|sg\.shp\.ee)\/[^\s"'<>]*$/.test(u.trim()) ? u.trim().slice(0, 400) : '';
-  const shopLink = u => shopeeUrl(u) || (typeof u === 'string' && /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/[^\s"'<>]*)?$/i.test(u.trim()) ? u.trim().slice(0, 400) : '');
+  // a product address as pasted (apostrophes, accents and all), cleaned to a safe https URL, or ''
+  const webUrl = u => { if (typeof u !== 'string' || !u.trim()) return ''; try { const t = u.trim(), x = new URL(/^[a-z][a-z0-9+.-]*:/i.test(t) ? t : 'https://' + t); return x.protocol === 'https:' && /\./.test(x.hostname) ? x.href.replace(/'/g, '%27').replace(/"/g, '%22').slice(0, 600) : ''; } catch (e) { return ''; } };
+  const shopeeUrl = u => { const w = webUrl(u); return w && /^(shopee\.sg|s\.shopee\.sg|shp\.ee|sg\.shp\.ee)$/.test(new URL(w).hostname) ? w : ''; };
+  const shopLink = webUrl;
   // where a link sells from, for the Buy button: Shopee, adidas or the shop's own name
   const shopWhere = u => { const m = /^https:\/\/([^/]+)/.exec(u || ''); if (!m) return ''; const h = m[1].toLowerCase(); return shopeeUrl(u) ? 'Shopee' : /(^|\.)adidas\./.test(h) ? 'adidas' : ''; };
   const DEF = () => ({ shop: seedShop(), shopUrl: SHOP_URL, news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
