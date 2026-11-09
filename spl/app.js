@@ -722,7 +722,7 @@
     const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
     const slide = S.pickDir ? (S.pickDir > 0 ? 'pk-in-r' : 'pk-in-l') : '';
     const arrow = (d, path, lab) => `<button class="pk-arrow" data-pnav="${d}" aria-label="${lab}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#E8363D"><path d="${path}"/></svg></button>`;
-    return `<div style="display:flex;flex-direction:column;gap:4px;padding-top:24px"><span class="lbl">Step 2 of 2</span><span class="d" style="font-size:26px;line-height:.95">Select your favourite team</span><span style="font-size:13px;color:#7CF2C2;margin-top:4px">You can change it anytime in Settings</span></div>
+    return `<div style="display:flex;flex-direction:column;gap:4px;padding-top:4px"><span class="lbl">Step 2 of 2</span><span class="d" style="font-size:26px;line-height:.95">Select your favourite team</span><span style="font-size:13px;color:#7CF2C2;margin-top:4px">You can change it anytime in Settings</span></div>
       ${pickCore()}
       <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px"><button class="btn" data-ob="done" style="width:100%;border-top:3px solid ${c.c}">Follow ${c.short}</button><button class="rowlink" data-ob="skip" style="text-align:center;padding:12px;color:var(--muted);font:600 13px 'Inter',sans-serif">Neutral — show me everything</button></div>`;
   }
@@ -1162,7 +1162,7 @@
     // Must-see moments: keep a still of the outgoing clip so it can slide out while the next one slides in (like Stories)
     const oldV = app.querySelector('.shorts .sh-vid'), oldKey = oldV && oldV.getAttribute('key'), ghost = oldV && oldV.cloneNode(true);
     if (ghost) ghost.querySelectorAll('iframe').forEach(f => f.remove());
-    app.innerHTML = `<div class="screen" style="${S.view === 'home' ? '' : S.view === 'club' ? 'padding-top:0' : 'padding-top:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 54px)'}${bare ? ';padding-bottom:30px' : ''}">${SCREEN[S.view]()}</div>
+    app.innerHTML = `<div class="screen" style="${S.view === 'home' ? '' : S.view === 'club' ? 'padding-top:0' : 'padding-top:calc(max(var(--safe-area-inset-top,env(safe-area-inset-top,0px)), 34px) + 16px)'}${bare ? ';padding-bottom:30px' : ''}">${SCREEN[S.view]()}</div>
       ${bare ? '' : `<nav class="navbar" aria-label="Main">${NAV.map(([v, l, i, views]) => `<button class="nav ${views.includes(S.view) ? 'on' : ''} ${v === 'clubs' ? 'mid' : ''}" data-go="${v}">${v === 'clubs' ? `<span class="nav-up">${i}</span>` : i}${l}</button>`).join('')}</nav>`}<div class="sbar ${S.view === 'club' ? 'clear' : ''}"></div>${shortEl()}<div id="chrome">${demoBar()}${toastEl()}</div>${storyEl()}${authEl()}`;
     // the club hero runs up behind the status bar; the strip fills in once the hero has scrolled away
     if (S.view === 'club') { const sc = app.querySelector('.screen'), sb = app.querySelector('.sbar'); const f = () => sb.classList.toggle('clear', sc.scrollTop < 380); sc.addEventListener('scroll', f, { passive: true }); f(); }
