@@ -8,9 +8,10 @@ var SPLSTORE = (function () {
   // news pictures: the league's own (spl.sg's photo for each story, 9 Nov). A story without one takes its spl.sg photo by id.
   const IMG = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png',
     'ph-MW6R': 'assets/news/mw6-roundup.jpg', 'ph-MW6P': 'assets/news/mw6-preview.jpg', 'ph-MW5R': 'assets/news/mw5-roundup.jpg', 'ph-MW5P': 'assets/news/mw5-preview.jpg',
-    'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg' };
+    'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg',
+    'R6-1': 'assets/news/mw6r-1.jpg', 'R6-2': 'assets/news/mw6r-2.jpg', 'R6-3': 'assets/news/mw6r-3.jpg', 'R6-4': 'assets/news/mw6r-4.jpg', 'R6-5': 'assets/news/mw6r-5.jpg', 'R6-6': 'assets/news/mw6r-6.jpg', 'R6-7': 'assets/news/mw6r-7.jpg', 'R6-8': 'assets/news/mw6r-8.jpg' };
   // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
-  const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 6) : [];
+  const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
   const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
   // a story is in the app once published, or once its scheduled time has come
   const isOut = (n, now) => n.status === 'live' || (n.status === 'scheduled' && n.at && n.at <= (now || Date.now()));

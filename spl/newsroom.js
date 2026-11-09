@@ -205,7 +205,9 @@ var SPLNEWS = (function () {
       const scorers = [sideStr(h), sideStr(a)].filter(Boolean).join(' | ');
       const [top5, unf] = pm.body.split('\n\nHow the match unfolded\n\n'), paras = [top5.split('\n\n')[0]].concat((unf || '').split('\n\n').filter(p => p && !p.startsWith('[')));
       const reds = (r.ev || []).filter(e => e[3] === 'R').map(e => `Red Card – ${pname(e[4], e[5])} (${H(e[4])}) ${e[2] ? e[1] + '+' + e[2] : e[1]}’`);
-      blocks.push([head, `${H(h)} ${sh}-${sa} ${H(a)} | ${VEN(r.m[5])} | ${dayMonth(r.date)}`, scorers, ...paras, '[HOW THE GOALS CAME, AND A CHANCE OR SAVE]', ...(reds.length ? ['Facts', ...reds] : [])].filter(Boolean).join('\n\n'));
+      // photos where spl.sg puts them: one under the fixture line, a second part-way through when there's room
+      const withPh = paras.length >= 3 ? [...paras.slice(0, 2), '[PHOTO]', ...paras.slice(2)] : paras;
+      blocks.push([head, `${H(h)} ${sh}-${sa} ${H(a)} | ${VEN(r.m[5])} | ${dayMonth(r.date)}`, scorers, '[PHOTO]', ...withPh, '[HOW THE GOALS CAME, AND A CHANCE OR SAVE]', ...(reds.length ? ['Facts', ...reds] : [])].filter(Boolean).join('\n\n'));
       clauses.push(!win ? (derby ? `${F(h)} and ${F(a)} played out ${sh ? 'a ' + sh + '-' + sa + ' draw' : 'a goalless stalemate'} in the Eastern Derby` : `${F(h)} and ${F(a)} ${sh ? 'shared the points in a ' + sh + '-' + sa + ' draw' : 'played out a goalless draw'}`)
         : firstW ? `${F(win)} picked up a first victory of the season against ${F(lose)}` : top ? `${F(win)} went top with a win over ${F(lose)}` : `${F(win)} beat ${F(lose)} ${Math.max(sh, sa)}-${Math.min(sh, sa)}`);
     });

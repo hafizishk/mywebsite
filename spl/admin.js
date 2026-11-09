@@ -266,7 +266,7 @@
     const done = D.news.find(n => n.match === i && n.tag === (kind === 'post' ? 'Report' : 'Preview'));
     const gen = kind === 'post' ? SPLNEWS.postMatch(D, i) : SPLNEWS.preMatch(D, i); if (!gen) return '';
     const k = pmKey(i, kind), cur = A.pm[k] || (A.pm[k] = { head: gen.head, dek: gen.dek, body: gen.body });
-    const open = cur.body.match(/\[[A-Z][^\]]*\]/g) || [];
+    const open = (cur.body.match(/\[[A-Z][^\]]*\]/g) || []).filter(x => x !== '[PHOTO]');
     return `<div class="panel pmw" data-pmk="${k}"><h2 style="margin:0">${kind === 'post' ? 'Post-match report' : 'Pre-match preview'}<span class="lbl">${done ? `<span style="color:#3DD68C">${SPLSTORE.isOut(done) ? 'Published' : done.status === 'scheduled' ? 'Scheduled' : 'Draft in News'}</span> · ` : ''}Draft written from the data · house style</span></h2>
       <label class="fld"><span>Headline</span><input class="in" data-pmf="head" value="${E(cur.head)}" maxlength="120"></label>
       <label class="fld"><span>Standfirst</span><input class="in" data-pmf="dek" value="${E(cur.dek)}" maxlength="220"></label>
@@ -281,7 +281,7 @@
   function pmSave(k, live) {
     const kind = k.startsWith('post') ? 'post' : 'pre', i = +k.replace(/^\D+/, ''), cur = A.pm[k], m = SPL.matches[i];
     if (!cur.head.trim()) { flash('Give it a headline.'); render(); return; }
-    if (live && /\[[A-Z][^\]]*\]/.test(cur.body)) { flash('Fill or delete the parts in [BRACKETS] first.'); render(); return; }
+    if (live && /\[(?!PHOTO\])[A-Z][^\]]*\]/.test(cur.body)) { flash('Fill or delete the parts in [BRACKETS] first.'); render(); return; }
     const n = { id: uid('n'), tag: kind === 'post' ? 'Report' : 'Preview', date: TODAY, title: cur.head.trim(), dek: cur.dek.trim(), body: cur.body.replace(/\n\nHow the match unfolded\n\n/, '\n\nHow the match unfolded\n\n'), img: '', imgs: [], match: i, at: live ? (() => { const d = new Date(), z = n => String(n).padStart(2, '0'); return new Date(`${TODAY}T${z(d.getHours())}:${z(d.getMinutes())}:00`).getTime(); })() : 0, alert: false, status: live ? 'live' : 'draft' };
     save(d2 => { d2.news.push(n); if (live && kind === 'post') d2.lead = n.id; }, live ? (kind === 'post' ? 'Report published and made the lead story.' : 'Preview published: it shows on Home and in the match centre.') : 'Sent to News as a draft: add photos and pick a time.');
     if (!live) { A.page = 'news'; A.news = n.id; A.nFor = null; A.nWhenT = 'schedule'; } render();
@@ -398,7 +398,7 @@
   }
 
   const TAGS = ['Report', 'Preview', 'Roundup', 'Review', 'Fixtures', 'Club news', 'Announcement', 'Interview'];
-  const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration'], ['ph-MW6R', 'Matchweek 6: Tanjong Pagar v Jurong'], ['ph-MW6P', 'Matchweek 5: Jurong v Tampines'], ['ph-MW5R', 'Matchweek 5: Young Lions v Balestier'], ['ph-MW5P', 'Matchweek 5 preview photo'], ['ph-MW4R', 'Matchweek 4 roundup photo'], ['ph-MW4P', 'Matchweek 3: Tanjong Pagar v Tampines'], ['ph-MW3R', 'Matchweek 3 roundup photo'], ['ph-SPL', 'SPL logo']];
+  const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration'], ['ph-MW6R', 'Matchweek 6: Tanjong Pagar v Jurong'], ['ph-MW6P', 'Matchweek 5: Jurong v Tampines'], ['ph-MW5R', 'Matchweek 5: Young Lions v Balestier'], ['ph-MW5P', 'Matchweek 5 preview photo'], ['ph-MW4R', 'Matchweek 4 roundup photo'], ['ph-MW4P', 'Matchweek 3: Tanjong Pagar v Tampines'], ['ph-MW3R', 'Matchweek 3 roundup photo'], ['ph-SPL', 'SPL logo'], ['R6-1', 'MW6: Tanjong Pagar v Jurong (1)'], ['R6-2', 'MW6: Tanjong Pagar v Jurong (2)'], ['R6-3', 'MW6: Hougang v Young Lions (1)'], ['R6-4', 'MW6: Hougang v Young Lions (2)'], ['R6-5', 'MW6: Balestier v Sailors (1)'], ['R6-6', 'MW6: Balestier v Sailors (2)'], ['R6-7', 'MW6: Tampines v Geylang (1)'], ['R6-8', 'MW6: Tampines v Geylang (2)']];
   const IMG_URL = SPLSTORE.IMG;
   // News (Hafiz, 9 Nov, option A): the content calendar for the week, then the stories; a story takes up to six photos (the
   // app changes them every 3 seconds) and goes out now, at a scheduled time, or stays a draft
@@ -439,7 +439,7 @@
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
           ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}${n.id ? `<span class="lbl" style="color:${nState(n)[1]}">${nState(n)[0]}${n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ' · ' + new Date(n.at).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span>` : ''}</h2>
-            <div class="fld"><span>Photos · up to 6 · the first is the cover · in the app they change every 3 seconds</span><div class="pics">${pics}${(A.nImgs || []).length < 6 ? `<label class="padd"><input type="file" id="nFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>from this computer</small></label>` : ''}</div>
+            <div class="fld"><span>Photos · up to 12 · the first is the cover · the rest go where [PHOTO] sits in the story, in order (or, with no [PHOTO], they change every 3 seconds on the cover)</span><div class="pics">${pics}${(A.nImgs || []).length < 12 ? `<label class="padd"><input type="file" id="nFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>from this computer</small></label>` : ''}</div>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><select class="in" id="nLib" style="max-width:320px"><option value="">Or add one from the league's library…</option>${IMGS.filter(([k]) => k).map(([k, l]) => `<option value="${k}">${E(l)}</option>`).join('')}</select></div></div>
             <div class="grid3"><label class="fld"><span>Kind</span><select class="in" id="nTag">${TAGS.map(t => `<option ${t === nv.tag ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
             <label class="fld"><span>Headline</span><input class="in" id="nTitle" value="${E(nv.title)}" maxlength="120"></label>
@@ -814,7 +814,7 @@
       const mode = d.savenews, old = A.news === 'new' ? null : D.news.find(x => x.id === A.news);
       let at = mode === 'schedule' ? new Date(`${val('nDay')}T${val('nTime') || '09:00'}:00`).getTime() : mode === 'now' ? (old && old.status === 'live' ? (old.at || new Date(old.date + 'T09:00:00').getTime()) : Date.now()) : (old ? old.at : 0);
       if (mode === 'schedule' && !(at > Date.now())) { flash('Pick a time in the future to schedule it.'); render(); return; }
-      const alert = mode !== 'draft' && !!(document.getElementById('nAlert') || {}).checked, imgs = (A.nImgs || []).slice(0, 6);
+      const alert = mode !== 'draft' && !!(document.getElementById('nAlert') || {}).checked, imgs = (A.nImgs || []).slice(0, 12);
       const n = { id: old ? old.id : uid('n'), tag: val('nTag'), date: dayKey(at || Date.now()), title, dek: val('nDek').trim(), body: val('nBody'), img: imgs[0] || '', imgs, at, alert, status: mode === 'now' ? 'live' : mode === 'schedule' ? 'scheduled' : 'draft' };
       save(d2 => { const j = d2.news.findIndex(x => x.id === n.id); if (j >= 0) d2.news[j] = n; else d2.news.push(n);
         // the alert goes with the story: now, or at its scheduled time (replacing one set earlier for this story)
@@ -853,8 +853,8 @@
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   root.addEventListener('change', e => {
-    if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 6 - (A.nImgs || []).length); Promise.all(fs.map(shrink)).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 6); render(); }); return; }
-    if (e.target.id === 'nLib' && e.target.value) { keepNews(); A.nImgs = (A.nImgs || []).concat([e.target.value]).slice(0, 6); render(); return; }
+    if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(shrink)).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }
+    if (e.target.id === 'nLib' && e.target.value) { keepNews(); A.nImgs = (A.nImgs || []).concat([e.target.value]).slice(0, 12); render(); return; }
     const t = e.target;
     if (t.dataset && t.dataset.crowdopen) { const i = +t.dataset.crowdopen; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.open = t.checked; d2.crowd[i] = x; }, t.checked ? 'Guess the crowd is open in the app.' : 'Guess the crowd closed.'); return; }
     if (t.id === 'crPrize') { const i = A.live; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.prize = t.value.trim().slice(0, 80); d2.crowd[i] = x; }, 'Prize saved.'); return; }

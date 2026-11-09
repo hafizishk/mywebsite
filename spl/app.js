@@ -218,7 +218,7 @@
   const spLine = k => `<span class="lbl" data-slot="${k}" style="font-size:9px;color:var(--dim)">Presented by ${sp(k)}</span>`;
   const IMG = SPLSTORE.IMG;
   // a story's pictures: one, or several that change every 3 seconds with Stories-style bars (Hafiz, 9 Nov)
-  const imgBlock = (n, h) => { const ps = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); if (!ps.length) return '';
+  const imgBlock = (n, h) => { const all = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl), ps = /\[PHOTO\]/.test(n.body || '') ? all.slice(0, 1) : all; if (!ps.length) return '';
     if (ps.length === 1) return `<span class="nimg" style="height:${h}px;background-image:url(${ps[0]})"></span>`;
     return `<span class="nimg ncar" style="height:${h}px" data-n="${ps.length}">${ps.map((u, j) => `<span class="nc-p ${j ? '' : 'on'}" style="background-image:url(${u})"></span>`).join('')}<span class="nc-bars">${ps.map((_, j) => `<i class="${j ? '' : 'on'}"><b></b></i>`).join('')}</span><span class="nc-n">1 / ${ps.length}</span></span>`; };
   // every story with its picture: a wide photo in All news, a thumbnail beside the headline elsewhere
@@ -328,7 +328,7 @@
       ${imgBlock(n, 230) ? `<div style="margin:0 -20px">${imgBlock(n, 230)}</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:10px"><span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span><span class="d" style="font-size:28px;line-height:1">${E(n.title)}</span><span style="font-size:15px;line-height:1.5;color:#DCDAF0;font-weight:500">${E(n.dek)}</span></div>
       <div style="height:1px;background:var(--line)"></div>
-      <div class="body">${E(n.body).split(/\n\s*\n/).map(p => { const t = p.trim(); if (/ \| /.test(t) && /\d-\d/.test(t)) return `<p class="lbl" style="margin:-6px 0 0;font-size:12px;color:var(--ink)">${t.replace(/ \| /g, ' · ')}</p>`; if (/’/.test(t) && !/[.!?]$/.test(t)) return `<p style="margin:0;font-style:italic;color:var(--muted);font-size:13px">${t}</p>`; if (t.length < 70 && !/[.!?…]$/.test(t) && !/^SINGAPORE/.test(t)) return `<h3 class="d" style="font-size:20px;margin:22px 0 4px;line-height:1.05">${t}</h3>`; return `<p>${p.replace(/\n/g, '<br>')}</p>`; }).join('')}</div>
+      <div class="body">${(() => { const ph = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); let k = 0; return E(n.body).split(/\n\s*\n/).map(p => { const t = p.trim(); if (t === '[PHOTO]') { k++; return ph[k] ? `<img class="bimg" src="${ph[k]}" alt="" loading="lazy">` : ''; } if (/ \| /.test(t) && /\d-\d/.test(t)) return `<p class="lbl" style="margin:-6px 0 0;font-size:12px;color:var(--ink)">${t.replace(/ \| /g, ' · ')}</p>`; if (/’/.test(t) && !/[.!?]$/.test(t)) return `<p style="margin:0;font-style:italic;color:var(--muted);font-size:13px">${t}</p>`; if (t.length < 70 && !/[.!?…]$/.test(t) && !/^SINGAPORE/.test(t)) return `<h3 class="d" style="font-size:20px;margin:22px 0 4px;line-height:1.05">${t}</h3>`; return `<p>${p.replace(/\n/g, '<br>')}</p>`; }).join(''); })()}</div>
       <span class="lbl">Football Association of Singapore</span>
       ${more.length ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="d" style="font-size:18px">More news</span><div class="card" style="padding:0 16px">${more.map(x => newsRow(x, false)).join('')}</div></div>` : ''}`;
   }

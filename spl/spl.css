@@ -489,3 +489,4 @@ button:disabled{cursor:default}
 @keyframes gtGlow{50%{box-shadow:0 0 0 2px rgba(232,90,120,.9),0 0 22px 3px rgba(232,54,61,.55),0 0 52px 8px rgba(124,92,255,.38)}}
 @media (prefers-reduced-motion: reduce){.gtile{animation:none}}
 .gtw{padding:16px 20px 22px!important;margin-top:-12px!important;margin-bottom:-12px!important}
+.body .bimg{display:block;width:calc(100% + 40px);margin:6px -20px 14px;height:auto;aspect-ratio:3/2;object-fit:cover}
