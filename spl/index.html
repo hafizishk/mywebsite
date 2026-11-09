@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+/* On a laptop or desktop the app opens inside a phone, with a short intro (Hafiz, 9 Nov, option B): desktop.html frames
+   this page (?inframe). Phones, the APK, the admin's preview (?embed) and anything already in a frame open as before. */
+(function () { try {
+  var q = location.search, wide = Math.min(screen.width, innerWidth) >= 900 && matchMedia('(pointer:fine)').matches;
+  if (wide && window.top === window && !/[?&](embed|inframe|full)\b/.test(q) && !window.Capacitor && location.protocol !== 'file:')
+    location.replace('desktop.html' + q + location.hash);
+} catch (e) {} })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0F2E">
 <title>SPL — Singapore Premier League</title>
