@@ -399,8 +399,9 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">Latest news</span><button class="rowlink" data-htab="news" style="color:var(--muted);font:600 12px 'Inter',sans-serif;width:auto">All news →</button></div>
-        ${(L => L ? `<button class="rowlink" data-article="${E(L.id)}" style="display:flex;flex-direction:column;gap:10px;text-align:left">${imgBlock(L, 260)}<span class="lbl" style="color:var(--accent,#FF9AA0)">${E(L.tag)} · ${ndate(L.date)}</span><span class="d" style="font-size:22px;line-height:1.02">${E(L.title)}</span><span style="font-size:12px;color:var(--muted)">${E(L.dek)}</span></button>` : '')(LEAD_())}
-        <div class="card" style="padding:0 16px">${NEWS_().filter(n => !LEAD_() || n.id !== LEAD_().id).slice(0, 3).map(n => newsRow(n, false)).join('')}</div>
+        ${(() => { const L = LEAD_(), list = (L ? [L] : []).concat(NEWS_().filter(n => !L || n.id !== L.id)).slice(0, 6);
+          // glowing story tiles (Hafiz, 9 Nov, option C): the photo fills the tile, the text sits on a dark fade, the edge glows
+          return `<div class="scroll gtw">${list.map(n => `<button class="gtile" data-article="${E(n.id)}">${imgBlock(n, 320) || '<span class="nimg gt-none"></span>'}<span class="gt-tx"><span class="lbl">${E(n.tag)} · ${ndate(n.date)}</span><b class="d">${E(n.title)}</b><span class="gt-dk">${E(n.dek)}</span></span></button>`).join('')}</div>`; })()}
       </div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">Highlights</span><button class="rowlink" data-htab="watch" style="color:var(--muted);font:600 12px 'Inter',sans-serif;width:auto">All video →</button></div>

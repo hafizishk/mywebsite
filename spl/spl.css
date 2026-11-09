@@ -447,3 +447,15 @@ button:disabled{cursor:default}
 .xpa{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px 'Archivo',sans-serif;font-style:italic}.xpa svg{width:17px;height:17px}
 .xpl{position:absolute;right:-4px;bottom:-3px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#fff;color:#15142A;font:800 10px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 #app[data-look=light] .xpr circle:first-child{stroke:rgba(21,20,42,.12)}#app[data-look=light] .xpl{background:#15142A;color:#fff}
+/* glowing story tiles on Home (Hafiz, 9 Nov, option C) */
+.gtw{display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:4px 20px 10px;scroll-snap-type:x mandatory}
+.gtile{flex:none;width:238px;height:320px;border-radius:20px!important;position:relative;overflow:hidden;padding:0;border:0;background:#05071A;cursor:pointer;text-align:left;scroll-snap-align:start;box-shadow:0 0 0 1.5px rgba(124,92,255,.55),0 0 22px rgba(124,92,255,.28),0 0 34px rgba(232,54,61,.12)}
+.gtile::after{content:'';position:absolute;inset:0;border-radius:20px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 0 26px rgba(124,92,255,.22)}
+.gtile .nimg{position:absolute;inset:0;height:100%!important;border:0;opacity:.9}.gtile .gt-none{background:radial-gradient(120% 80% at 70% 20%,#3A2A78,#0B0F2E)}
+.gt-tx{position:absolute;left:0;right:0;bottom:0;padding:44px 16px 16px;background:linear-gradient(transparent,rgba(5,7,24,.92) 42%);display:flex;flex-direction:column;gap:6px;z-index:2}
+.gt-tx .lbl{color:#7CF2C2}.gt-tx b{font-size:20px;line-height:1.02;color:#fff}.gt-dk{font:500 12px/1.4 'Inter',sans-serif;color:#C9D6E4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gtile .ncar .nc-bars{z-index:3}.gtile .ncar .nc-n{display:none}
+#app[data-look=light] .gtile{box-shadow:0 0 0 1.5px rgba(124,92,255,.45),0 10px 30px rgba(21,20,42,.18)}
+.gtw{padding:4px 20px 10px!important;scroll-padding-left:20px}
+#app[data-look=light] .gtile .gt-tx b,#app[data-look=light] .gtile .gt-tx .d{color:#fff!important}#app[data-look=light] .gtile .gt-dk{color:#DCDAF0!important}#app[data-look=light] .gtile .gt-tx .lbl{color:#7CF2C2!important}
+.gtile .gt-tx .lbl{color:#7CF2C2!important}
