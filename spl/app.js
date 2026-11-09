@@ -356,7 +356,7 @@
     const xp = (P.days || []).length * 10 + n(P.votes) * 50 + n(P.potm) * 50 + n(P.follows) * 20 + n(P.reminders) * 15 + n(P.cal) * 15 + (P.tickets || []).length * 100;
     return { xp, level: 1 + Math.floor(xp / LEVEL_XP), into: xp % LEVEL_XP }; };
   const meBtn = () => { const f = P.fav && C[P.fav], n = P.user && P.user.name ? P.user.name.trim()[0].toUpperCase() : '', x = xpOf(), R = 20, L = 2 * Math.PI * R;
-    return `<button class="hbtn me xpme" aria-label="Me, level ${x.level}, ${x.into} of ${LEVEL_XP} XP to the next level" data-go="settings">
+    return `<button class="hbtn me xpme" aria-label="Me, level ${x.level}, ${x.into} of ${LEVEL_XP} XP to the next level" data-go="me">
       <svg class="xpr" width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="${R}" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="3"/><circle cx="23" cy="23" r="${R}" fill="none" stroke="#3DD68C" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(L * x.into / LEVEL_XP).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 23 23)"/></svg>
       <span class="xpa" style="background:${f ? f.c : 'rgba(255,255,255,.12)'};color:${f ? f.cf : '#fff'}">${n || ICON.user || 'Me'}</span><span class="xpl">${x.level}</span></button>`; };
   // the rest of the round under tonight's game: one row a game, by day
@@ -372,7 +372,7 @@
     const head = `<div style="display:flex;align-items:center">
       <span class="spl-h" role="img" aria-label="Singapore Premier League" style="width:118px;height:44px;margin-left:-6px;flex:none"></span>
       <span class="aia" role="img" aria-label="AIA, title sponsor" style="width:28px;height:30px;margin-left:8px;flex:none"></span><span style="flex:1"></span>
-      <div style="display:flex;align-items:center;gap:8px"><button class="hbtn" aria-label="Search" data-go="search">${ICON.search}</button><button class="hbtn" aria-label="Alerts" data-go="settings" data-focus="notif">${ICON.bell}</button>${meBtn()}</div>
+      <div style="display:flex;align-items:center;gap:8px"><button class="hbtn" aria-label="Settings" data-go="settings">${ICON.cog}</button><button class="hbtn" aria-label="Alerts" data-go="settings" data-focus="notif">${ICON.bell}</button>${meBtn()}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="tabs">${[['tonight', 'Matchday'], ['news', 'News']].map(([k, l]) => `<button class="stab ${S.htab === k ? 'on' : ''}" data-htab="${k}">${l}</button>`).join('')}</div>
@@ -815,10 +815,27 @@
       ${q && !clubs.length && !players.length && !fixtures.length && !news.length ? `<span style="font-size:13px;color:var(--muted)">Nothing for "${S.sq}".</span>` : ''}`;
   }
 
+  // Me (Hafiz, 9 Nov, option B): who you are, your level and how to earn XP, then Settings
+  function me() {
+    const f = favC(), x = xpOf(), name = P.user && P.user.name ? P.user.name : 'Guest', ini = name.trim()[0].toUpperCase(), R = 44, L = 2 * Math.PI * R;
+    const n = o => Object.values(o || {}).filter(Boolean).length;
+    const ways = [['Open the app', 'Once a day', 10, (P.days || []).length, null], ['Vote', 'Player and Goal of the Month', 50, n(P.votes) + n(P.potm), 'awards'], ['Follow a club', 'Its goals and news come to you', 20, n(P.follows), 'clubs'],
+      ['Turn on a game\'s alerts', 'The bell in a match centre', 15, n(P.reminders), 'matches'], ['Add a game to your calendar', 'In a match centre', 15, n(P.cal), 'matches'], ['Buy a ticket', 'On Trip.com, from a match centre', 100, (P.tickets || []).length, 'matches']];
+    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:22px">Me</span></div>
+      <div class="card mecard" style="--mc:${f ? f.c : '#3A2A78'}">
+        <div class="me-ring"><svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true"><circle cx="52" cy="52" r="${R}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/><circle cx="52" cy="52" r="${R}" fill="none" stroke="#3DD68C" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(L * x.into / LEVEL_XP).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 52 52)"/></svg><span class="me-ini" style="background:${f ? f.c : 'rgba(255,255,255,.12)'};color:${f ? f.cf : '#fff'}">${E(ini)}</span></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span class="d" style="font-size:24px;line-height:1">${E(name)}</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">${f ? crest(P.fav, 18) + E(f.name) : 'No club yet'}</span>
+          <span class="lbl" style="margin-top:6px;color:#3DD68C">Level ${x.level}</span><span style="font-size:12px;color:var(--muted)">${x.into} of ${LEVEL_XP} XP · ${LEVEL_XP - x.into} to level ${x.level + 1}</span></div></div>
+      <button class="pl card" data-go="settings" style="padding:16px;gap:12px"><span style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08)">${ICON.cog}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:14px;font-weight:600">Settings</span><span style="font-size:11px;color:var(--muted)">Your club, alerts, appearance, language</span></span><span class="lbl">›</span></button>
+      <div style="display:flex;flex-direction:column;gap:10px"><span class="d" style="font-size:20px">How to earn XP</span>
+        <div class="card" style="padding:4px 16px">${ways.map(([t, sub, xp, done, go]) => `<${go ? `button class="pl" data-go="${go}"` : 'div class="pl"'} style="gap:12px"><span class="xpchip">+${xp}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:14px;font-weight:600">${t}</span><span style="font-size:11px;color:var(--muted)">${sub}</span></span><span class="lbl">${done ? `${done}×` : ''}</span></${go ? 'button' : 'div'}>`).join('')}</div>
+        <span style="font-size:11px;color:var(--muted)">${x.xp} XP so far. Rewards for levels come with Phase 3.</span></div>
+`;
+  }
   function settings() {
     const st = P.settings, fav = favC();
     const toggle = (group, key, label, sub) => `<button class="pl" data-toggle="${group}.${key}" style="gap:14px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">${label}</span>${sub ? `<span style="font-size:11px;color:var(--muted)">${sub}</span>` : ''}</span><span class="lbl" style="color:${st[group][key] ? '#3DD68C' : 'var(--dim)'}">${st[group][key] ? 'On' : 'Off'}</span></button>`;
-    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:22px">Settings</span></div>
+    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="${S.setBack || 'home'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:22px">Settings</span></div>
       <div class="card" style="padding:16px;display:flex;align-items:center;gap:12px">${fav ? crest(P.fav, 40) : '<span class="crest" style="width:40px;height:40px;border:1px dashed rgba(255,255,255,.3)"></span>'}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">${P.user ? E(P.user.name) : 'Browsing as guest'}</span>${P.user && P.user.email ? `<span style="font-size:12px;color:var(--muted)">${E(P.user.email)}</span>` : ''}<span class="lbl">${fav ? 'Supports ' + fav.short : 'No club picked'} · ${P.user ? 'signed in with ' + E(P.user.via) : 'sign in to sync'}</span></span><button class="btn2" data-go="onboard-club" style="min-height:40px;font-size:12px">Change club</button></div>
       <div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 2px 0">Notifications${fav ? ' · ' + fav.short + ' first' : ''}</div>${toggle('push', 'goals', 'Goals', fav ? fav.short + ' goals as they go in; other clubs at full time' : 'As they go in')}${toggle('push', 'kickoff', 'Kick-off', 'An hour before, and at kick-off')}${toggle('push', 'results', 'Full-time results')}${toggle('push', 'news', 'News and announcements')}${toggle('push', 'tickets', 'Tickets on sale', 'When your club\'s next home game goes on sale')}</div>
       <div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 2px 0">Competitions</div>${toggle('comps', 'spl', 'AIA Singapore Premier League')}${toggle('comps', 'spl2', 'SPL2')}${toggle('comps', 'cup', 'Singapore Cup')}${toggle('comps', 'afc', 'AFC Champions League Two', 'Sailors and Tampines')}${toggle('comps', 'wpl', 'Women\'s Premier League')}</div>
@@ -970,7 +987,7 @@
   // ---------- shell ----------
   // Home · Season · Clubs (raised, centre; MLS) · Stats · Players. The raised button is square like every other button.
   const NAV = [['home', 'Home', ICON.home, ['home']], ['matches', 'Season', ICON.cal, ['matches', 'match', 'table']], ['clubs', 'Clubs', ICON.shield, ['clubs', 'club']], ['stats', 'Stats', ICON.bars, ['stats', 'player']], ['watch', 'Watch', ICON.tv, ['watch', 'video']]];
-  const SCREEN = { awards, pmonth, watch, home, matches, match, table: tableScreen, stats, clubs, club, players: stats, player, onboard, search, settings, gotm, tickets, video, article };
+  const SCREEN = { me, awards, pmonth, watch, home, matches, match, table: tableScreen, stats, clubs, club, players: stats, player, onboard, search, settings, gotm, tickets, video, article };
 
   // ---------- the simulated feed's clock ----------
   const SEC_PER_MIN = 2; // one match minute every two seconds at 1×: a game in about three and a half minutes
@@ -1130,7 +1147,7 @@
     if (d.wallet) { S.wallet = true; S.keepScroll = true; render(); return; }
     if (d.mytk !== undefined) { S.tkFrom = S.view; S.tk = { match: +d.mytk, step: 2, q: {}, pay: 'paynow' }; S.view = 'tickets'; render(); return; }
     if (d.go === 'onboard-club') { S.view = 'onboard'; S.ob = 1; S.pick = P.fav; }
-    else if (d.go) { if (d.htabBack) S.htab = d.htabBack; if (d.mw) S.mw = +d.mw; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
+    else if (d.go) { if (d.go === 'settings') S.setBack = S.view === 'me' ? 'me' : 'home'; if (d.htabBack) S.htab = d.htabBack; if (d.mw) S.mw = +d.mw; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
     else if (d.ob) { if (d.ob === 'done' || d.ob === 'skip') { const was = theme(); if (d.ob === 'done') dressUp(S.pick, was); P.fav = d.ob === 'done' ? S.pick : null; if (P.fav) P.follows[P.fav] = true; if (!P.user) P.user = { name: 'Guest', via: 'guest' }; save(); S.view = 'home'; } else if (d.ob === 'guest') { P.user = null; save(); S.ob = 1; S.pick = null; } else { S.auth = { via: d.ob, step: d.ob === 'signpass' ? 'waiting' : 'sheet', share: true }; if (d.ob === 'signpass') authAfter(2600, 'consent'); } }
     else if (d.pick) { const o = PICK_ORDER(); S.pickDir = Math.sign(o.indexOf(d.pick) - o.indexOf(S.pick || o[0])); S.pick = d.pick; S.keepScroll = true; }
     else if (d.pnav) { pickBy(+d.pnav); return; }
