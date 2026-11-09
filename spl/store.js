@@ -112,6 +112,8 @@ var SPLSTORE = (function () {
   // a Shopee address: the product page, a short link, or the store
   const shopeeUrl = u => typeof u === 'string' && /^https:\/\/(shopee\.sg|s\.shopee\.sg|shp\.ee|sg\.shp\.ee)\/[^\s"'<>]*$/.test(u.trim()) ? u.trim().slice(0, 400) : '';
   const shopLink = u => shopeeUrl(u) || (typeof u === 'string' && /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/[^\s"'<>]*)?$/i.test(u.trim()) ? u.trim().slice(0, 400) : '');
+  // where a link sells from, for the Buy button: Shopee, adidas or the shop's own name
+  const shopWhere = u => { const m = /^https:\/\/([^/]+)/.exec(u || ''); if (!m) return ''; const h = m[1].toLowerCase(); return shopeeUrl(u) ? 'Shopee' : /(^|\.)adidas\./.test(h) ? 'adidas' : ''; };
   const DEF = () => ({ shop: seedShop(), shopUrl: SHOP_URL, news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
@@ -157,7 +159,7 @@ var SPLSTORE = (function () {
     out.shop = Array.isArray(d.shop) ? d.shop.filter(isObj).slice(0, 60).map((x, j) => ({ id: str(x.id, 'p' + j).slice(0, 40), name: str(x.name, '').slice(0, 120),
       tab: ['league', 'lions', 'clubs'].includes(x.tab) ? x.tab : 'lions', club: x.tab === 'clubs' && C[x.club] ? x.club : '', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
       price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
-      rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: x.tab === 'lions' ? shopeeUrl(x.url) : shopLink(x.url),
+      rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: shopLink(x.url),
       imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })).map(x => x.id === 'ball' && !x.price ? Object.assign(x, { name: def.shop[0].name, price: def.shop[0].price }) : x) : def.shop;
     // kit and photos added to the seed reach saved stores too: a missing seed product is added, and a seed product saved
     // before its photo or price arrived takes them from the seed
@@ -175,5 +177,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, shopeeUrl, shopLink, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();

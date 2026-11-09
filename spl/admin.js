@@ -630,7 +630,7 @@
   const SH_LIB = Object.keys(SPLSTORE.IMG).filter(k => k.startsWith('shop:'));
   const keepShop = () => { const g = id => { const el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
     A.sDraft = { url: g('sUrl'), name: g('sName'), tab: g('sTab'), kind: g('sKind'), price: g('sPrice'), club: g('sClub'), off: g('sOff'), rating: g('sRate'), sold: g('sSold'), out: g('sOut'), pos: g('sPos') }; };
-  const linkState = u => !u ? ['No link yet: Buy opens the store', 'var(--dim)'] : SPLSTORE.shopeeUrl(u) ? ['Shopee link', '#3DD68C'] : SPLSTORE.shopLink(u) ? ['Shop link (not Shopee): fine for club and adidas kit', '#F5C518'] : ['Not a web address', '#FF9AA0'];
+  const linkState = u => !u ? ['No link yet: Buy opens FAS\'s Shopee store', 'var(--dim)'] : SPLSTORE.shopLink(u) ? [(SPLSTORE.shopWhere(u) ? SPLSTORE.shopWhere(u) + ' link' : 'Shop link') + ': Buy opens this page', '#3DD68C'] : ['Not a web address: it starts https://', '#FF9AA0'];
   function shop() {
     const L = D.shop, i = A.shopE, blank = { id: '', name: '', tab: 'lions', kind: 'jersey', price: '', off: 0, pos: '50% 50%', rating: '', sold: 0, out: false, url: '', imgs: [] };
     const p = i === 'new' ? blank : i != null && L[i] ? L[i] : null;
@@ -646,7 +646,7 @@
     const editor = v ? `<div class="skw"><div style="display:flex;align-items:center"><h2 style="flex:1;margin:0">${i === 'new' ? 'New product' : E(v.name)}</h2><button class="lnk" data-shopclose="1">Close</button></div>
         <div class="pics">${pics}${(A.sImgs || []).length < 4 ? `<label class="padd"><input type="file" id="sFiles" accept="image/*" multiple hidden><b>+</b>Photo</label>` : ''}</div>
         <span class="note" style="margin-top:-8px">The first is the tile, the second shows when a fan opens it.</span>
-        <label class="fld"><span>Shopee link</span><input class="in" id="sUrl" value="${E(v.url)}" placeholder="Paste from the product page on shopee.sg"><small class="lbl" id="sUrlOk" style="color:${ls[1]}">${ls[0]}</small></label>
+        <label class="fld"><span>Shop link · Shopee, adidas or the club's shop</span><input class="in" id="sUrl" value="${E(v.url)}" placeholder="Paste the product page's address"><small class="lbl" id="sUrlOk" style="color:${ls[1]}">${ls[0]}</small></label>
         <label class="fld"><span>Name</span><input class="in" id="sName" value="${E(v.name)}" maxlength="120"></label>
         <div class="grid2"><label class="fld"><span>Price S$</span><input class="in" id="sPrice" value="${E(v.price)}" placeholder="[PRICE]" inputmode="decimal"></label><label class="fld"><span>Discount %</span><input class="in" id="sOff" value="${v.off || ''}" placeholder="0" inputmode="numeric"></label></div>
         <label class="sktg"><span>Sold out</span><input type="checkbox" class="swi" id="sOut" ${v.out ? 'checked' : ''}></label>
@@ -887,7 +887,7 @@
     if (d.shopdel !== undefined) { const j = +d.shopdel; if (!confirm('Remove "' + D.shop[j].name + '" from the shop?')) return; save(d2 => { d2.shop.splice(j, 1); }, 'Removed from the shop.'); A.shopE = null; A.sFor = undefined; render(); return; }
     if (d.shopsave) { keepShop(); const cur = A.shopE === 'new' ? { tab: 'lions', club: '', kind: 'jersey', pos: '50% 50%', rating: '', sold: 0 } : D.shop[A.shopE], r = Object.assign({}, cur, ...Object.keys(A.sDraft).filter(k => A.sDraft[k] !== undefined).map(k => ({ [k]: A.sDraft[k] }))), url = String(r.url || '').trim(), name = String(r.name || '').trim();
       if (!name) { flash('Give the product a name.'); return; }
-      if (url && !(r.tab === 'lions' ? SPLSTORE.shopeeUrl(url) : SPLSTORE.shopLink(url))) { flash(r.tab === 'lions' ? 'Lions products link to Shopee. Copy the address from the product page on shopee.sg.' : 'That isn\'t a web address (https://…).'); return; }
+      if (url && !SPLSTORE.shopLink(url)) { flash('That isn\'t a web address. Copy it from the product page: it starts https://'); return; }
       if (r.tab === 'clubs' && !C[r.club]) { flash('Pick the club under More.'); return; }
       const pr = String(r.price || '').replace(/^S?\$\s*/i, '').trim(); if (pr && !/^\d{1,4}(\.\d{1,2})?$/.test(pr)) { flash('Price as a number, like 35 or 14.90.'); return; }
       const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, club: r.tab === 'clubs' ? r.club : '', kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: String(r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url, imgs: (A.sImgs || []).slice(0, 4) };
