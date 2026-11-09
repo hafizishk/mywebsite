@@ -117,9 +117,9 @@ var SPLCLOUD = (function () {
 
   // staff sign-in (admin only): an email and password made in Supabase > Authentication, listed in spl_admins
   async function checkAdmin() {
-    if (!on) return false; const { data: u } = await sb.auth.getUser(); ST.email = u && u.user ? u.user.email : '';
+    if (!on) return false; const { data: ss } = await sb.auth.getSession(), u = { user: ss && ss.session ? ss.session.user : null }; ST.email = u.user ? u.user.email : '';
     if (!ST.email) { ST.admin = false; emit(); return false; }
-    const { data, error } = await sb.rpc('spl_is_admin'); ST.admin = !error && data === true;
+    let r0 = await sb.rpc('spl_is_admin'); if (r0.error) { await new Promise(res => setTimeout(res, 1500)); r0 = await sb.rpc('spl_is_admin'); } const { data, error } = r0; ST.admin = !error && data === true;
     if (ST.admin) { const r = await sb.from('spl_admins').select('name').eq('user_id', u.user.id).maybeSingle(); ST.name = r.data && r.data.name ? r.data.name : ''; }
     emit(); return ST.admin;
   }

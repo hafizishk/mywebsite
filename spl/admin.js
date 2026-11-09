@@ -734,6 +734,8 @@
   // where the back button goes: out of a month's awards, out of side-by-side, out of a story being edited
   const backTo = () => A.page === 'votes' && A.awm ? 'all months' : A.page === 'matchday' && A.multi ? 'one game' : A.page === 'news' && A.news ? 'all stories' : '';
   function render() {
+    // the page lives in the address bar, so a refresh comes back to it (Hafiz, 9 Nov)
+    try { const u = new URL(location.href); if (u.searchParams.get('page') !== A.page) { u.searchParams.set('page', A.page); history.replaceState(null, '', u); } } catch (e) {}
     document.body.dataset.look = A.look;
     root.classList.toggle('si', !!(CL.on && (A.checking || !A.authed)));
     if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="sibg"><span></span><span></span><span></span><span></span></div><div class="signin"><p class="sinote">Checking your sign-in…</p></div>' : signinPage(); return; }
