@@ -34,7 +34,7 @@
   const ICON = {
     overview: 'M3 12l9-8 9 8M5 10v10h14V10', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
     push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
-    activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', back: 'M15 5l-7 7 7 7', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
+    shop: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2', activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', back: 'M15 5l-7 7 7 7', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
   };
   const icon = k => `<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="${ICON[k]}"/></svg>`;
 
@@ -99,7 +99,7 @@
     if (rows.length > 300) rows.splice(0, rows.length - 300); try { localStorage.setItem(AUK, JSON.stringify(rows)); } catch (e) {}
     AUD = rows.slice().reverse();
   }
-  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Awards', potm: 'Awards', awards: 'Awards', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings' };
+  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Awards', potm: 'Awards', awards: 'Awards', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings', shop: 'Shop', shopUrl: 'Shop' };
   const q_ = s => `‘${E(s || 'Untitled')}’`;
   const fixture = i => SPL.matches[i] ? `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}` : 'a game';
   const evWords = (i, e) => { const m = SPL.matches[i], k = e[4], who = k ? E(pname(e[8] || k, e[5])) : '';
@@ -140,6 +140,16 @@
     else if (s === 'sponsors') { Object.keys(Object.assign({}, b, a)).forEach(k => { const x = (b || {})[k] || {}, y = (a || {})[k] || {}, nm = SPLSTORE.SLOTS[k] || k;
       if (x.partner !== y.partner) out.push([y.partner ? `${E(nm)} sponsor: ${E(y.partner)}${x.partner ? ` (was ${E(x.partner)})` : ''}` : `Removed ${E(x.partner)} as the ${E(nm)} sponsor`, y.partner ? 'add' : 'del']);
       if (x.from !== y.from || x.to !== y.to) out.push([`${E(nm)} sponsor dates: ${y.from ? fmt(y.from) : '…'} to ${y.to ? fmt(y.to) : '…'}`, '']); }); }
+    else if (s === 'shop') { const bx = {}, n0 = out.length; (b || []).forEach(p => { bx[p.id] = p; });
+      (a || []).forEach(p => { const o = bx[p.id]; delete bx[p.id]; if (!o) { out.push([`Added ${E(p.name)} to the shop`, 'add']); return; }
+        if (o.out !== p.out) out.push([`${E(p.name)}: ${p.out ? 'sold out' : 'back on sale'}`, p.out ? 'del' : 'add']);
+        if (o.price !== p.price || o.off !== p.off) out.push([`${E(p.name)}: S$${E(p.price || '?')}${p.off ? ` (−${p.off}%)` : ''}`, '']);
+        if (o.url !== p.url) out.push([`${E(p.name)}: ${p.url ? 'new Shopee link' : 'Shopee link removed'}`, '']);
+        if (JSON.stringify(o.imgs) !== JSON.stringify(p.imgs)) out.push([`${E(p.name)}: photos changed`, '']);
+        if (o.name !== p.name) out.push([`Renamed ${E(o.name)} to ${E(p.name)}`, '']); });
+      Object.values(bx).forEach(p => out.push([`Removed ${E(p.name)} from the shop`, 'del']));
+      if (out.length === n0 && JSON.stringify(b) !== JSON.stringify(a)) out.push(['Reordered the shop', '']); }
+    else if (s === 'shopUrl') out.push(['Changed the Shopee store link', '']);
     else if (s === 'partners') { const x = b || [], y = a || []; y.forEach((p, j) => { const o = x[j] || {};
       if (o.name !== p.name) out.push([`Partners screen: ${p.name ? E(p.name) : 'empty space'}${o.name ? ` (was ${E(o.name)})` : ''}`, '']);
       else if (o.logo !== p.logo) out.push([`Partners screen: ${p.logo ? 'new logo' : 'removed the logo'} for ${E(p.name || 'space ' + (j + 1))}`, p.logo ? 'add' : 'del']);
@@ -470,7 +480,7 @@
   const keepNews = () => { const g = id => { const el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
     A.nDraft = { title: g('nTitle'), dek: g('nDek'), body: g('nBody'), tag: g('nTag'), day: g('nDay'), time: g('nTime'), alert: g('nAlert') }; };
   // uploaded photos are shrunk to 1200px JPEGs in the browser before they're saved
-  const shrink = f => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 1200 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .8)); }; im.onerror = () => res(''); im.src = r.result; }; r.onerror = () => res(''); r.readAsDataURL(f); });
+  const shrink = (f, max) => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, (max || 1200) / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .8)); }; im.onerror = () => res(''); im.src = r.result; }; r.onerror = () => res(''); r.readAsDataURL(f); });
 
   const audName = a => a === 'all' ? 'Everyone' : a === 'news' ? 'News alerts on' : a.startsWith('club:') && C[a.slice(5)] ? C[a.slice(5)].short + ' followers' : a;
   const pushTable = (list, compact) => list.length ? `<table class="tbl"><thead><tr><th style="width:${compact ? 110 : 150}px">When</th><th>Notification</th>${compact ? '' : '<th style="width:150px">To</th><th style="width:100px">Kind</th>'}<th style="width:90px"></th></tr></thead><tbody>${list.map(p => `<tr><td class="note">${hm(p.at)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><b>${E(p.title)}</b><span class="note">${E(p.body)}</span></div></td>${compact ? '' : `<td>${audName(p.aud)}</td><td class="lbl">${p.kind === 'live' ? 'Match alert' : 'Sent by hand'}</td>`}<td class="lbl ${p.at > Date.now() ? 'warn' : 'ok'}">${p.at > Date.now() ? 'Scheduled' : 'Sent'}</td></tr>`).join('')}</tbody></table>` : '<p class="note">No notifications sent yet.</p>';
@@ -613,6 +623,50 @@
       </div>`;
   }
 
+  // ---------- Shop (Hafiz, 9 Nov, option A): the office adds each product with its Shopee link and photos ----------
+  // Phase 2 (option C): FAS's Shopee seller account connected through Shopee's Open Platform, so photos, prices and stock sync nightly.
+  const SH_TAB = { league: 'League · adidas', lions: 'Lions · FAS on Shopee' }, SH_KIND = { jersey: 'Jersey', retro: 'Retro', gear: 'Fan gear' };
+  const SH_POS = [['50% 15%', 'Top'], ['50% 50%', 'Centre'], ['50% 80%', 'Bottom']];
+  const SH_LIB = Object.keys(SPLSTORE.IMG).filter(k => k.startsWith('shop:'));
+  const keepShop = () => { const g = id => { const el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
+    A.sDraft = { url: g('sUrl'), name: g('sName'), tab: g('sTab'), kind: g('sKind'), price: g('sPrice'), off: g('sOff'), rating: g('sRate'), sold: g('sSold'), out: g('sOut'), pos: g('sPos') }; };
+  const linkState = u => !u ? ['No link yet: Buy opens the store', 'var(--dim)'] : SPLSTORE.shopeeUrl(u) ? ['Shopee link', '#3DD68C'] : ['Not a Shopee link', '#FF9AA0'];
+  function shop() {
+    const L = D.shop, i = A.shopE, blank = { id: '', name: '', tab: 'lions', kind: 'jersey', price: '', off: 0, pos: '50% 50%', rating: '', sold: 0, out: false, url: '', imgs: [] };
+    const p = i === 'new' ? blank : i != null ? L[i] : null;
+    if (p && A.sFor !== i) { A.sFor = i; A.sImgs = p.imgs.slice(); A.sDraft = null; }
+    const dr = A.sDraft || {}, v = p ? Object.assign({}, p, ...Object.keys(dr).filter(k => dr[k] !== undefined).map(k => ({ [k]: dr[k] }))) : null;
+    const thumb = (x, w) => x.imgs[0] ? `<span class="sth" style="width:${w}px;height:${w}px;background-image:url(${SPLSTORE.picUrl(x.imgs[0])});background-position:${x.pos}"></span>` : `<span class="sth none" style="width:${w}px;height:${w}px">No photo</span>`;
+    const pics = (A.sImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)})"><b>${j === 0 ? 'Tile' : j === 1 ? 'Sheet' : 'Extra'}</b><span class="pt-a">${j ? `<button data-spicmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-spicmv="${j}:1" title="Move right">›</button>` : ''}<button data-spicdel="${j}" title="Remove">×</button></span></div>`).join('');
+    const noPic = L.filter(x => !x.imgs.length).length, noLink = L.filter(x => !x.url).length;
+    const ls = v ? linkState(v.url) : null;
+    const editor = v ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${i === 'new' ? 'Add product' : 'Edit product'}</h2>
+        <label class="fld"><span>Shopee link · open the product on Shopee, copy the address, paste it here</span><input class="in" id="sUrl" value="${E(v.url)}" placeholder="https://shopee.sg/…" data-slink="1"><small class="lbl" id="sUrlOk" style="color:${ls[1]}">${ls[0]}</small></label>
+        <div class="fld"><span>Photos · up to 4 · the first is the tile in the shop, the second shows when a fan opens it</span><div class="pics">${pics}${(A.sImgs || []).length < 4 ? `<label class="padd"><input type="file" id="sFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>saved from Shopee or your own</small></label>` : ''}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><select class="in" id="sLib" style="max-width:320px"><option value="">Or add one already in the shop…</option>${SH_LIB.map(k => `<option value="${k}">${E(k.slice(5))}</option>`).join('')}</select>
+          <label class="fld" style="flex-direction:row;align-items:center;gap:8px"><span>Tile shows the</span><select class="in" id="sPos" style="width:auto">${SH_POS.map(([k, l]) => `<option value="${k}" ${v.pos === k ? 'selected' : ''}>${l}</option>`).join('')}${SH_POS.some(([k]) => k === v.pos) ? '' : `<option value="${E(v.pos)}" selected>As set</option>`}</select></label></div></div>
+        <label class="fld"><span>Name · as on Shopee</span><input class="in" id="sName" value="${E(v.name)}" maxlength="120"></label>
+        <div class="grid3"><label class="fld"><span>Section</span><select class="in" id="sTab">${Object.entries(SH_TAB).map(([k, l]) => `<option value="${k}" ${v.tab === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="fld"><span>Kind</span><select class="in" id="sKind">${Object.entries(SH_KIND).map(([k, l]) => `<option value="${k}" ${v.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="fld"><span>Price · S$</span><input class="in" id="sPrice" value="${E(v.price)}" placeholder="[PRICE]" inputmode="decimal"></label></div>
+        <div class="grid3"><label class="fld"><span>Discount · %</span><input class="in" id="sOff" value="${v.off || ''}" placeholder="0" inputmode="numeric"></label>
+          <label class="fld"><span>Rating · from Shopee</span><input class="in" id="sRate" value="${E(v.rating)}" placeholder="4.9"></label>
+          <label class="fld"><span>Sold · from Shopee</span><input class="in" id="sSold" value="${v.sold || ''}" placeholder="0" inputmode="numeric"></label></div>
+        <label class="chk"><input type="checkbox" id="sOut" ${v.out ? 'checked' : ''}> Sold out (stays in the shop, greyed, at the end)</label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-shopsave="1">${i === 'new' ? 'Add to the shop' : 'Save'}</button><button class="lnk" data-shopclose="1">Close</button>${i !== 'new' ? `<span style="flex:1"></span><button class="lnk" style="color:#FF9AA0" data-shopdel="${i}">Remove from the shop</button>` : ''}</div></div>` : '';
+    const rows = ['league', 'lions'].map(t => { const g = L.map((x, j) => [x, j]).filter(([x]) => x.tab === t); return g.length ? `<tr class="grp"><td colspan="6" class="lbl">${SH_TAB[t]} · ${g.length}</td></tr>` + g.map(([x, j], n) => {
+      const st = linkState(x.url); return `<tr class="click ${i === j ? 'sel' : ''}" data-shopedit="${j}"><td>${thumb(x, 44)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><span>${E(x.name)}</span><span class="lbl">${SH_KIND[x.kind]}${x.imgs.length ? ` · ${x.imgs.length} photo${x.imgs.length > 1 ? 's' : ''}` : ''}</span></div></td>
+        <td>${x.price ? 'S$' + x.price : '<span class="note">[PRICE]</span>'}${x.off ? ` <span class="lbl" style="color:#FF9AA0">−${x.off}%</span>` : ''}</td><td class="lbl" style="color:${x.out ? '#FF9AA0' : '#3DD68C'}">${x.out ? 'Sold out' : 'On sale'}</td><td class="lbl" style="color:${st[1]}">${x.url ? 'Linked' : 'No link'}</td>
+        <td style="white-space:nowrap">${n ? `<button class="lnk" data-shopmv="${j}:-1" title="Up">↑</button>` : ''}${n < g.length - 1 ? `<button class="lnk" data-shopmv="${j}:1" title="Down">↓</button>` : ''}</td></tr>`; }).join('') : ''; }).join('');
+    return head('Shop', 'What fans see in the app\'s Shop. Each product links to its page on FAS\'s Shopee store, where fans pay and get it delivered.', '<button class="btn" data-shopnew="1">Add product</button>') + `
+      <div class="panel" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap"><label class="fld" style="flex:1;min-width:320px"><span>FAS store on Shopee · the Lions banner and any product without its own link open this</span><input class="in" id="shStore" value="${E(D.shopUrl)}"></label><button class="btn2" data-shopstore="1">Save store link</button></div>
+      <div class="row" style="gap:24px"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">${editor}
+        <div class="panel"><div class="note" style="margin-bottom:10px">${L.length} products · ${noPic ? `${noPic} without a photo (they show as a red tile)` : 'all with photos'} · ${noLink ? `${noLink} without their own Shopee link` : 'all linked'}</div>
+          <table class="tbl"><thead><tr><th style="width:60px"></th><th>Product</th><th style="width:120px">Price</th><th style="width:90px">Status</th><th style="width:80px">Link</th><th style="width:60px"></th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="panel"><h2>Coming in Phase 2: Shopee sync</h2><p class="note">With FAS's Shopee seller account connected (Shopee's Open Platform, which FAS approves once), photos, prices, stock and sold out update themselves every night from the store. The office then only chooses what shows and in what order.</p></div></div>
+        <div><div class="phone-cap"><span class="lbl">The shop in the app</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed&shop=${p ? p.tab : 'lions'}" title="App preview"></iframe></div></div></div>`;
+  }
+
   function analytics() {
     const st = stats(), top = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
     const bars = (rows, name) => { const max = rows.length ? rows[0][1] : 1; return rows.length ? rows.slice(0, 12).map(([k, n]) => `<div style="display:grid;grid-template-columns:200px 1fr 50px;gap:12px;align-items:center;padding:7px 0"><span style="font-size:13px">${E(name(k))}</span><div class="bar"><span style="width:${Math.round(100 * n / max)}%"></span></div><span class="big" style="font-size:18px;text-align:right">${n.toLocaleString()}</span></div>`).join('') : '<p class="note">Nothing recorded yet.</p>'; };
@@ -630,7 +684,7 @@
     return d.toDateString() === t.toDateString() ? 'Today' : d.toDateString() === y.toDateString() ? 'Yesterday' : d.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long' }); };
   const tm = ts => new Date(ts).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' });
   function activity() {
-    const all = auditEntries(AUD), people = [...new Set(all.map(e => e.who))], secs = ['News', 'Notifications', 'Matchday', 'Awards', 'Sponsors'];
+    const all = auditEntries(AUD), people = [...new Set(all.map(e => e.who))], secs = ['News', 'Notifications', 'Matchday', 'Awards', 'Sponsors', 'Shop'];
     const list = all.filter(e => (!A.audWho || e.who === A.audWho) && (!A.audSec || e.sections.includes(A.audSec)));
     const filters = `<div class="afil"><button class="${!A.audWho ? 'on' : ''}" data-audwho="">Everyone</button>${people.map(p => `<button class="${A.audWho === p ? 'on' : ''}" data-audwho="${E(p)}"><span class="av">${initials(p)}</span>${whoName(p)}</button>`).join('')}<span class="sep"></span><button class="${!A.audSec ? 'on' : ''}" data-audsec="">All pages</button>${secs.map(s => `<button class="${A.audSec === s ? 'on' : ''}" data-audsec="${s}">${s}</button>`).join('')}</div>`;
     const undo = e => e.rows.filter(canUndo).map(r => `<button class="lnk" data-undo="${E(String(r.id))}">Put back${e.rows.length > 1 ? ' ' + E((SECTION[r.section] || r.section).toLowerCase()) : ''}</button>`).join('');
@@ -653,7 +707,7 @@
   }
 
   // ---------- shell ----------
-  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
+  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], shop: ['Shop', shop], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
   // ---------- staff sign-in (backend.js set): only logins on the FAS staff list get past this ----------
   const CL = window.SPLCLOUD || { on: false, state: { status: 'demo' } };
   A.authed = !CL.on; A.checking = CL.on;
@@ -670,7 +724,7 @@
   const statusLine = () => { const st = CL.state; if (!CL.on) return '<span class="cs demo">Demo · this browser only</span>';
     if (st.status === 'live') return `<span class="cs live">Live · saved${st.updatedAt ? ' ' + new Date(st.updatedAt).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) : ''}</span>`;
     return `<span class="cs off" title="${E(st.error || '')}">${st.status === 'connecting' ? 'Connecting…' : 'Offline · changes wait'}</span>`; };
-  const GROUPS = [['League', ['overview', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'analytics']], ['FAS', ['activity', 'settings']]];
+  const GROUPS = [['League', ['overview', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'shop', 'analytics']], ['FAS', ['activity', 'settings']]];
   try { A.look = localStorage.getItem('spl-admin-look') === 'light' ? 'light' : 'dark'; } catch (e) { A.look = 'dark'; }
   const myName = () => CL.on ? (CL.state.name || (CL.state.email || '').replace(/@.*/, '')) : '[STAFF NAME]';
   function searchHits(q) {
@@ -739,7 +793,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-shopnew],[data-shopedit],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -822,6 +876,23 @@
       save(d2 => { d2.news.push(n); }, 'Drafted from the storyline. Fill the [BRACKETS], add photos, publish or schedule.'); A.news = n.id; A.nFor = null; render(); return; }
     if (d.nwhen) { keepNews(); A.nWhenT = d.nwhen; render(); return; }
     if (d.calwk !== undefined) { A.calWk = +d.calwk === 0 ? 0 : (A.calWk || 0) + +d.calwk; render(); return; }
+    if (d.shopnew) { A.shopE = 'new'; A.sFor = undefined; render(); document.scrollingElement.scrollTop = 0; return; }
+    if (d.shopedit !== undefined) { A.shopE = +d.shopedit; render(); document.scrollingElement.scrollTop = 0; return; }
+    if (d.shopclose) { A.shopE = null; A.sFor = undefined; render(); return; }
+    if (d.spicdel !== undefined) { keepShop(); A.sImgs.splice(+d.spicdel, 1); render(); return; }
+    if (d.spicmv) { keepShop(); const [j, dir] = d.spicmv.split(':').map(Number), a = A.sImgs, x = a[j]; a[j] = a[j + dir]; a[j + dir] = x; render(); return; }
+    if (d.shopmv) { const [j, dir] = d.shopmv.split(':').map(Number), L = D.shop, t = L[j].tab; let k = j + dir; while (L[k] && L[k].tab !== t) k += dir; if (!L[k]) return;
+      save(d2 => { const a = d2.shop, x = a[j]; a[j] = a[k]; a[k] = x; }, 'Order saved.'); if (A.shopE === j) { A.shopE = k; A.sFor = k; } return; }
+    if (d.shopstore) { const u = SPLSTORE.shopeeUrl(val('shStore')); if (!u) { flash('That isn\'t a Shopee address (shopee.sg or shp.ee).'); return; } save(d2 => { d2.shopUrl = u; }, 'Store link saved.'); return; }
+    if (d.shopdel !== undefined) { const j = +d.shopdel; if (!confirm('Remove "' + D.shop[j].name + '" from the shop?')) return; save(d2 => { d2.shop.splice(j, 1); }, 'Removed from the shop.'); A.shopE = null; A.sFor = undefined; render(); return; }
+    if (d.shopsave) { keepShop(); const r = A.sDraft, url = (r.url || '').trim(), name = (r.name || '').trim();
+      if (!name) { flash('Give the product a name.'); return; }
+      if (url && !SPLSTORE.shopeeUrl(url)) { flash('That link isn\'t a Shopee address. Copy it from the product page on shopee.sg.'); return; }
+      const pr = (r.price || '').replace(/^S?\$\s*/i, '').trim(); if (pr && !/^\d{1,4}(\.\d{1,2})?$/.test(pr)) { flash('Price as a number, like 35 or 14.90.'); return; }
+      const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: (r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url, imgs: (A.sImgs || []).slice(0, 4) };
+      const isNew = A.shopE === 'new';
+      save(d2 => { if (isNew) d2.shop.push(x); else d2.shop[A.shopE] = x; }, isNew ? 'Added to the shop. It\'s in the app now.' : 'Saved. The app has it now.');
+      if (isNew) { A.shopE = D.shop.length - 1; A.sFor = A.shopE; } A.sDraft = null; render(); return; }
     if (d.picdel !== undefined) { keepNews(); A.nImgs.splice(+d.picdel, 1); render(); return; }
     if (d.picmv) { keepNews(); const [j, dir] = d.picmv.split(':').map(Number), a = A.nImgs, t = a[j]; a[j] = a[j + dir]; a[j + dir] = t; render(); return; }
     if (d.savenews) { const title = val('nTitle').trim(); if (!title) { flash('Give the story a headline.'); render(); return; }
@@ -859,6 +930,7 @@
     if (d.clearstats) { if (!confirm('Clear the recorded analytics?')) return; try { localStorage.removeItem(SPLSTORE.EVK); } catch (x) {} flash('Cleared.'); render(); return; }
     if (d.resetall) { if (!confirm('Reset all the demo data?')) return; SPLSTORE.reset(); D = SPLSTORE.read(); SPLSTORE.write(D); A.news = null; flash('Demo reset.'); render(); return; }
   });
+  root.addEventListener('input', e => { if (e.target.id === 'sUrl') { const o = document.getElementById('sUrlOk'), st = linkState(e.target.value.trim()); if (o) { o.textContent = st[0]; o.style.color = st[1]; } } });
   root.addEventListener('input', e => { const f = e.target.dataset && e.target.dataset.pmf; if (!f) return; const k = e.target.closest('[data-pmk]').dataset.pmk; if (A.pm[k]) A.pm[k][f] = e.target.value; });
   root.addEventListener('dragstart', e => { const t = e.target.closest && e.target.closest('[data-dragnews]'); if (t) { e.dataTransfer.setData('text/plain', t.dataset.dragnews); e.dataTransfer.effectAllowed = 'move'; } });
   root.addEventListener('dragover', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
@@ -868,7 +940,9 @@
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   root.addEventListener('change', e => {
     if (e.target.dataset && e.target.dataset.autopre) { save(d2 => { d2.autoPreview = e.target.checked; }, e.target.checked ? 'On: each game\'s preview is drafted the evening before, in News, for you to approve.' : 'Automatic previews off.'); autoPreviews(); render(); return; }
-    if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(shrink)).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }
+    if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(f => shrink(f))).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }
+    if (e.target.id === 'sFiles') { keepShop(); const fs = [...e.target.files].slice(0, 4 - (A.sImgs || []).length); Promise.all(fs.map(f => shrink(f, 900))).then(urls => { A.sImgs = (A.sImgs || []).concat(urls.filter(Boolean)).slice(0, 4); render(); }); return; }
+    if (e.target.id === 'sLib' && e.target.value) { keepShop(); A.sImgs = (A.sImgs || []).concat([e.target.value]).slice(0, 4); render(); return; }
     if (e.target.id === 'nLib' && e.target.value) { keepNews(); A.nImgs = (A.nImgs || []).concat([e.target.value]).slice(0, 12); render(); return; }
     const t = e.target;
     if (t.dataset && t.dataset.crowdopen) { const i = +t.dataset.crowdopen; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.open = t.checked; d2.crowd[i] = x; }, t.checked ? 'Guess the crowd is open in the app.' : 'Guess the crowd closed.'); return; }

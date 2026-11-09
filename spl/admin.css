@@ -336,3 +336,6 @@ body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm
 .pm-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pm-chips .lbl{margin-right:4px}.chip.st{border:0;cursor:pointer;background:rgba(74,134,255,.14);color:var(--ink);text-align:left;height:auto;min-height:28px;padding:5px 11px}
 .stl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stc{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;background:var(--soft)}.stc b{font:700 14px/1.25 'Inter',sans-serif}.stc .lnk{align-self:flex-start;margin-top:auto}
 @media (max-width:900px){.stl{grid-template-columns:1fr 1fr}}
+/* Shop page (9 Nov) */
+.sth{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:center/cover #E8363D;border:1px solid var(--line);font:600 9px 'Inter',sans-serif;color:#fff;text-align:center;flex:none}
+.tbl tr.grp td{padding-top:18px;border-bottom:1px solid var(--line)}

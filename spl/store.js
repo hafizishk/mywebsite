@@ -10,6 +10,8 @@ var SPLSTORE = (function () {
     'ph-MW6R': 'assets/news/mw6-roundup.jpg', 'ph-MW6P': 'assets/news/mw6-preview.jpg', 'ph-MW5R': 'assets/news/mw5-roundup.jpg', 'ph-MW5P': 'assets/news/mw5-preview.jpg',
     'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg',
     'R6-1': 'assets/news/mw6r-1.jpg', 'R6-2': 'assets/news/mw6r-2.jpg', 'R6-3': 'assets/news/mw6r-3.jpg', 'R6-4': 'assets/news/mw6r-4.jpg', 'R6-5': 'assets/news/mw6r-5.jpg', 'R6-6': 'assets/news/mw6r-6.jpg', 'R6-7': 'assets/news/mw6r-7.jpg', 'R6-8': 'assets/news/mw6r-8.jpg' };
+  // shop photos (FAS's Shopee Mall listings, 9 Nov 2026), as library keys 'shop:<name>'
+  ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
   // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
   const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
   const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
@@ -77,7 +79,32 @@ var SPLSTORE = (function () {
   const PL = [['Singapore Pools', 'singapore-pools', 60], ['adidas', 'adidas', 44], ['Trip.com', 'trip-com', 32], ['Dongfeng by Volt Auto', 'dongfeng', 42], ['MSIG', 'msig', 44], ['Polar', 'polar', 34], ['Playback', 'playback', 15], ['Pan Pacific Leasing Group', 'pan-pacific', 36]];
   const seedPartners = () => [{ name: 'AIA', tier: 'Title partner', logo: 'aia' }].concat(PL.map(([name, f, h]) => ({ name, tier: 'Official partner', logo: `assets/partners/${f}.png`, h })));
   const withClips = g => { g.goals.forEach(x => { x.clip = OCT_CLIPS[x.id] ? 'https://youtu.be/' + OCT_CLIPS[x.id] : ''; x.from = ''; x.to = ''; }); return g; };
-  const DEF = () => ({ news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
+  // the Shop (Hafiz, 9 Nov, option A): the office pastes each product's Shopee link and adds its photos; Buy opens that link.
+  // Seed: FAS's Shopee Mall store as listed on 9 Nov 2026. A product's photos: the first is its tile, the second its sheet.
+  const SHOP_URL = 'https://shopee.sg/search?keyword=football%20association%20of%20singapore';
+  const seedShop = () => [
+    ['ball', 'adidas TIRO Pro 26, SPL official match ball', 'league', 'gear', '', 0, '58% 50%', '', 0],
+    ['home', 'Singapore 26/27 Home Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '4.9', 768],
+    ['away', 'Singapore 26/27 Away Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '5.0', 128],
+    ['fanjersey', 'Fan Jersey', 'lions', 'jersey', '14.90', 40, '50% 35%', '4.9', 419],
+    ['asean2004', 'Singapore 2004 ASEAN Champions Jersey', 'lions', 'retro', '35.00', 0, '44% 50%', '4.9', 305],
+    ['retro94', 'Singapore 1994 Double Commemorative Jersey', 'lions', 'retro', '35.00', 0, '50% 35%', '4.9', 327, 0, 'retro94b'],
+    ['lions1998', '1998 Inspired Limited Edition Jersey', 'lions', 'retro', '35.00', 0, '55% 45%', '4.9', 422],
+    ['asean2012', 'Singapore 2012 ASEAN Champions Jersey', 'lions', 'retro', '45.00', 0, '62% 40%', '5.0', 171],
+    ['tiger2007', 'Singapore 2007 Tiger Cup Champions Jersey', 'lions', 'retro', '35.00', 0, '50% 30%', '5.0', 71, 0, 'tiger2007b'],
+    ['teeroar', 'The Lions Fan Tee, Roar & Rise', 'lions', 'gear', '14.90', 40, '52% 50%', '5.0', 222],
+    ['', 'The Lions Fan Tee, Classic Crest', 'lions', 'gear', '14.90', 40, '', '5.0', 108],
+    ['cap', 'The Lions Fan Cap', 'lions', 'gear', '12.00', 20, '62% 50%', '4.9', 145, 0, 'capb'],
+    ['keychain', 'The Lions Blindbox Keychain', 'lions', 'gear', '10.00', 0, '50% 60%', '4.9', 241],
+    ['', 'The Lions Kids Fan Tee, Roar & Rise', 'lions', 'gear', '20.00', 0, '', '5.0', 68],
+    ['', 'The Lions Kids Fan Tee, Classic Crest', 'lions', 'gear', '20.00', 0, '', '4.9', 57],
+    ['', 'Singapore Fan Scarf', 'lions', 'gear', '15.00', 0, '', '4.8', 217, 1],
+    ['', 'Singapore Home Stadium Jersey 2024', 'lions', 'jersey', '115.00', 0, '', '5.0', 46, 1]
+  ].map((p, j) => ({ id: p[0] || 'p' + (j + 1), name: p[1], tab: p[2], kind: p[3], price: p[4], off: p[5], pos: p[6] || '50% 50%', rating: p[7], sold: p[8], out: !!p[9], url: '',
+    imgs: [p[0], p[10]].filter(Boolean).map(k => 'shop:' + k) }));
+  // a Shopee address: the product page, a short link, or the store
+  const shopeeUrl = u => typeof u === 'string' && /^https:\/\/(shopee\.sg|s\.shopee\.sg|shp\.ee|sg\.shp\.ee)\/[^\s"'<>]*$/.test(u.trim()) ? u.trim().slice(0, 400) : '';
+  const DEF = () => ({ shop: seedShop(), shopUrl: SHOP_URL, news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
@@ -118,6 +145,13 @@ var SPLSTORE = (function () {
     const pm = isObj(d.potm) ? d.potm : def.potm;
     out.potm = { month: str(pm.month, def.potm.month), mkey: str(pm.mkey, def.potm.mkey), closes: str(pm.closes, ''), open: pm.open !== false, winner: str(pm.winner, ''),
       list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };
+    const shopImg = x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 500000));
+    out.shop = Array.isArray(d.shop) ? d.shop.filter(isObj).slice(0, 60).map((x, j) => ({ id: str(x.id, 'p' + j).slice(0, 40), name: str(x.name, '').slice(0, 120),
+      tab: ['league', 'lions'].includes(x.tab) ? x.tab : 'lions', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
+      price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
+      rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: shopeeUrl(x.url),
+      imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })) : def.shop;
+    out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
   function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} return clean(isObj(d) ? d : {}); }
@@ -129,5 +163,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, shopeeUrl, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();
