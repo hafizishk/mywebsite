@@ -833,7 +833,7 @@
     ['tiger2007', 'Singapore 2007 Tiger Cup Champions Jersey', 'lions', 'retro', '35.00', 0, '50% 30%', '5.0', 71, 0, 'tiger2007b'],
     ['teeroar', 'The Lions Fan Tee, Roar & Rise', 'lions', 'gear', '14.90', 40, '52% 50%', '5.0', 222],
     ['', 'The Lions Fan Tee, Classic Crest', 'lions', 'gear', '14.90', 40, '', '5.0', 108],
-    ['cap', 'The Lions Fan Cap', 'lions', 'gear', '12.00', 20, '42% 50%', '4.9', 145],
+    ['cap', 'The Lions Fan Cap', 'lions', 'gear', '12.00', 20, '62% 50%', '4.9', 145, 0, 'capb'],
     ['keychain', 'The Lions Blindbox Keychain', 'lions', 'gear', '10.00', 0, '50% 60%', '4.9', 241],
     ['', 'The Lions Kids Fan Tee, Roar & Rise', 'lions', 'gear', '20.00', 0, '', '5.0', 68],
     ['', 'The Lions Kids Fan Tee, Classic Crest', 'lions', 'gear', '20.00', 0, '', '4.9', 57],
