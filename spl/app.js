@@ -828,7 +828,7 @@
     ['fanjersey', 'Fan Jersey', 'lions', 'jersey', '14.90', 40, '50% 35%', '4.9', 419],
     ['asean2004', 'Singapore 2004 ASEAN Champions Jersey', 'lions', 'retro', '35.00', 0, '44% 50%', '4.9', 305],
     ['retro94', 'Singapore 1994 Double Commemorative Jersey', 'lions', 'retro', '35.00', 0, '50% 30%', '4.9', 327],
-    ['', '1998 Inspired Limited Edition Jersey', 'lions', 'retro', '35.00', 0, '', '4.9', 422],
+    ['lions1998', '1998 Inspired Limited Edition Jersey', 'lions', 'retro', '35.00', 0, '55% 45%', '4.9', 422],
     ['asean2012', 'Singapore 2012 ASEAN Champions Jersey', 'lions', 'retro', '45.00', 0, '62% 40%', '5.0', 171],
     ['tiger2007', 'Singapore 2007 Tiger Cup Champions Jersey', 'lions', 'retro', '35.00', 0, '50% 30%', '5.0', 71, 0, 'tiger2007b'],
     ['', 'The Lions Fan Tee, Roar & Rise', 'lions', 'gear', '14.90', 40, '', '5.0', 222],
