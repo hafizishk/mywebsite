@@ -360,7 +360,7 @@
       form = `<div class="mcf"><b>${{ G: 'Goal', Y: 'Yellow card', R: 'Red card', S: 'Substitution' }[A.evType]} · ${crest(A.evTeam, 16)} ${short(A.evTeam)}</b>
         <div class="mcg"><label class="fld"><span>${A.evType === 'S' ? 'On' : og ? `Scored by (${short(opp)})` : 'Player'}</span><select class="in" id="evP">${opts()}</select></label>
         ${A.evType === 'S' ? `<label class="fld"><span>Off</span><select class="in" id="evA">${opts()}</select></label>` : A.evType === 'G' && !og ? `<label class="fld"><span>Assist</span><select class="in" id="evA">${opts('None')}</select></label>` : ''}
-        <label class="fld" style="max-width:90px"><span>Minute</span><input class="in" id="evM" inputmode="numeric" value="${nowMin > (c.cap || 90) ? c.cap + '+' + (nowMin - c.cap) : nowMin}"></label></div>
+        <label class="fld" style="max-width:90px"><span>Minute</span><input class="in" id="evM" inputmode="numeric" data-evauto="${i}" value="${nowMin > (c.cap || 90) ? c.cap + '+' + (nowMin - c.cap) : nowMin}"></label></div>
         <div class="mcc">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Pen</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Alert</label><span style="flex:1"></span><button class="lnk" data-qclose="1">Cancel</button><button class="btn sm" data-addev="1">Add</button></div></div>`; }
     const team = k => `<div class="mct">${crest(k, 20)}<span>${nm(k)}</span><span class="mcb">${[['G', 'Goal'], ['Y', 'Yellow'], ['R', 'Red'], ['S', 'Sub']].map(([t, l]) => `<button class="${t}" data-qadd="${k}|${t}" ${L.phase === 'pre' || L.phase === 'FT' ? 'disabled' : ''}>${l}</button>`).join('')}</span></div>`;
     return `<div class="g mc ${live ? 'on' : ''}" data-gi="${i}">
@@ -408,7 +408,7 @@
             <div class="grid3">
               <label class="fld"><span>${A.evType === 'S' ? 'Coming on' : og ? `Scored by (${E(C[opp].short)})` : 'Player'}</span><select class="in" id="evP">${opts(null)}</select></label>
               ${A.evType === 'G' && og ? '<span></span>' : A.evType === 'G' ? `<label class="fld"><span>Assist</span><select class="in" id="evA">${opts(null, 'No assist')}</select></label>` : A.evType === 'S' ? `<label class="fld"><span>Going off</span><select class="in" id="evA">${opts(null)}</select></label>` : '<span></span>'}
-              <label class="fld"><span>Minute</span><input class="in" id="evM" value="${nowMin > (c.cap || 90) ? (c.cap + '+' + (nowMin - c.cap)) : nowMin}" inputmode="numeric" placeholder="e.g. 34 or 45+2"></label>
+              <label class="fld"><span>Minute</span><input class="in" id="evM" data-evauto="${i}" value="${nowMin > (c.cap || 90) ? (c.cap + '+' + (nowMin - c.cap)) : nowMin}" inputmode="numeric" placeholder="e.g. 34 or 45+2"></label>
             </div>
             <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Penalty</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal${og ? ` <span class="note">by a ${E(C[opp].short)} player, counts for ${E(C[A.evTeam].short)}</span>` : ''}</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Send an alert to fans</label><span style="flex:1"></span><button class="btn" data-addev="1">Add ${{ G: 'goal', Y: 'yellow card', R: 'red card', S: 'substitution' }[A.evType]}</button></div>
           </div>
@@ -965,7 +965,11 @@
   window.addEventListener('storage', e => {
     if (e.key === SPLSTORE.KEY) { const nd = SPLSTORE.read(), j = JSON.stringify(nd); if (j === lastDoc) return; lastDoc = j; D = nd; if (A.page !== 'matchday' && calm()) render(); return; }
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
-  setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; }); }, 1000);
+  setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; });
+    // the event form's minute follows the clock until the official types in it (it was filled once per redraw, so it fell behind)
+    document.querySelectorAll('[data-evauto]').forEach(el => { if (el.dataset.typed || el === document.activeElement) return; const c = clockOf(+el.dataset.evauto); if (c.phase !== '1H' && c.phase !== '2H') return;
+      const v = c.n > c.cap ? `${c.cap}+${c.n - c.cap}` : String(c.n); if (el.value !== v) el.value = v; }); }, 1000);
+  root.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.evauto !== undefined) e.target.dataset.typed = '1'; });
   const q = new URLSearchParams(location.search); if (q.get('multi')) { A.page = 'matchday'; A.multi = q.get('multi').split(',').map(Number); A.live = A.multi[0]; } if (q.get('page') && PAGES[q.get('page')]) A.page = q.get('page');
    if (!CL.on) loadAudit().then(render);
   if (CL.on) {
