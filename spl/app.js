@@ -5,6 +5,8 @@
   const KEY = 'spl-mock';
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
   const P = Object.assign({ user: null, fav: null, follows: {}, reminders: {}, cal: {}, votes: {}, potm: {}, tickets: [], settings: { lang: 'en', data: false, push: { goals: true, kickoff: true, results: true, news: false, tickets: true }, comps: { spl: true, spl2: false, cup: true, afc: true, wpl: false } } }, load());
+  // the days this fan opened the app (for XP), the last 400
+  (() => { const d = new Date().toISOString().slice(0, 10); P.days = Array.isArray(P.days) ? P.days : []; if (!P.days.includes(d)) { P.days.push(d); P.days = P.days.slice(-400); } })();
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} };
   const S = { view: P.user ? 'home' : 'onboard', ob: 0, htab: 'tonight', mw: 7, comp: 'spl', match: null, mtab: 'overview', ttab: 'table', club: null, ctab: 'latest', player: null, query: '', sq: '', gotm: null, more: {} };
   // ?embed: the app inside the admin's phone preview — no splash, no partners, no onboarding, no analytics
@@ -347,8 +349,16 @@
   const pmonthCard = () => { const M = PMONTH, mine = P.votes[M.key];
     return `<button class="card" data-go="pmonth" style="position:relative;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;color:var(--ink);width:100%;min-height:150px"><span style="position:absolute;right:-6px;bottom:0;display:flex;gap:0">${M.list.slice(0, 3).map(x => photoOf(x.team, x.n) ? `<img src="${photoOf(x.team, x.n)}" alt="" style="height:112px;width:auto;margin-left:-30px">` : '').join('')}</span><div class="lbl" style="position:relative;color:#C9A227">Player of the Month · ${M.month}</div><span class="d" style="position:relative;font-size:20px;line-height:1;max-width:44%">${mine ? 'See how the vote stands' : 'Five players. One vote.'}</span><span class="lbl" style="position:relative">${mine ? 'Voted' : 'Closes ' + fmtDate(M.closes)}</span></button>`; };
   // Me (Hafiz, 5 Nov): your initial on your club's colour, ringed in its second colour. Opens your profile and settings.
-  const meBtn = () => { const f = P.fav && C[P.fav], n = P.user && P.user.name ? P.user.name.trim()[0].toUpperCase() : '';
-    return `<button class="hbtn me" aria-label="Me" data-go="settings" style="background:${f ? f.c : 'rgba(255,255,255,.1)'};color:${f ? f.cf : '#fff'}">${n || ICON.user || 'Me'}</button>`; };
+  // Me with an XP ring (Hafiz, 9 Nov, option A): XP from what the fan really does in the app, a level every 200 XP.
+  // Days opened 10 · a vote 50 · a club followed 20 · a game's alerts or calendar 15 · a ticket 100.
+  const LEVEL_XP = 200;
+  const xpOf = () => { const n = o => Object.values(o || {}).filter(Boolean).length;
+    const xp = (P.days || []).length * 10 + n(P.votes) * 50 + n(P.potm) * 50 + n(P.follows) * 20 + n(P.reminders) * 15 + n(P.cal) * 15 + (P.tickets || []).length * 100;
+    return { xp, level: 1 + Math.floor(xp / LEVEL_XP), into: xp % LEVEL_XP }; };
+  const meBtn = () => { const f = P.fav && C[P.fav], n = P.user && P.user.name ? P.user.name.trim()[0].toUpperCase() : '', x = xpOf(), R = 20, L = 2 * Math.PI * R;
+    return `<button class="hbtn me xpme" aria-label="Me, level ${x.level}, ${x.into} of ${LEVEL_XP} XP to the next level" data-go="settings">
+      <svg class="xpr" width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="${R}" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="3"/><circle cx="23" cy="23" r="${R}" fill="none" stroke="#3DD68C" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(L * x.into / LEVEL_XP).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 23 23)"/></svg>
+      <span class="xpa" style="background:${f ? f.c : 'rgba(255,255,255,.12)'};color:${f ? f.cf : '#fff'}">${n || ICON.user || 'Me'}</span><span class="xpl">${x.level}</span></button>`; };
   // the rest of the round under tonight's game: one row a game, by day
   // This weekend (Hafiz, 9 Nov, option A, the PL's list): grouped by day, home crest, kick-off, away crest, the venue under it
   const weekendCard = list => { if (!list.length) return ''; const days = [...new Set(list.map(r => r.date))];

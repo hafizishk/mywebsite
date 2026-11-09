@@ -441,3 +441,9 @@ button:disabled{cursor:default}
 .wkc{padding:16px;display:flex;flex-direction:column;gap:4px}.wk-h{display:flex;justify-content:space-between;align-items:baseline}.wk-h .d{font-size:19px}
 .wk-d{padding:12px 0 2px}.wk-r{display:flex!important;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line2);border-radius:0!important}.wkc .wk-r:last-child{border-bottom:0}
 .wk-g{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}.wk-t{display:flex;align-items:center;gap:8px;font:600 14px 'Inter',sans-serif;color:var(--ink);line-height:1.2}.wk-g b{font-size:19px;min-width:70px;text-align:center;color:var(--ink)}.wk-v{text-align:center;font-size:10px}
+/* Me with an XP ring and level (Hafiz, 9 Nov) */
+.hbtn.xpme{position:relative;width:46px;height:46px;padding:0;background:none!important;border:0!important}
+.hbtn.xpme svg.xpr{position:absolute;left:0;top:0;width:46px;height:46px}
+.xpa{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 15px 'Archivo',sans-serif;font-style:italic}.xpa svg{width:17px;height:17px}
+.xpl{position:absolute;right:-4px;bottom:-3px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#fff;color:#15142A;font:800 10px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+#app[data-look=light] .xpr circle:first-child{stroke:rgba(21,20,42,.12)}#app[data-look=light] .xpl{background:#15142A;color:#fff}
