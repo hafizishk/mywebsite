@@ -215,6 +215,32 @@ var SPLNEWS = (function () {
     const intro = `SINGAPORE, ${new Date(pub + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()} – ${clauses.slice(0, 2).join(', while ')}.${clauses.length > 2 ? ' ' + cap(clauses.slice(2).join(', while ')) + '.' : ''} We recap all the action here…`;
     return { head: `2026/27 Singapore Premier League Matchweek ${mw}: Roundup`, dek: clauses[0] ? cap(clauses[0]) + '.' : '', body: [intro, ...blocks].join('\n\n'), mw, games: all.length };
   }
+  // ---------- the matchweek preview, in spl.sg's format (its MW3–6 previews, 2026/27) ----------
+  // Title on the round's big game; two-sentence intro; per game a headline, the case in a few short paragraphs, a photo
+  // part-way through, and the fixture and broadcast line.
+  function mwPreview(D, mw) {
+    const R = results(D), T = table(R), pos = k => T.find(x => x.k === k);
+    const games = SPL.matches.map((m, i) => ({ m, i })).filter(x => x.m[0] === mw && !(x.m[7] || '').startsWith('Postponed') && !R.some(r => r.i === x.i));
+    if (!games.length) return null;
+    const hook = g => { const [h, a] = [g.m[2], g.m[3]], ph = pos(h), pa = pos(a), lh = resFor(R, h), la = resFor(R, a), rh = run(lh), ra = run(la);
+      const derby = [h, a].sort().join() === 'GEY,TAM', topTwo = Math.max(ph.pos, pa.pos) <= 2, wl = (k, L) => L.length && !L.some(x => x.res === 'W');
+      const score = (derby ? 50 : 0) + (topTwo ? 40 : 0) + (12 - ph.pos - pa.pos);
+      const head = derby ? 'Eastern Derby takes centre stage' : topTwo ? `Top two meet as ${NICK[h]} host ${NICK[a]}` : wl(h, lh) && wl(a, la) ? `${H(h)} and ${H(a)} chase a first win` : wl(h, lh) ? `${H(h)} seek a first win against ${H(a)}` : wl(a, la) ? `${H(a)} seek a first win at ${H(h)}`
+        : rh && rh.last === 'L' && rh.n >= 2 && ra && ra.last === 'L' && ra.n >= 1 ? `Wounded ${NICK[h]} and ${NICK[a]} face off` : (rh && rh.last === 'W' && rh.n >= 2) ? `${H(h)} look to make it ${word(rh.n + 1)} in a row` : (ra && ra.last === 'W' && ra.n >= 2) ? `${H(a)} look to make it ${word(ra.n + 1)} in a row` : `${NICK[h]} welcome the ${NICK[a]}`;
+      return { score, head, derby }; };
+    const G = games.map(g => Object.assign(g, hook(g))), big = G.slice().sort((x, y) => y.score - x.score)[0];
+    const kick = m => { const t = String(m[7] || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); return t ? `${t[1]}:${t[2]}${t[3].toLowerCase()}` : '7:30pm'; };
+    const blocks = G.map(g => { const pm = preMatch(D, g.i), sent = pm.body.split(/(?<=\.)\s+/);
+      const paras = sent.length > 2 ? [sent.slice(0, 2).join(' '), '[PHOTO]', sent.slice(2).join(' ')] : [sent.join(' '), '[PHOTO]'];
+      const when = new Date(g.m[1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^(\w+) /, '$1, ');
+      return [g.head, ...paras, '[A LINE ON FORM, A KEY PLAYER OR A SUSPENSION]', `${F(g.m[2])} vs ${F(g.m[3])} | ${when} | ${kick(g.m)} | ${g.m[5]} | Watch on YouTube or meWATCH`].join('\n\n'); });
+    const [a, b] = [big.m[2], big.m[3]], others = G.filter(g => g !== big);
+    const lead = pos(a).pos < pos(b).pos ? a : b, gap = Math.abs(pos(a).pts - pos(b).pts);
+    const intro = (big.derby ? `A clash between Eastern rivals ${F(a)} and ${F(b)} headlines Matchweek ${mw} of the 2026/27 Singapore Premier League (SPL)` : `${F(a)}, ${posW(pos(a).pos)}, host ${F(b)}, ${posW(pos(b).pos)}, in the game that headlines Matchweek ${mw} of the 2026/27 Singapore Premier League (SPL)`) + `, with ${gap ? (gap === 1 ? 'a point' : word(gap) + ' points') + ' between them' : 'the two level on points'}${pos(lead).pos === 1 ? ' and top spot on the line' : ''}.` +
+      (others.length ? ` Elsewhere, ${others.map(g => `${F(g.m[2])} host ${F(g.m[3])}`).join(others.length > 2 ? ', ' : ' and ').replace(/, ([^,]*)$/, ' and $1')}.` : '');
+    return { head: `SPL 2026/27 Matchweek ${mw}: ${big.head}`, dek: `${big.derby ? 'The Eastern Derby' : `${H(a)} v ${H(b)}`}, plus ${others.map(g => `${H(g.m[2])} v ${H(g.m[3])}`).join(', ').replace(/, ([^,]*)$/, ' and $1') || 'the rest of the round'}: all you need to know.`, body: ['[PHOTO]', intro, ...blocks].join('\n\n').replace(/^\[PHOTO\]\n\n/, ''), mw, games: G.length };
+  }
+  const nextMw = D => { const R = results(D), up = SPL.matches.map((m, i) => ({ m, i })).filter(x => !(x.m[7] || '').startsWith('Postponed') && !R.some(r => r.i === x.i)); return up.length ? Math.min(...up.map(x => x.m[0])) : null; };
   const latestMw = D => { const R = results(D).filter(r => !(r.m[7] || '').startsWith('Postponed')); return R.length ? Math.max(...R.map(r => r.m[0])) : null; };
 
   // a short story from a storyline, for the newsroom
@@ -223,5 +249,5 @@ var SPLNEWS = (function () {
     const body = [s.text, last.length ? `Their last ${word(Math.min(6, last.length))}: ${last.join(', ')}.` : '', '[CONTEXT: QUOTE, NEXT FIXTURE OR HISTORY]'].filter(Boolean).join('\n\n');
     return { head: s.head, dek: s.text, body };
   }
-  return { results, table, scorers, storylines, postMatch, preMatch, roundup, latestMw, storyDraft, word, ord };
+  return { results, table, scorers, storylines, postMatch, preMatch, roundup, latestMw, mwPreview, nextMw, storyDraft, word, ord };
 })();
