@@ -101,6 +101,16 @@
       "source": "/spl/admin",
       "destination": "/spl/admin.html",
       "permanent": false
+    },
+    {
+      "source": "/spladmin",
+      "destination": "/spl/admin.html",
+      "permanent": false
+    },
+    {
+      "source": "/spladmin/",
+      "destination": "/spl/admin.html",
+      "permanent": false
     }
   ],
   "rewrites": [
