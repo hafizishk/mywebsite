@@ -208,15 +208,18 @@
   let STORE = SPLSTORE.read();
   const E = SPLSTORE.esc;
   const ndate = iso => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : '';
-  const NEWS_ = () => STORE.news.filter(n => n.status === 'live').sort((a, b) => b.date.localeCompare(a.date));
-  const LEAD_ = () => STORE.news.find(n => n.id === STORE.lead && n.status === 'live') || NEWS_()[0];
+  const NEWS_ = () => STORE.news.filter(n => SPLSTORE.isOut(n)).sort((a, b) => b.date.localeCompare(a.date));
+  const LEAD_ = () => STORE.news.find(n => n.id === STORE.lead && SPLSTORE.isOut(n)) || NEWS_()[0];
   const GOTM_ = () => STORE.gotm;
   const sp = k => (STORE.sponsors[k] && STORE.sponsors[k].partner) ? E(STORE.sponsors[k].partner) : '[PARTNER]';
   const spLine = k => `<span class="lbl" data-slot="${k}" style="font-size:9px;color:var(--dim)">Presented by ${sp(k)}</span>`;
   const IMG = SPLSTORE.IMG;
-  const imgBlock = (n, h) => n.img && IMG[n.img] ? `<span class="nimg" style="height:${h}px;background-image:url(${IMG[n.img]})"></span>` : '';
+  // a story's pictures: one, or several that change every 3 seconds with Stories-style bars (Hafiz, 9 Nov)
+  const imgBlock = (n, h) => { const ps = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); if (!ps.length) return '';
+    if (ps.length === 1) return `<span class="nimg" style="height:${h}px;background-image:url(${ps[0]})"></span>`;
+    return `<span class="nimg ncar" style="height:${h}px" data-n="${ps.length}">${ps.map((u, j) => `<span class="nc-p ${j ? '' : 'on'}" style="background-image:url(${u})"></span>`).join('')}<span class="nc-bars">${ps.map((_, j) => `<i class="${j ? '' : 'on'}"><b></b></i>`).join('')}</span><span class="nc-n">1 / ${ps.length}</span></span>`; };
   // every story with its picture: a wide photo in All news, a thumbnail beside the headline elsewhere
-  const newsRow = (n, big) => { const im = n.img && IMG[n.img];
+  const newsRow = (n, big) => { const im = SPLSTORE.picUrl(SPLSTORE.picsOf(n)[0]);
     const text = `<span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span>${big ? `<span class="d" style="font-size:19px;line-height:1.05">${E(n.title)}</span><span style="font-size:12px;line-height:1.45;color:var(--muted)">${E(n.dek)}</span>` : `<span style="font-size:14px;font-weight:600;line-height:1.3">${E(n.title)}</span>`}`;
     if (big) return `<button class="news rowlink" data-article="${E(n.id)}" style="text-align:left">${im ? imgBlock(n, 170) : ''}${text}</button>`;
     return `<button class="news rowlink" data-article="${E(n.id)}" style="text-align:left;display:grid;grid-template-columns:minmax(0,1fr) ${im ? '92px' : ''};gap:12px;align-items:center"><span style="display:flex;flex-direction:column;gap:4px">${text}</span>${im ? `<span class="nimg" style="height:62px;border-radius:10px;background-image:url(${im})"></span>` : ''}</button>`; };
@@ -261,9 +264,11 @@
         <div class="mh-mid">${c ? `<span class="lbl" style="color:#FFD1D3">Kick-off in</span><b class="d mono" data-count="${i}">${c.big}</b><span class="lbl" style="font-size:10px" data-countu="${i}">${c.unit}</span>` : `<b class="d">VS</b>`}</div>
         <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
       <span class="lbl" style="text-align:center">${today ? 'Tonight' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>
-      <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets</button>
+      <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets${tixFrom(m[2]) ? `<small> from S$${tixFrom(m[2])}</small>` : ''}</button>
         <button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button>
         <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
+  // attendance in the match centre (Hafiz, 9 Nov, option A): once the official publishes it, at the end of the info line
+  const crowdTag = i => { const x = STORE.crowd && STORE.crowd[i]; return x && x.attendance !== null ? ` · <b style="color:var(--ink)">Crowd ${x.attendance.toLocaleString()}</b>` : ''; };
   const heroCard = (r, blurb) => { const L = r.L, on = L && L.started, last = on ? L.fired.filter(e => e[3] !== 'FT').slice(-1)[0] : null;
     const h = C[r.home], a = C[r.away], m = SPL.matches[r.id];
     return `<button class="card hero split" data-match="${r.id}" style="--hc:${h.c};--hf:${h.cf};--ac:${a.c};--af:${a.cf}">
@@ -307,7 +312,7 @@
       </div></div>`;
   }
   function article() {
-    const n = STORE.news.find(x => x.id === S.article && x.status === 'live');
+    const n = STORE.news.find(x => x.id === S.article && SPLSTORE.isOut(x));
     if (!n) return `<button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span style="font-size:13px;color:var(--muted)">This story has been taken down.</span>`;
     const more = NEWS_().filter(x => x.id !== n.id).slice(0, 3);
     return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="${S.from === 'search' ? 'search' : 'home'}" aria-label="Back">${ICON.back}</button><span class="lbl">News</span></div>
@@ -339,7 +344,12 @@
   const meBtn = () => { const f = P.fav && C[P.fav], n = P.user && P.user.name ? P.user.name.trim()[0].toUpperCase() : '';
     return `<button class="hbtn me" aria-label="Me" data-go="settings" style="background:${f ? f.c : 'rgba(255,255,255,.1)'};color:${f ? f.cf : '#fff'}">${n || ICON.user || 'Me'}</button>`; };
   // the rest of the round under tonight's game: one row a game, by day
-  const weekendCard = list => list.length ? `<div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 4px 0">This weekend</div>${list.map(r => `<button class="pl" data-match="${r.id}" style="gap:10px">${crest(r.home, 24)}<span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">${r.hname} v ${r.aname}</span><span style="font-size:11px;color:var(--muted)">${E(r.venue)}</span></span>${crest(r.away, 24)}<span class="lbl" style="width:76px;text-align:right">${r.live ? `<span style="color:#FF6B71">${r.status.replace('Live · ', '')}</span>` : r.sc !== 'VS' ? r.sc : new Date(r.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short' }) + ' 7.30PM'}</span></button>`).join('')}</div>` : '';
+  // This weekend (Hafiz, 9 Nov, option A, the PL's list): grouped by day, home crest, kick-off, away crest, the venue under it
+  const weekendCard = list => { if (!list.length) return ''; const days = [...new Set(list.map(r => r.date))];
+    return `<div class="card wkc"><div class="wk-h"><span class="d">This weekend</span><button class="rowlink lbl" data-mw="${list[0].mw}" data-go="matches" style="width:auto">Matchweek ${list[0].mw} →</button></div>
+      ${days.map(d => `<div class="lbl wk-d">${new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</div>` + list.filter(r => r.date === d).map(r => `<button class="rowlink wk-r" data-match="${r.id}">
+        <span class="wk-g"><span class="wk-t" style="justify-content:flex-end">${r.hname}${crest(r.home, 28)}</span><b class="d mono">${r.live ? `<span style="color:#FF6B71">${r.sc}</span>` : r.sc !== 'VS' ? r.sc : String(SPL.matches[r.id][7] || '').replace(/^\w+ /, '')}</b><span class="wk-t">${crest(r.away, 28)}${r.aname}</span></span>
+        <span class="lbl wk-v">${E(r.venue)}${r.live ? ' · <span style="color:#FF6B71">' + E(r.status) + '</span>' : ''}</span></button>`).join('')).join('')}</div>`; };
   function home() {
     const all = rows(), demo = !!S.sim, tonight = all.filter(r => r.date === (demo ? '2026-11-01' : TODAY)), weekend = demo ? [] : all.filter(r => r.mw === TODAY_MW && r.date !== TODAY), liveN = tonight.filter(r => r.live).length;
     const latest = all.filter(r => r.sc !== 'VS').slice(-6).reverse();
@@ -417,7 +427,7 @@
   function crowdCard(i) {
     const x = STORE.crowd && STORE.crowd[i]; if (!x || ((!GUESS || !x.open) && x.attendance === null)) return '';
     const m = SPL.matches[i], mine = GUESS && (P.guess || {})[i], prize = x.prize || `a signed ${C[m[2]].short} jersey`;
-    if (x.attendance !== null && !GUESS) return `<div class="card crowdc done"><span class="lbl">Tonight's crowd</span><span class="d mono" style="font-size:52px;line-height:.9">${x.attendance.toLocaleString()}</span><span style="font-size:12px;color:var(--muted)">The official attendance at ${E(m[5])}, from the turnstiles.</span></div>`;
+    if (x.attendance !== null && !GUESS) return `<div class="card crowdc done"><span class="lbl">${m[1] === TODAY ? 'Tonight\'s crowd' : 'Crowd'}</span><span class="d mono" style="font-size:52px;line-height:.9">${x.attendance.toLocaleString()}</span><span style="font-size:12px;color:var(--muted)">The official attendance at ${E(m[5])}, from the turnstiles.</span></div>`;
     if (x.attendance !== null) {
       const me = S.cm && S.cm[i]; if (mine && window.SPLCLOUD && SPLCLOUD.on && !me && !(S.cmAsk || {})[i]) { S.cmAsk = Object.assign(S.cmAsk || {}, { [i]: 1 }); SPLCLOUD.crowdMine(i).then(r => { if (r) { S.cm = Object.assign(S.cm || {}, { [i]: r }); render(); } }); }
       const off = mine ? Math.abs(mine.guess - x.attendance) : 0;
@@ -505,7 +515,7 @@
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
       <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">${head}
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:10px"><button class="rowlink" data-club="${m[2]}" style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.hname}</span></button><span class="d mono" style="font-size:${L.started ? 58 : 40}px;line-height:1;padding-top:6px">${L.started ? r.sc : 'VS'}</span><button class="rowlink" data-club="${m[3]}" style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.aname}</span></button></div>${scorerGrid(m, simGoals(S.match, L))}
-        <span class="lbl" style="text-align:center;padding-top:12px;border-top:1px solid var(--line)">Matchweek ${m[0]} · ${r.venue} · meWATCH</span></div>
+        <span class="lbl" style="text-align:center;padding-top:12px;border-top:1px solid var(--line)">Matchweek ${m[0]} · ${r.venue} · meWATCH${crowdTag(S.match)}</span></div>
       <div class="tabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -532,7 +542,7 @@
       ${m[4] ? `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${r.when} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')}</span>
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.hname}</span></div><span class="d mono" style="font-size:${r.sc === 'VS' ? 40 : 54}px;line-height:1">${r.sc}</span><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.aname}</span></div></div>
         ${m[4] ? scorerGrid(m, realGoals(m)) : ''}
-        <span class="lbl" style="text-align:center;${m[4] ? 'padding-top:12px;border-top:1px solid var(--line)' : ''}">${r.venue}${m[4] ? ' · meWATCH · Attendance [FROM FAS]' : ''}</span>
+        <span class="lbl" style="text-align:center;${m[4] ? 'padding-top:12px;border-top:1px solid var(--line)' : ''}">${r.venue}${m[4] ? ' · meWATCH' + crowdTag(S.match) : ''}</span>
         </div>` : preHead(m, r, S.match)}
       <div class="tabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
@@ -907,8 +917,16 @@
       <span style="font-size:11px;color:var(--muted)">One vote per signed-in fan. Shortlist: October's top scorers from the results. Percentages in this demo are placeholders.</span>`;
   }
 
-  // Prices are the Community Shield's (spl.sg / Trip.com, 6 Sep 2026); league prices to be confirmed by FAS.
-  const TIX = [['gs-a', 'Grandstand', 'Adult', 15], ['gs-c', 'Grandstand', 'Concession · 3–12, 60+', 5], ['ga-a', 'Gallery · neutral zone', 'Adult', 10], ['ga-c', 'Gallery · neutral zone', 'Concession · 3–12, 60+', 5]];
+  // League prices from Trip.com's club pages (Hafiz's screenshots, 9 Nov 2026): each home club sells its own games. Lowest adult
+  // and senior (60+) price, the sections on sale, and the match Trip.com listed. Clubs not yet seen fall back to "on Trip.com".
+  const TIXC = {
+    HGU: { adult: 17, senior: 7, seen: 'Hougang v Tampines, 22 Nov' },
+    TAM: { adult: 21, senior: 11, sections: ['Gate 17 North · home', 'Gate 17 South · away'], seen: 'Tampines v Jurong, 29 Nov' },
+    GEY: { adult: 17, senior: 8, sections: ['Home', 'Away', 'VIP', 'VIP with lounge · S$46'], seen: 'Geylang v Tanjong Pagar, 27 Nov' },
+    BKF: { adult: 11, senior: 6, seen: 'Balestier v Hougang, 28 Nov' }
+  };
+  const TIX = []; // the old in-app checkout's price list; tickets now hand off to Trip.com
+  const tixFrom = k => TIXC[k] ? Math.min(TIXC[k].adult, TIXC[k].senior) : null;
   const qrSvg = seed => { let s = 0; for (const ch of seed) s = (s * 31 + ch.charCodeAt(0)) >>> 0; const n = 25, cell = []; const fin = (x, y) => (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { if (fin(x, y)) continue; s = (s * 1103515245 + 12345) >>> 0; if ((s >>> 16) & 1) cell.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`); }
     const f = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3"/>`;
@@ -922,10 +940,11 @@
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 48)}<span class="d" style="font-size:14px">${r.hname}</span></div><span class="d" style="font-size:30px;color:rgba(255,255,255,.7)">VS</span><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 48)}<span class="d" style="font-size:14px">${r.aname}</span></div></div>
         <span class="lbl" style="text-align:center">${r.when} · 7.30PM · ${r.venue}</span></div>
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
-        <span class="lbl">Sold on Trip.com</span>
-        <span style="font-size:14px;line-height:1.55;color:#DCDAF0">Tickets for every SPL match are sold on Trip.com, the league's ticketing partner. You pick your seats and pay there; your e-ticket comes from Trip.com.</span>
-        <div style="display:flex;flex-direction:column">${TIX.map(t => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13px"><span>${t[1]} · ${t[2].split(' ·')[0]}</span><span class="mono">S$${t[3]}</span></div>`).join('')}</div>
-        <span style="font-size:11px;color:var(--muted);line-height:1.5">Prices are the Community Shield's (6 Sep 2026); this match's are on Trip.com. S$1 booking fee a ticket.</span>
+        <span class="lbl">Sold on Trip.com · ${E(C[m[2]].short)} home games</span>
+        ${TIXC[m[2]] ? `<div style="display:flex;flex-direction:column">${[['Adult', '17–59', TIXC[m[2]].adult], ['Senior', '60 and over', TIXC[m[2]].senior]].map(t => `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line2)"><span style="font-size:14px;font-weight:600">${t[0]} <span style="font-weight:400;color:var(--muted);font-size:12px">${t[1]}</span></span><span class="d mono" style="font-size:18px">from S$${t[2]}</span></div>`).join('')}</div>
+        ${TIXC[m[2]].sections ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${TIXC[m[2]].sections.map(x => `<span class="chip" style="font-size:11px">${E(x)}</span>`).join('')}</div>` : ''}
+        <span style="font-size:11px;color:var(--muted);line-height:1.5">Student and child tickets too. Non-refundable; your e-ticket comes from Trip.com, nothing to collect. Prices as on Trip.com for ${E(TIXC[m[2]].seen)}.</span>`
+        : `<span style="font-size:14px;line-height:1.55;color:#DCDAF0">${E(C[m[2]].short)} sell their home tickets on Trip.com, the league's ticketing partner: adult, student, child and senior. Pick your section and pay there; the e-ticket comes from Trip.com.</span>`}
       </div>
       <a class="btn" href="${TRIP}" target="_blank" rel="noopener" data-trip="${T.match}" style="width:100%;box-sizing:border-box">Buy on Trip.com ↗</a>
       <div style="display:flex;gap:10px"><a class="btn2" style="flex:1" href="${ics(m)}" download="spl-mw${m[0]}.ics">Add to calendar</a><button class="btn2" style="flex:1" data-remind="${T.match}">${P.reminders[T.match] ? 'Reminder set' : 'Remind me'}</button></div>`;
@@ -987,6 +1006,8 @@
       S.toast = { title: E(p.title), body: E(p.body), k: club || (p.match !== null && SPL.matches[p.match] ? SPL.matches[p.match][2] : ''), at: now, match: p.match };
       SPLSTORE.track('push', p.kind); });
   }
+  setInterval(() => app.querySelectorAll('.ncar').forEach(c => { const ps = c.querySelectorAll('.nc-p'), bs = c.querySelectorAll('.nc-bars i'), n = ps.length; let j = [...ps].findIndex(p => p.classList.contains('on')); j = (j + 1) % n;
+    ps.forEach((p, k) => p.classList.toggle('on', k === j)); bs.forEach((b, k) => { b.classList.toggle('on', k === j); b.classList.toggle('done', k < j); }); const t = c.querySelector('.nc-n'); if (t) t.textContent = `${j + 1} / ${n}`; }), 3000);
   function tick() {
     duePushes();
     if (!S.sim) { if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null; app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } }); if (Date.now() - lastTouch < 700) return; const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); } return; }
@@ -1092,7 +1113,7 @@
     if (d.wallet) { S.wallet = true; S.keepScroll = true; render(); return; }
     if (d.mytk !== undefined) { S.tkFrom = S.view; S.tk = { match: +d.mytk, step: 2, q: {}, pay: 'paynow' }; S.view = 'tickets'; render(); return; }
     if (d.go === 'onboard-club') { S.view = 'onboard'; S.ob = 1; S.pick = P.fav; }
-    else if (d.go) { if (d.htabBack) S.htab = d.htabBack; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
+    else if (d.go) { if (d.htabBack) S.htab = d.htabBack; if (d.mw) S.mw = +d.mw; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
     else if (d.ob) { if (d.ob === 'done' || d.ob === 'skip') { const was = theme(); if (d.ob === 'done') dressUp(S.pick, was); P.fav = d.ob === 'done' ? S.pick : null; if (P.fav) P.follows[P.fav] = true; if (!P.user) P.user = { name: 'Guest', via: 'guest' }; save(); S.view = 'home'; } else if (d.ob === 'guest') { P.user = null; save(); S.ob = 1; S.pick = null; } else { S.auth = { via: d.ob, step: d.ob === 'signpass' ? 'waiting' : 'sheet', share: true }; if (d.ob === 'signpass') authAfter(2600, 'consent'); } }
     else if (d.pick) { const o = PICK_ORDER(); S.pickDir = Math.sign(o.indexOf(d.pick) - o.indexOf(S.pick || o[0])); S.pick = d.pick; S.keepScroll = true; }
     else if (d.pnav) { pickBy(+d.pnav); return; }

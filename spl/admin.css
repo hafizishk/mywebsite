@@ -317,3 +317,17 @@ body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm
 .lr{display:flex;flex-direction:column;gap:8px;border-color:rgba(245,197,24,.5)}
 .crowdp{display:flex;flex-direction:column;gap:12px;border-color:rgba(201,162,39,.45)}.crowdp h2{margin:0}
 .crow{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}.crow>span{display:flex;flex-direction:column;gap:2px}
+/* News (Hafiz, 9 Nov): the content calendar, the photo strip and the When switch */
+.cal{display:flex;flex-direction:column;gap:12px}.cal-h{display:flex;align-items:center;gap:8px}
+.cal-w{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.cal-d{min-height:130px;border-radius:12px;background:var(--soft);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}.cal-d.today{outline:1px solid #E8363D}.cal-d.over{outline:2px dashed #4A86FF}
+.cal-dh{font:600 11px 'Inter',sans-serif;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.ci{display:block;width:100%;text-align:left;border:0;cursor:pointer;border-radius:8px;padding:6px 8px;font:600 11px/1.3 'Inter',sans-serif;color:var(--ink);background:var(--soft2);border-left:3px solid var(--c);overflow:hidden;text-overflow:ellipsis}
+.ci small{display:block;font-weight:500;color:var(--muted);font-size:10px;margin-top:2px}.ci.fx{background:none;border-left-color:rgba(127,127,150,.4);cursor:default;color:var(--muted)}
+.cal-k{display:flex;gap:14px;align-items:center;font:500 11px 'Inter',sans-serif;color:var(--muted);flex-wrap:wrap}.cal-k>span[style*="--c"]::before{content:'●';color:var(--c);margin-right:5px}
+.pics{display:flex;gap:10px;flex-wrap:wrap}.pt{position:relative;width:128px;height:84px;border-radius:10px;background:center/cover;border:1px solid var(--line)}
+.pt b{position:absolute;left:6px;top:6px;font:700 10px 'Inter',sans-serif;background:#fff;color:#15142A;border-radius:6px;padding:2px 6px}
+.pt-a{position:absolute;right:5px;top:5px;display:flex;gap:4px}.pt-a button{width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font:700 12px 'Inter',sans-serif;cursor:pointer;line-height:1}
+.padd{width:128px;height:84px;border-radius:10px;border:1.5px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:600 12px 'Inter',sans-serif;color:var(--muted);cursor:pointer}.padd b{font-size:20px;line-height:1}.padd small{font-weight:500;font-size:10px}
+.wseg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--soft)}.wseg button{padding:7px 14px;border-radius:8px;border:0;background:none;font:600 12px 'Inter',sans-serif;color:var(--muted);cursor:pointer}.wseg button.on{background:var(--soft2);color:var(--ink)}
+@media (max-width:900px){.cal-w{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:auto}}

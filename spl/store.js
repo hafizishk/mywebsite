@@ -9,6 +9,12 @@ var SPLSTORE = (function () {
   const IMG = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png',
     'ph-MW6R': 'assets/news/mw6-roundup.jpg', 'ph-MW6P': 'assets/news/mw6-preview.jpg', 'ph-MW5R': 'assets/news/mw5-roundup.jpg', 'ph-MW5P': 'assets/news/mw5-preview.jpg',
     'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg' };
+  // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
+  const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 6) : [];
+  const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
+  // a story is in the app once published, or once its scheduled time has come
+  const isOut = (n, now) => n.status === 'live' || (n.status === 'scheduled' && n.at && n.at <= (now || Date.now()));
+  const picsOf = n => { const a = (n.imgs || []).filter(picUrl); return a.length ? a : (n.img && picUrl(n.img) ? [n.img] : []); };
   const NEWS_IMG = { n10: 'ph-MW6R', n3: 'ph-MW4R', n4: 'ph-MW4R', n5: 'ph-MW3R', n7: 'ph-SPL', n8: 'ph-MW5P', n9: 'ph-MW4P', n6: 'ph-SPL' };
   const KEY = 'spl-admin', EVK = 'spl-events';
   const C = SPL.clubs, sh = k => C[k].short;
@@ -76,9 +82,9 @@ var SPLSTORE = (function () {
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
   function clean(d) {
     const def = DEF(), out = {};
-    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', status: n.status === 'draft' ? 'draft' : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
+    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', imgs: photos(n.imgs), at: Number.isFinite(+n.at) ? +n.at : 0, alert: !!n.alert, status: n.status === 'draft' || n.status === 'scheduled' ? n.status : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
     out.lead = str(d.lead, def.lead);
-    out.pushes = Array.isArray(d.pushes) ? d.pushes.filter(isObj).slice(-200).map(p => ({ id: str(p.id, ''), at: +p.at || 0, title: str(p.title, ''), body: str(p.body, ''), aud: str(p.aud, 'all'), kind: str(p.kind, 'manual'), match: Number.isInteger(p.match) ? p.match : null })) : [];
+    out.pushes = Array.isArray(d.pushes) ? d.pushes.filter(isObj).slice(-200).map(p => ({ id: str(p.id, ''), at: +p.at || 0, title: str(p.title, ''), body: str(p.body, ''), aud: str(p.aud, 'all'), kind: str(p.kind, 'manual'), story: str(p.story, ''), match: Number.isInteger(p.match) ? p.match : null })) : [];
     out.live = {};
     if (isObj(d.live)) Object.keys(d.live).forEach(k => { const L = d.live[k], i = +k; if (!isObj(L) || !SPL.matches[i]) return;
       out.live[i] = { phase: ['pre', '1H', 'HT', '2H', 'FT'].includes(L.phase) ? L.phase : 'pre', t0: +L.t0 || 0, base: +L.base || 0, sheet: !!L.sheet,
@@ -120,5 +126,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();

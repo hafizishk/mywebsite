@@ -369,23 +369,57 @@
   const TAGS = ['Preview', 'Roundup', 'Review', 'Fixtures', 'Club news', 'Announcement', 'Interview'];
   const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration'], ['ph-MW6R', 'Matchweek 6: Tanjong Pagar v Jurong'], ['ph-MW6P', 'Matchweek 5: Jurong v Tampines'], ['ph-MW5R', 'Matchweek 5: Young Lions v Balestier'], ['ph-MW5P', 'Matchweek 5 preview photo'], ['ph-MW4R', 'Matchweek 4 roundup photo'], ['ph-MW4P', 'Matchweek 3: Tanjong Pagar v Tampines'], ['ph-MW3R', 'Matchweek 3 roundup photo'], ['ph-SPL', 'SPL logo']];
   const IMG_URL = SPLSTORE.IMG;
+  // News (Hafiz, 9 Nov, option A): the content calendar for the week, then the stories; a story takes up to six photos (the
+  // app changes them every 3 seconds) and goes out now, at a scheduled time, or stays a draft
+  const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const hmS = t => new Date(t).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }).replace(' ', '').toLowerCase();
+  const nWhen = n => n.status === 'scheduled' && n.at ? n.at : n.at || new Date(n.date + 'T09:00:00').getTime();
+  const nState = n => n.status === 'draft' ? ['Draft', '#A9A6C9'] : n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ['Scheduled', '#4A86FF'] : ['Published', '#3DD68C'];
+  function calendar() {
+    const base = new Date(TODAY + 'T12:00:00'), mon = new Date(base); mon.setDate(base.getDate() - ((base.getDay() + 6) % 7) + 7 * (A.calWk || 0));
+    const days = Array.from({ length: 7 }, (_, k) => { const d = new Date(mon); d.setDate(mon.getDate() + k); return dayKey(d); });
+    const items = {}; const add = (k, h) => { (items[k] = items[k] || []).push(h); };
+    D.news.forEach(n => { const t = nWhen(n), [lbl, col] = nState(n); add(dayKey(t), [t, `<button class="ci" draggable="true" data-dragnews="${E(n.id)}" data-editnews="${E(n.id)}" style="--c:${col}">${E(n.title)}<small>${hmS(t)} · story · ${lbl.toLowerCase()}</small></button>`]); });
+    D.pushes.forEach(p => add(dayKey(p.at), [p.at, `<button class="ci" data-page="push" style="--c:#E8363D">${E(p.title)}<small>${hmS(p.at)} · alert</small></button>`]));
+    SPL.matches.forEach(m => { if (days.includes(m[1])) add(m[1], [new Date(m[1] + 'T19:30:00').getTime(), `<span class="ci fx">${E(short(m[2]))} v ${E(short(m[3]))}<small>${E(String(m[7] || '').replace(/^\w+ /, ''))} · match</small></span>`]); });
+    const rng = `${new Date(days[0] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(days[6] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    return `<div class="panel cal"><div class="cal-h"><h2 style="margin:0">Content calendar<span class="lbl">${rng}</span></h2><span style="flex:1"></span><button class="btn2 sm" data-calwk="-1">‹</button><button class="btn2 sm" data-calwk="0">This week</button><button class="btn2 sm" data-calwk="1">›</button></div>
+      <div class="cal-w">${days.map(k => `<div class="cal-d ${k === TODAY ? 'today' : ''}" data-dropday="${k}"><span class="cal-dh">${new Date(k + 'T12:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}</span>${(items[k] || []).sort((x, y) => x[0] - y[0]).map(x => x[1]).join('')}</div>`).join('')}</div>
+      <div class="cal-k"><span style="--c:#4A86FF">Scheduled</span><span style="--c:#3DD68C">Published</span><span style="--c:#A9A6C9">Draft</span><span style="--c:#E8363D">Alert</span><span style="--c:rgba(255,255,255,.3)">Match</span><span style="flex:1"></span><span class="note">Drag a story to another day · click to edit</span></div></div>`;
+  }
   function news() {
-    const list = D.news.slice().sort((a, b) => b.date.localeCompare(a.date));
-    const n = A.news === 'new' ? { id: '', tag: 'Announcement', date: new Date().toISOString().slice(0, 10), title: '', dek: '', body: '', img: '', status: 'draft' } : D.news.find(x => x.id === A.news);
-    return head('News', 'Stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + `
+    const list = D.news.slice().sort((a, b) => nWhen(b) - nWhen(a));
+    const n = A.news === 'new' ? { id: '', tag: 'Announcement', date: TODAY, title: '', dek: '', body: '', img: '', imgs: [], status: 'draft', at: 0, alert: false } : D.news.find(x => x.id === A.news);
+    if (n && A.nFor !== A.news) { A.nFor = A.news; A.nImgs = SPLSTORE.picsOf(n).slice(); A.nDraft = null; A.nWhenT = n.status === 'scheduled' ? 'schedule' : n.status === 'draft' && n.id ? 'draft' : 'now'; }
+    const dr = n && A.nDraft ? A.nDraft : {}, pick = (k, v) => dr[k] !== undefined ? dr[k] : v;
+    const nv = n ? Object.assign({}, n, { title: pick('title', n.title), dek: pick('dek', n.dek), body: pick('body', n.body), tag: pick('tag', n.tag), alert: pick('alert', n.alert) }) : null;
+    const when = A.nWhenT || 'now', at = n && n.at ? new Date(n.at) : new Date(new Date(TODAY + 'T09:00:00').getTime() + 864e5);
+    const dv = (A.nDraft && A.nDraft.day) || dayKey(at), tv = (A.nDraft && A.nDraft.time) || `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+    const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)})">${j ? '' : '<b>Cover</b>'}<span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
+    return head('News', 'Plan the week, then write: stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + calendar() + `
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
-          <div class="panel"><table class="tbl"><thead><tr><th style="width:90px">Status</th><th>Story</th><th style="width:90px">Date</th><th style="width:60px"></th></tr></thead><tbody>${list.map(x => `<tr class="click ${n && n.id === x.id ? 'sel' : ''}" data-editnews="${E(x.id)}"><td class="lbl ${x.status === 'live' ? 'ok' : ''}">${x.status === 'live' ? 'Published' : 'Draft'}</td><td><div style="display:flex;flex-direction:column;gap:3px"><span class="lbl">${E(x.tag)}${D.lead === x.id ? ' · <span style="color:var(--ink)">Lead story</span>' : ''}</span><span style="font-weight:600">${E(x.title) || '<span class="note">Untitled</span>'}</span></div></td><td class="note">${fmt(x.date)}</td><td class="note">Edit</td></tr>`).join('')}</tbody></table></div>
-          ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}</h2>
-            <div class="grid3"><label class="fld"><span>Kind</span><select class="in" id="nTag">${TAGS.map(t => `<option ${t === n.tag ? 'selected' : ''}>${t}</option>`).join('')}</select></label><label class="fld"><span>Date</span><input class="in" type="date" id="nDate" value="${E(n.date)}"></label><label class="fld"><span>Picture</span><select class="in" id="nImg">${IMGS.map(([k, l]) => `<option value="${k}" ${k === n.img ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
-            <label class="fld"><span>Headline</span><input class="in" id="nTitle" value="${E(n.title)}" maxlength="120"></label>
-            <label class="fld"><span>Standfirst · one or two lines under the headline</span><input class="in" id="nDek" value="${E(n.dek)}" maxlength="220"></label>
-            <label class="fld"><span>Story · a blank line starts a new paragraph</span><textarea class="in" id="nBody" rows="10">${E(n.body)}</textarea></label>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-savenews="live">${n.status === 'live' && n.id ? 'Save' : 'Publish'}</button><button class="btn2" data-savenews="draft">${n.status === 'live' && n.id ? 'Unpublish' : 'Save as draft'}</button>${n.id && n.status === 'live' ? `<button class="btn2" data-lead="${E(n.id)}" ${D.lead === n.id ? 'disabled' : ''}>${D.lead === n.id ? 'Lead story' : 'Make lead story'}</button>` : ''}${n.id ? `<button class="btn2" data-notifynews="${E(n.id)}" ${n.status !== 'live' ? 'disabled' : ''}>Send as a notification</button>` : ''}<span style="flex:1"></span>${n.id ? `<button class="lnk danger" data-delnews="${E(n.id)}">Delete</button>` : ''}</div></div>` : '<p class="note">Pick a story to edit, or start a new one.</p>'}
+          ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}${n.id ? `<span class="lbl" style="color:${nState(n)[1]}">${nState(n)[0]}${n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ' · ' + new Date(n.at).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span>` : ''}</h2>
+            <div class="fld"><span>Photos · up to 6 · the first is the cover · in the app they change every 3 seconds</span><div class="pics">${pics}${(A.nImgs || []).length < 6 ? `<label class="padd"><input type="file" id="nFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>from this computer</small></label>` : ''}</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><select class="in" id="nLib" style="max-width:320px"><option value="">Or add one from the league's library…</option>${IMGS.filter(([k]) => k).map(([k, l]) => `<option value="${k}">${E(l)}</option>`).join('')}</select></div></div>
+            <div class="grid3"><label class="fld"><span>Kind</span><select class="in" id="nTag">${TAGS.map(t => `<option ${t === nv.tag ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+            <label class="fld"><span>Headline</span><input class="in" id="nTitle" value="${E(nv.title)}" maxlength="120"></label>
+            <label class="fld"><span>Standfirst · one or two lines under the headline</span><input class="in" id="nDek" value="${E(nv.dek)}" maxlength="220"></label>
+            <label class="fld"><span>Story · a blank line starts a new paragraph</span><textarea class="in" id="nBody" rows="8">${E(nv.body)}</textarea></label>
+            <div class="fld"><span>When</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="wseg">${[['now', 'Now'], ['schedule', 'Schedule'], ['draft', 'Draft']].map(([k, l]) => `<button class="${when === k ? 'on' : ''}" data-nwhen="${k}">${l}</button>`).join('')}</span>
+              ${when === 'schedule' ? `<input class="in" type="date" id="nDay" value="${dv}" style="width:170px"><input class="in" type="time" id="nTime" value="${tv}" style="width:120px">` : ''}
+              ${when !== 'draft' ? `<label class="chk"><input type="checkbox" id="nAlert" ${nv.alert ? 'checked' : ''}> Send an alert when it goes live</label>` : ''}</div></div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-savenews="${when}">${when === 'now' ? (n.status === 'live' && n.id ? 'Save' : 'Publish now') : when === 'schedule' ? 'Schedule' : 'Save draft'}</button>${n.id && SPLSTORE.isOut(n) ? `<button class="btn2" data-lead="${E(n.id)}" ${D.lead === n.id ? 'disabled' : ''}>${D.lead === n.id ? 'Lead story on Home' : 'Make it the lead story'}</button><button class="btn2" data-notifynews="${E(n.id)}">Send as an alert</button>` : ''}${n.id ? `<span style="flex:1"></span><button class="lnk" style="color:#FF9AA0" data-delnews="${E(n.id)}">Delete</button>` : ''}</div></div>` : ''}
+          <div class="panel"><table class="tbl"><thead><tr><th style="width:150px">Status</th><th>Story</th><th style="width:110px">When</th><th style="width:60px"></th></tr></thead><tbody>${list.map(x => { const [lbl, col] = nState(x), t = nWhen(x); return `<tr class="click ${n && n.id === x.id ? 'sel' : ''}" data-editnews="${E(x.id)}"><td class="lbl" style="color:${col}">${lbl}${(x.imgs || []).length > 1 ? ` · ${x.imgs.length} photos` : ''}</td><td><div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">${E(x.tag)}${D.lead === x.id ? ' · lead story' : ''}</span><span>${E(x.title)}</span></div></td><td class="note">${new Date(t).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}${x.status === 'scheduled' ? '<br>' + hmS(t) : ''}</td><td><button class="lnk">Edit</button></td></tr>`; }).join('')}</tbody></table></div>
         </div>
-        <div><div class="phone-cap"><span class="lbl">${n && n.id && n.status === 'live' ? 'This story in the app' : 'News in the app'}</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed${n && n.id && n.status === 'live' ? '&article=' + encodeURIComponent(n.id) : ''}" title="App preview"></iframe></div></div>
+        <div><div class="phone-cap"><span class="lbl">${n && n.id && SPLSTORE.isOut(n) ? 'This story in the app' : 'News in the app'}</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed${n && n.id && SPLSTORE.isOut(n) ? '&article=' + encodeURIComponent(n.id) : ''}" title="App preview"></iframe></div></div>
       </div>`;
   }
+  // the editor redraws when photos or the When switch change; keep what's been typed
+  const keepNews = () => { const g = id => { const el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
+    A.nDraft = { title: g('nTitle'), dek: g('nDek'), body: g('nBody'), tag: g('nTag'), day: g('nDay'), time: g('nTime'), alert: g('nAlert') }; };
+  // uploaded photos are shrunk to 1200px JPEGs in the browser before they're saved
+  const shrink = f => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 1200 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .8)); }; im.onerror = () => res(''); im.src = r.result; }; r.onerror = () => res(''); r.readAsDataURL(f); });
 
   const audName = a => a === 'all' ? 'Everyone' : a === 'news' ? 'News alerts on' : a.startsWith('club:') && C[a.slice(5)] ? C[a.slice(5)].short + ' followers' : a;
   const pushTable = (list, compact) => list.length ? `<table class="tbl"><thead><tr><th style="width:${compact ? 110 : 150}px">When</th><th>Notification</th>${compact ? '' : '<th style="width:150px">To</th><th style="width:100px">Kind</th>'}<th style="width:90px"></th></tr></thead><tbody>${list.map(p => `<tr><td class="note">${hm(p.at)}</td><td><div style="display:flex;flex-direction:column;gap:2px"><b>${E(p.title)}</b><span class="note">${E(p.body)}</span></div></td>${compact ? '' : `<td>${audName(p.aud)}</td><td class="lbl">${p.kind === 'live' ? 'Match alert' : 'Sent by hand'}</td>`}<td class="lbl ${p.at > Date.now() ? 'warn' : 'ok'}">${p.at > Date.now() ? 'Scheduled' : 'Sent'}</td></tr>`).join('')}</tbody></table>` : '<p class="note">No notifications sent yet.</p>';
@@ -654,7 +688,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -722,12 +756,25 @@
       A.qf = null; flash({ G: 'Goal added', Y: 'Yellow card added', R: 'Red card added', S: 'Substitution added' }[A.evType] + (alert ? ' and sent to fans.' : '.')); render(); return; }
     if (d.delev) { setLive(A.live, L => { L.ev.splice(+d.delev, 1); }); flash('Removed.'); render(); return; }
     if (d.reloadphone) { const f = document.getElementById('phone'); if (f) f.src = f.src; return; }
-    if (d.newnews) { A.news = 'new'; render(); return; }
-    if (d.editnews) { A.news = d.editnews; render(); return; }
+    if (d.newnews) { A.nFor = null; A.news = 'new'; render(); return; }
+    if (d.editnews) { A.nFor = null; A.news = d.editnews; render(); return; }
+    if (d.nwhen) { keepNews(); A.nWhenT = d.nwhen; render(); return; }
+    if (d.calwk !== undefined) { A.calWk = +d.calwk === 0 ? 0 : (A.calWk || 0) + +d.calwk; render(); return; }
+    if (d.picdel !== undefined) { keepNews(); A.nImgs.splice(+d.picdel, 1); render(); return; }
+    if (d.picmv) { keepNews(); const [j, dir] = d.picmv.split(':').map(Number), a = A.nImgs, t = a[j]; a[j] = a[j + dir]; a[j + dir] = t; render(); return; }
     if (d.savenews) { const title = val('nTitle').trim(); if (!title) { flash('Give the story a headline.'); render(); return; }
-      const n = { id: A.news === 'new' ? uid('n') : A.news, tag: val('nTag'), date: val('nDate') || new Date().toISOString().slice(0, 10), title, dek: val('nDek').trim(), body: val('nBody'), img: val('nImg'), status: d.savenews };
-      save(d2 => { const j = d2.news.findIndex(x => x.id === n.id); if (j >= 0) d2.news[j] = n; else d2.news.push(n); if (n.status === 'draft' && d2.lead === n.id) { const other = d2.news.find(x => x.status === 'live' && x.id !== n.id); d2.lead = other ? other.id : ''; } }, n.status === 'live' ? 'Published. It\'s in the app now.' : 'Saved as a draft.');
-      A.news = n.id; render(); return; }
+      const mode = d.savenews, old = A.news === 'new' ? null : D.news.find(x => x.id === A.news);
+      let at = mode === 'schedule' ? new Date(`${val('nDay')}T${val('nTime') || '09:00'}:00`).getTime() : mode === 'now' ? (old && old.status === 'live' ? (old.at || new Date(old.date + 'T09:00:00').getTime()) : Date.now()) : (old ? old.at : 0);
+      if (mode === 'schedule' && !(at > Date.now())) { flash('Pick a time in the future to schedule it.'); render(); return; }
+      const alert = mode !== 'draft' && !!(document.getElementById('nAlert') || {}).checked, imgs = (A.nImgs || []).slice(0, 6);
+      const n = { id: old ? old.id : uid('n'), tag: val('nTag'), date: dayKey(at || Date.now()), title, dek: val('nDek').trim(), body: val('nBody'), img: imgs[0] || '', imgs, at, alert, status: mode === 'now' ? 'live' : mode === 'schedule' ? 'scheduled' : 'draft' };
+      save(d2 => { const j = d2.news.findIndex(x => x.id === n.id); if (j >= 0) d2.news[j] = n; else d2.news.push(n);
+        // the alert goes with the story: now, or at its scheduled time (replacing one set earlier for this story)
+        d2.pushes = d2.pushes.filter(p => !(p.story === n.id && p.at > Date.now()));
+        if (alert && !(old && old.alert && old.status === 'live' && mode === 'now')) d2.pushes.push({ id: uid('p'), at: mode === 'now' ? Date.now() : at, title: title.slice(0, 60), body: n.dek.slice(0, 140), aud: 'news', kind: 'manual', match: null, story: n.id });
+        if (n.status === 'draft' && d2.lead === n.id) { const other = d2.news.find(x => x.status === 'live' && x.id !== n.id); d2.lead = other ? other.id : ''; } },
+        mode === 'now' ? 'Published. It\'s in the app now.' : mode === 'schedule' ? `Scheduled for ${new Date(at).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}.` : 'Saved as a draft.');
+      A.news = n.id; A.nFor = null; render(); return; }
     if (d.lead) { save(d2 => { d2.lead = d.lead; }, 'Lead story on Home changed.'); return; }
     if (d.delnews) { if (!confirm('Delete this story?')) return; save(d2 => { d2.news = d2.news.filter(x => x.id !== d.delnews); if (d2.lead === d.delnews) d2.lead = (d2.news.find(x => x.status === 'live') || {}).id || ''; }, 'Deleted.'); A.news = null; render(); return; }
     if (d.notifynews) { const n = D.news.find(x => x.id === d.notifynews); A.pushPre = { title: n.title.slice(0, 60), body: n.dek.slice(0, 140) }; A.pushAud = 'news'; A.page = 'push'; render(); return; }
@@ -750,7 +797,15 @@
     if (d.clearstats) { if (!confirm('Clear the recorded analytics?')) return; try { localStorage.removeItem(SPLSTORE.EVK); } catch (x) {} flash('Cleared.'); render(); return; }
     if (d.resetall) { if (!confirm('Reset all the demo data?')) return; SPLSTORE.reset(); D = SPLSTORE.read(); SPLSTORE.write(D); A.news = null; flash('Demo reset.'); render(); return; }
   });
+  root.addEventListener('dragstart', e => { const t = e.target.closest && e.target.closest('[data-dragnews]'); if (t) { e.dataTransfer.setData('text/plain', t.dataset.dragnews); e.dataTransfer.effectAllowed = 'move'; } });
+  root.addEventListener('dragover', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  root.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) d.classList.remove('over'); });
+  root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
+    const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
+    save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   root.addEventListener('change', e => {
+    if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 6 - (A.nImgs || []).length); Promise.all(fs.map(shrink)).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 6); render(); }); return; }
+    if (e.target.id === 'nLib' && e.target.value) { keepNews(); A.nImgs = (A.nImgs || []).concat([e.target.value]).slice(0, 6); render(); return; }
     const t = e.target;
     if (t.dataset && t.dataset.crowdopen) { const i = +t.dataset.crowdopen; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.open = t.checked; d2.crowd[i] = x; }, t.checked ? 'Guess the crowd is open in the app.' : 'Guess the crowd closed.'); return; }
     if (t.id === 'crPrize') { const i = A.live; save(d2 => { const x = d2.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null }; x.prize = t.value.trim().slice(0, 80); d2.crowd[i] = x; }, 'Prize saved.'); return; }

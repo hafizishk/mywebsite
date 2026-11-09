@@ -431,3 +431,13 @@ button:disabled{cursor:default}
 .mh-ic>span{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:var(--ink)}
 #app[data-look=light] .mh-ic>span{background:rgba(21,20,42,.06);border-color:rgba(21,20,42,.1)}
 .mh-ic.on>span{background:#E8363D;border-color:#E8363D;color:#fff}.mh-ic.on{color:var(--ink)}
+.mh-tix small{font-weight:500;font-size:12px;opacity:.6;margin-left:6px}
+/* a story's photos changing every 3 seconds (Hafiz, 9 Nov) */
+.ncar{position:relative;overflow:hidden}.ncar .nc-p{position:absolute;inset:0;background-position:center 30%;background-size:cover;opacity:0;transition:opacity .6s}.ncar .nc-p.on{opacity:1}
+.ncar .nc-bars{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:4px;z-index:1}.ncar .nc-bars i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden}
+.ncar .nc-bars i b{display:block;height:100%;width:0;background:#fff}.ncar .nc-bars i.done b{width:100%}.ncar .nc-bars i.on b{animation:ncbar 3s linear forwards}@keyframes ncbar{to{width:100%}}
+.ncar .nc-n{position:absolute;right:12px;bottom:10px;z-index:1;font:600 11px 'Inter',sans-serif;color:#fff;background:rgba(0,0,0,.45);padding:3px 8px;border-radius:10px}
+/* This weekend, option A (Hafiz, 9 Nov) */
+.wkc{padding:16px;display:flex;flex-direction:column;gap:4px}.wk-h{display:flex;justify-content:space-between;align-items:baseline}.wk-h .d{font-size:19px}
+.wk-d{padding:12px 0 2px}.wk-r{display:flex!important;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line2);border-radius:0!important}.wkc .wk-r:last-child{border-bottom:0}
+.wk-g{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}.wk-t{display:flex;align-items:center;gap:8px;font:600 14px 'Inter',sans-serif;color:var(--ink);line-height:1.2}.wk-g b{font-size:19px;min-width:70px;text-align:center;color:var(--ink)}.wk-v{text-align:center;font-size:10px}
