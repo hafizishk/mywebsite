@@ -82,7 +82,7 @@ var SPLSTORE = (function () {
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
   function clean(d) {
     const def = DEF(), out = {};
-    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', imgs: photos(n.imgs), at: Number.isFinite(+n.at) ? +n.at : 0, alert: !!n.alert, status: n.status === 'draft' || n.status === 'scheduled' ? n.status : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
+    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', imgs: photos(n.imgs), match: Number.isInteger(n.match) && SPL.matches[n.match] ? n.match : null, at: Number.isFinite(+n.at) ? +n.at : 0, alert: !!n.alert, status: n.status === 'draft' || n.status === 'scheduled' ? n.status : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
     out.lead = str(d.lead, def.lead);
     out.pushes = Array.isArray(d.pushes) ? d.pushes.filter(isObj).slice(-200).map(p => ({ id: str(p.id, ''), at: +p.at || 0, title: str(p.title, ''), body: str(p.body, ''), aud: str(p.aud, 'all'), kind: str(p.kind, 'manual'), story: str(p.story, ''), match: Number.isInteger(p.match) ? p.match : null })) : [];
     out.live = {};

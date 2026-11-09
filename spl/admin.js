@@ -257,6 +257,36 @@
       <p class="note" id="varPrev">Fans get: NO GOAL ❌ · VAR rules out ${E(who)}'s goal for <b>${E(why)}</b>.</p>
       <div class="mcc"><span style="flex:1"></span><button class="lnk" data-varno="1">Cancel</button><button class="btn red sm" data-varok="${idx}">Rule out, tell fans</button></div></div>`;
   }
+  // Pre-match and Post-match (Hafiz, 9 Nov): the newsroom writes a draft from the facts in the house style (docs/STYLE.md);
+  // FAS edits, fills the [BRACKETS] and publishes it as a story, or sends it to News to schedule
+  A.pm = A.pm || {};
+  const pmKey = (i, kind) => kind + i;
+  function writerPanel(i, kind) {
+    if (!window.SPLNEWS) return '';
+    const done = D.news.find(n => n.match === i && n.tag === (kind === 'post' ? 'Report' : 'Preview'));
+    const gen = kind === 'post' ? SPLNEWS.postMatch(D, i) : SPLNEWS.preMatch(D, i); if (!gen) return '';
+    const k = pmKey(i, kind), cur = A.pm[k] || (A.pm[k] = { head: gen.head, dek: gen.dek, body: gen.body });
+    const open = cur.body.match(/\[[A-Z][^\]]*\]/g) || [];
+    return `<div class="panel pmw" data-pmk="${k}"><h2 style="margin:0">${kind === 'post' ? 'Post-match report' : 'Pre-match preview'}<span class="lbl">${done ? `<span style="color:#3DD68C">${SPLSTORE.isOut(done) ? 'Published' : done.status === 'scheduled' ? 'Scheduled' : 'Draft in News'}</span> · ` : ''}Draft written from the data · house style</span></h2>
+      <label class="fld"><span>Headline</span><input class="in" data-pmf="head" value="${E(cur.head)}" maxlength="120"></label>
+      <label class="fld"><span>Standfirst</span><input class="in" data-pmf="dek" value="${E(cur.dek)}" maxlength="220"></label>
+      <label class="fld"><span>${kind === 'post' ? 'Report · a blank line starts a new paragraph' : 'Preview · shows on Home and in the match centre'}</span><textarea class="in" data-pmf="body" rows="${kind === 'post' ? 14 : 5}">${E(cur.body)}</textarea></label>
+      <div class="pm-chips"><span class="lbl">From the data</span>${gen.facts.map(f => `<span class="chip">✓ ${E(f)}</span>`).join('')}</div>
+      ${gen.story.length ? `<div class="pm-chips"><span class="lbl">Storylines · tap to add</span>${gen.story.map(s => `<button class="chip st" data-pmadd="${E(s.text)}">+ ${E(s.text)}</button>`).join('')}</div>` : ''}
+      ${open.length ? `<p class="note" style="margin:0;color:#F5D76A">To fill before publishing: ${open.map(E).join(' · ')}</p>` : ''}
+      ${gen.approx ? '<p class="note" style="margin:0">Minutes for this game come from club reports, so the draft keeps them loose ("in the first half").</p>' : ''}
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
+        ${done ? `<button class="btn2" data-pmopen="${E(done.id)}">Open in News</button>` : `<button class="btn2" data-pmsend="${k}">Schedule in News</button><button class="btn red" data-pmpub="${k}">Publish ${kind === 'post' ? 'report' : 'preview'}</button>`}</div></div>`;
+  }
+  function pmSave(k, live) {
+    const kind = k.startsWith('post') ? 'post' : 'pre', i = +k.replace(/^\D+/, ''), cur = A.pm[k], m = SPL.matches[i];
+    if (!cur.head.trim()) { flash('Give it a headline.'); render(); return; }
+    if (live && /\[[A-Z][^\]]*\]/.test(cur.body)) { flash('Fill or delete the parts in [BRACKETS] first.'); render(); return; }
+    const n = { id: uid('n'), tag: kind === 'post' ? 'Report' : 'Preview', date: TODAY, title: cur.head.trim(), dek: cur.dek.trim(), body: cur.body.replace(/\n\nHow the match unfolded\n\n/, '\n\nHow the match unfolded\n\n'), img: '', imgs: [], match: i, at: live ? (() => { const d = new Date(), z = n => String(n).padStart(2, '0'); return new Date(`${TODAY}T${z(d.getHours())}:${z(d.getMinutes())}:00`).getTime(); })() : 0, alert: false, status: live ? 'live' : 'draft' };
+    save(d2 => { d2.news.push(n); if (live && kind === 'post') d2.lead = n.id; }, live ? (kind === 'post' ? 'Report published and made the lead story.' : 'Preview published: it shows on Home and in the match centre.') : 'Sent to News as a draft: add photos and pick a time.');
+    if (!live) { A.page = 'news'; A.news = n.id; A.nFor = null; A.nWhenT = 'schedule'; } render();
+  }
+
   // Attendance and Guess the crowd (Hafiz, 7 Nov): fans guess tonight's crowd before half time; at half time the official
   // enters the turnstile count, the closest guess wins, an alert goes to both clubs' fans and the big screen shows the winner.
   // Phase 1: the attendance only; the guessing (GUESS) comes in Phase 2 with e-ticket check-in.
@@ -347,6 +377,7 @@
             <div class="score"><div class="t">${crest(m[2], 64)}<span class="d" style="font-size:18px">${C[m[2]].name}</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span class="big" style="font-size:72px">${s[0]}–${s[1]}</span><span class="big ${c.phase === '1H' || c.phase === '2H' ? 'live' : ''}" style="font-size:28px" data-aclock="${i}">${c.label}</span></div><div class="t">${crest(m[3], 64)}<span class="d" style="font-size:18px">${C[m[3]].name}</span></div></div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${next ? `<button class="btn ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${c.phase === '1H' || c.phase === '2H' ? '<button class="btn2" data-nudge="-1">Clock −1 min</button><button class="btn2" data-nudge="1">Clock +1 min</button>' : ''}${L.phase !== 'pre' ? '<button class="lnk danger" data-resetmatch="1" style="margin-left:8px">Reset this game</button>' : ''}</div>
           </div>
+          ${L.phase === 'FT' ? writerPanel(i, 'post') : L.phase === 'pre' ? writerPanel(i, 'pre') : ''}
           ${crowdPanel(i)}
           <div class="panel" style="display:flex;flex-direction:column;gap:14px;${L.phase === 'pre' ? 'opacity:.45;pointer-events:none' : ''}">
             <h2 style="margin:0">Add to the match</h2>
@@ -366,7 +397,7 @@
       </div>`;
   }
 
-  const TAGS = ['Preview', 'Roundup', 'Review', 'Fixtures', 'Club news', 'Announcement', 'Interview'];
+  const TAGS = ['Report', 'Preview', 'Roundup', 'Review', 'Fixtures', 'Club news', 'Announcement', 'Interview'];
   const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration'], ['ph-MW6R', 'Matchweek 6: Tanjong Pagar v Jurong'], ['ph-MW6P', 'Matchweek 5: Jurong v Tampines'], ['ph-MW5R', 'Matchweek 5: Young Lions v Balestier'], ['ph-MW5P', 'Matchweek 5 preview photo'], ['ph-MW4R', 'Matchweek 4 roundup photo'], ['ph-MW4P', 'Matchweek 3: Tanjong Pagar v Tampines'], ['ph-MW3R', 'Matchweek 3 roundup photo'], ['ph-SPL', 'SPL logo']];
   const IMG_URL = SPLSTORE.IMG;
   // News (Hafiz, 9 Nov, option A): the content calendar for the week, then the stories; a story takes up to six photos (the
@@ -375,6 +406,13 @@
   const hmS = t => new Date(t).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }).replace(' ', '').toLowerCase();
   const nWhen = n => n.status === 'scheduled' && n.at ? n.at : n.at || new Date(n.date + 'T09:00:00').getTime();
   const nState = n => n.status === 'draft' ? ['Draft', '#A9A6C9'] : n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ['Scheduled', '#4A86FF'] : ['Published', '#3DD68C'];
+  // the season's storylines, worked out from every result: what the newsroom should be writing about this week
+  function storyPanel() {
+    if (!window.SPLNEWS) return '';
+    const L = SPLNEWS.storylines(D).slice(0, 8), tag = { title: 'Title race', bottom: 'The bottom', scorers: 'Scoring chart', run: 'Form', first: 'First win', milestone: 'Milestone' };
+    return `<div class="panel"><h2 style="margin:0">Storylines<span class="lbl">Followed from every result · updates as games finish</span></h2>
+      <div class="stl">${L.map((s, j) => `<div class="stc"><span class="lbl">${tag[s.kind] || 'Story'} · ${s.clubs.map(k => `<span class="crest cr-${k}" style="width:14px;height:14px;display:inline-block;vertical-align:-2px"></span>`).join('')}</span><b>${E(s.head)}</b><span class="note">${E(s.text)}</span><button class="lnk" data-storydraft="${j}">Draft a story →</button></div>`).join('')}</div></div>`;
+  }
   function calendar() {
     const base = new Date(TODAY + 'T12:00:00'), mon = new Date(base); mon.setDate(base.getDate() - ((base.getDay() + 6) % 7) + 7 * (A.calWk || 0));
     const days = Array.from({ length: 7 }, (_, k) => { const d = new Date(mon); d.setDate(mon.getDate() + k); return dayKey(d); });
@@ -396,7 +434,7 @@
     const when = A.nWhenT || 'now', at = n && n.at ? new Date(n.at) : new Date(new Date(TODAY + 'T09:00:00').getTime() + 864e5);
     const dv = (A.nDraft && A.nDraft.day) || dayKey(at), tv = (A.nDraft && A.nDraft.time) || `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
     const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)})">${j ? '' : '<b>Cover</b>'}<span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
-    return head('News', 'Plan the week, then write: stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + calendar() + `
+    return head('News', 'Plan the week, then write: stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + storyPanel() + calendar() + `
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
           ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}${n.id ? `<span class="lbl" style="color:${nState(n)[1]}">${nState(n)[0]}${n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ' · ' + new Date(n.at).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span>` : ''}</h2>
@@ -688,7 +726,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
+    const t = e.target.closest('[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -758,6 +796,13 @@
     if (d.reloadphone) { const f = document.getElementById('phone'); if (f) f.src = f.src; return; }
     if (d.newnews) { A.nFor = null; A.news = 'new'; render(); return; }
     if (d.editnews) { A.nFor = null; A.news = d.editnews; render(); return; }
+    if (d.pmopen) { A.page = 'news'; A.news = d.pmopen; A.nFor = null; render(); return; }
+    if (d.pmre) { delete A.pm[d.pmre]; flash('Rewritten from the data.'); render(); return; }
+    if (d.pmadd) { const k = t.closest('[data-pmk]').dataset.pmk, cur = A.pm[k]; const parts = cur.body.split('\n\nHow the match unfolded'); parts[0] = parts[0].replace(/\s*$/, '') + (k.startsWith('pre') ? ' ' : '\n\n') + d.pmadd; cur.body = parts.join('\n\nHow the match unfolded'); render(); return; }
+    if (d.pmpub) { pmSave(d.pmpub, true); return; }
+    if (d.pmsend) { pmSave(d.pmsend, false); return; }
+    if (d.storydraft !== undefined) { const s = SPLNEWS.storylines(D)[+d.storydraft], x = SPLNEWS.storyDraft(D, s), n = { id: uid('n'), tag: 'Review', date: TODAY, title: x.head, dek: x.dek, body: x.body, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' };
+      save(d2 => { d2.news.push(n); }, 'Drafted from the storyline. Fill the [BRACKETS], add photos, publish or schedule.'); A.news = n.id; A.nFor = null; render(); return; }
     if (d.nwhen) { keepNews(); A.nWhenT = d.nwhen; render(); return; }
     if (d.calwk !== undefined) { A.calWk = +d.calwk === 0 ? 0 : (A.calWk || 0) + +d.calwk; render(); return; }
     if (d.picdel !== undefined) { keepNews(); A.nImgs.splice(+d.picdel, 1); render(); return; }
@@ -797,6 +842,7 @@
     if (d.clearstats) { if (!confirm('Clear the recorded analytics?')) return; try { localStorage.removeItem(SPLSTORE.EVK); } catch (x) {} flash('Cleared.'); render(); return; }
     if (d.resetall) { if (!confirm('Reset all the demo data?')) return; SPLSTORE.reset(); D = SPLSTORE.read(); SPLSTORE.write(D); A.news = null; flash('Demo reset.'); render(); return; }
   });
+  root.addEventListener('input', e => { const f = e.target.dataset && e.target.dataset.pmf; if (!f) return; const k = e.target.closest('[data-pmk]').dataset.pmk; if (A.pm[k]) A.pm[k][f] = e.target.value; });
   root.addEventListener('dragstart', e => { const t = e.target.closest && e.target.closest('[data-dragnews]'); if (t) { e.dataTransfer.setData('text/plain', t.dataset.dragnews); e.dataTransfer.effectAllowed = 'move'; } });
   root.addEventListener('dragover', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
   root.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) d.classList.remove('over'); });

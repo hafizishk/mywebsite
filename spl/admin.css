@@ -331,3 +331,8 @@ body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm
 .padd{width:128px;height:84px;border-radius:10px;border:1.5px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:600 12px 'Inter',sans-serif;color:var(--muted);cursor:pointer}.padd b{font-size:20px;line-height:1}.padd small{font-weight:500;font-size:10px}
 .wseg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--soft)}.wseg button{padding:7px 14px;border-radius:8px;border:0;background:none;font:600 12px 'Inter',sans-serif;color:var(--muted);cursor:pointer}.wseg button.on{background:var(--soft2);color:var(--ink)}
 @media (max-width:900px){.cal-w{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:auto}}
+/* Pre-match / Post-match writer and Storylines (Hafiz, 9 Nov) */
+.pmw{display:flex;flex-direction:column;gap:12px}.pmw textarea{font:500 14px/1.6 'Inter',sans-serif}
+.pm-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.pm-chips .lbl{margin-right:4px}.chip.st{border:0;cursor:pointer;background:rgba(74,134,255,.14);color:var(--ink);text-align:left;height:auto;min-height:28px;padding:5px 11px}
+.stl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stc{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;background:var(--soft)}.stc b{font:700 14px/1.25 'Inter',sans-serif}.stc .lnk{align-self:flex-start;margin-top:auto}
+@media (max-width:900px){.stl{grid-template-columns:1fr 1fr}}
