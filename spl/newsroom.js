@@ -16,7 +16,7 @@ var SPLNEWS = (function () {
   const posW = n => n <= 10 ? ordW(n) : ord(n), pts = n => `${word(n)} ${n === 1 ? 'point' : 'points'}`;
   const venue = v => String(v || '').replace(/ Stadium$/, '');
   // MW6's Sunday games (1 Nov), final, and their scorers; the stored scorer list stands before them (data/notes.md)
-  const SUNDAY = { 22: [0, 4], 23: [0, 0] }, SUNDAY_GOALS = { 22: [['Shawal Anuar', '30', 'LCS'], ['Antonio Mance', '37', 'LCS'], ['Matthias Phaeton', '79', 'LCS'], ['Lennart Thy', '84', 'LCS']] };
+  const SUNDAY = { 22: [0, 4], 23: [0, 0] }, SUNDAY_GOALS = { 22: [['Shawal Anuar', '31', 'LCS'], ['Antonio Mance', '37', 'LCS', 'pen'], ['Matthias Phaeton', '81', 'LCS'], ['Lennart Thy', '85', 'LCS']] }; // spl.sg MW6 roundup
   const pname = (k, n) => ((SPL.squads[k] || []).find(p => p[0] === n) || [n, '#' + n])[1];
   const scoreOfEv = (m, ev) => { const s = [0, 0]; (ev || []).forEach(e => { if (e[3] === 'G') s[e[4] === m[2] ? 0 : 1]++; }); return s; };
 
@@ -82,11 +82,13 @@ var SPLNEWS = (function () {
 
   // ---------- writing: the PL's shape, our facts ----------
   const V = ['struck', 'fired', 'curled', 'drilled', 'turned in', 'slotted home', 'lashed in', 'swept home', 'headed in', 'tucked away'];
-  const minuteIn = e => e[2] ? `in stoppage time${e[1] >= 90 ? '' : ' at the end of the first half'}` : `in the ${ord(e[1])} minute`;
+  const minuteIn = e => e[2] ? `in stoppage time${e[1] >= 90 ? '' : ' at the end of the first half'}` : `in the ${e[1] <= 10 ? ordW(e[1]) : ord(e[1])} minute`;
   const absMin = e => (e[1] || 0) + (e[2] || 0) / 100;
   function goalsOf(r) {
     if (r.ev) return r.ev.filter(e => e[3] === 'G').sort((x, y) => (x[0] - y[0]) || absMin(x) - absMin(y)).map(e => ({ e, team: e[4], who: pname(e[8] || e[4], e[5]), ast: e[6] ? pname(e[4], e[6]) : '', pen: e[7] === 'pen', og: e[7] === 'og', min: e[1], add: e[2] }));
-    return (r.goals || []).map(g => { const mm = String(g[1]).match(/(\d+)(?:\+(\d+))?/) || [0, 0, 0]; return { team: g[2], who: g[0], ast: '', pen: false, og: false, min: +mm[1], add: +(mm[2] || 0), approx: !r.m[4] }; });
+    const inSq = (k, n) => (SPL.squads[k] || []).some(p => p[1] === n);
+    return (r.goals || []).map(g => { const mm = String(g[1]).match(/(\d+)(?:\+(\d+))?/) || [0, 0, 0], other = g[2] === r.h ? r.a : r.h;
+      return { team: g[2], who: g[0], ast: '', pen: g[3] === 'pen', og: !inSq(g[2], g[0]) && inSq(other, g[0]), min: +mm[1], add: +(mm[2] || 0), approx: !r.m[4] && !SUNDAY_GOALS[r.i] }; });
   }
   const who = g => g.og ? `an own goal from ${g.who}` : g.who;
   function postMatch(D, i) {
@@ -115,11 +117,11 @@ var SPLNEWS = (function () {
     // the top five
     const P = [];
     const firstScorer = multi ? multi[0] : (G.find(g => g.team === win && !g.og) || G[0] || {}).who;
-    const conseq = win ? (rw && rw.n >= 3 ? `for a ${ordW(rw.n)} straight league win` : firstWin ? 'for their first win of the season' : rl && rl.n >= 3 ? `, condemning ${S(lose)} to a ${ordW(rl.n)} straight defeat` : pos(win).pos === 1 ? (posB(win) && posB(win).pos === 1 ? 'to stay top of the table' : 'to go top of the table') : posB(win) && posB(win).pos === pos(win).pos ? `to stay ${posW(pos(win).pos)}` : `to move up to ${posW(pos(win).pos)}`) : (sh + sa ? 'in an entertaining draw' : '');
+    const conseq = win ? (rw && rw.n >= 3 ? `for a ${ordW(rw.n)} straight league win` : firstWin ? 'for their first win of the season' : rl && rl.n >= 3 ? `, condemning ${S(lose)} to a ${ordW(rl.n)} straight defeat` : pos(win).pos === 1 ? (posB(win) && posB(win).pos === 1 ? 'to stay top of the table' : 'to go top of the table') : posB(win) && posB(win).pos === pos(win).pos ? `to stay ${posW(pos(win).pos)}` : `to move up to ${posW(pos(win).pos)}`) : (sh + sa >= 4 ? 'in an entertaining draw' : '');
     const sp = c => c.startsWith(',') ? c : ' ' + c;
     if (win && firstScorer) P.push(`${firstScorer} ${multi ? (multi[1] >= 3 ? 'scored a hat-trick' : 'scored twice') : G[0] && G[0].who === firstScorer && G.length > 1 ? 'opened the scoring' : 'was on target'} as ${F(win)} beat ${F(lose)} ${scoreTxt} at ${ven}${sp(conseq)}.`);
     else if (win) P.push(`${F(win)} beat ${F(lose)} ${scoreTxt} at ${ven}${sp(conseq)}.`);
-    else P.push(`${F(h)} and ${F(a)} drew ${sh}-${sa} at ${ven}${sh + sa ? ' ' + conseq : ', with neither side able to find a breakthrough'}.`);
+    else P.push(`${F(h)} and ${F(a)} drew ${sh}-${sa} at ${ven}${sh + sa ? (conseq ? ' ' + conseq : '') : ', with neither side able to find a breakthrough'}.`);
     const others = G.filter(g => g.who !== firstScorer || g.og), list = a => { const u = [...new Set(a.map(g => g.og ? `an own goal from ${g.who}` : g.who))]; return u.length > 1 ? u.slice(0, -1).join(', ') + ' and ' + u.slice(-1) : u[0]; };
     const mine = others.filter(g => g.team === (win || h)), theirs = others.filter(g => g.team !== (win || h));
     if (mine.length) P.push(`${cap(list(mine))} ${new Set(mine.map(g => g.who)).size > 1 ? 'were also on the scoresheet' : 'also found the net'}${win ? '' : ` for ${S(h)}`}.`);
@@ -134,7 +136,8 @@ var SPLNEWS = (function () {
     if (lead && G.some(g => g.who === lead.name)) { P.push(`${lead.name} moves on to ${lead.g} for the season, top of the scoring charts.`); facts.push(`Top scorer: ${lead.name}, ${lead.g}`); }
     // how the match unfolded, in order. We know who, when and the score, not how: the goal is told by what it did
     // to the score ("put the Sailors ahead", "doubled their lead"); FAS adds the finish and the chances.
-    const U = [], run2 = [0, 0];
+    const U = [], run2 = [0, 0], seen = new Set(), sur = n => { if (seen.has(n)) { const w = n.split(' '); return ['Kim', 'Yang', 'Cho', 'Lee', 'Seo', 'Song', 'Park', 'Woo', 'Xia', 'Hariss', 'Shawal', 'Hami', 'Faris', 'Ilhan', 'Irfan'].includes(w[0]) ? w[0] : w.slice(-1)[0]; } seen.add(n); return n; };
+    if (firstScorer) seen.add(firstScorer);
     let prev = null;
     const evs = r.ev ? r.ev.filter(e => ['G', 'R', 'D'].includes(e[3])).sort((x, y) => (x[0] - y[0]) || absMin(x) - absMin(y)) : G.map(g => [g.min > 45 ? 2 : 1, g.min, g.add, 'G', g.team, null, null, null, null, null, g]);
     evs.forEach(e => {
@@ -143,9 +146,9 @@ var SPLNEWS = (function () {
       if (e[3] === 'G') { const side = g.team === h ? 0 : 1, them = 1 - side, was = run2.slice(); run2[side]++;
         const k = S(g.team), lead = run2[side] - run2[them], before = was[side] - was[them];
         const did = before === 0 && lead === 1 ? (was[side] === 0 ? `put ${k} ahead` : `put ${k} back in front`) : before === -1 && lead === 0 ? `drew ${k} level` : before < -1 ? `pulled one back for ${k}` : lead === 2 && before === 1 ? 'doubled the lead' : `made it ${Math.max(...run2)}-${Math.min(...run2)}`;
-        U.push(g.og ? `${cap(when)}, ${g.who} turned the ball into his own net to ${did.replace(/^put /, 'put ').replace(/^made it/, 'make it').replace(/^doubled/, 'double').replace(/^drew/, 'draw').replace(/^pulled/, 'pull')}.` :
-          g.pen ? `${g.who} ${did} from the penalty spot ${when}${g.ast ? ` after ${g.ast} was brought down` : ''}.` :
-          `${g.who} ${did} ${when}${g.ast ? `, set up by ${g.ast}` : ''}.`); }
+        U.push(g.og ? `${cap(when)}, ${sur(g.who)} turned the ball into his own net to ${did.replace(/^put /, 'put ').replace(/^made it/, 'make it').replace(/^doubled/, 'double').replace(/^drew/, 'draw').replace(/^pulled/, 'pull')}.` :
+          g.pen ? `${sur(g.who)} ${did} from the penalty spot ${when}${g.ast ? ` after ${g.ast} was brought down` : ''}.` :
+          `${sur(g.who)} ${did} ${when}${g.ast ? `, set up by ${g.ast}` : ''}.`); }
       else if (e[3] === 'R') U.push(`${pname(e[4], e[5])} was shown a red card ${when}, leaving ${S(e[4])} with 10 men.`);
       else if (e[3] === 'D') U.push(`${pname(e[4], e[5])} thought he had scored ${when}, but the goal was ruled out by VAR${e[9] ? ' for ' + e[9] : ''}.`);
       prev = e; });
@@ -177,11 +180,46 @@ var SPLNEWS = (function () {
     return { head: `${H(h)} v ${H(a)}: preview`, dek: P[0], body: P.join(' '), facts, story };
   }
 
+  // ---------- the matchweek roundup, in spl.sg's own format (its MW3–6 roundups, 2026/27) ----------
+  // "SINGAPORE, 2 NOVEMBER 2026 – " intro, then per game: a nickname headline, "Home 1-1 Away | Venue | 30 October",
+  // the scorers, the goals in order, and Facts (red cards). We hold who, when and the score; FAS adds how.
+  const NICK = { GEY: 'Eagles', TAM: 'Stags', LCS: 'Sailors', JUR: 'White Swans', BKF: 'Tigers', TPU: 'Jaguars', HGU: 'Cheetahs', YLS: 'Young Lions' };
+  const VEN = v => String(v || '').replace(/ Stadium$/, '');
+  const dayMonth = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+  function roundup(D, mw) {
+    const R = results(D), all = R.filter(r => r.m[0] === mw && !(r.m[7] || '').startsWith('Postponed')); if (!all.length) return null;
+    const used = new Set(), blocks = [], clauses = [];
+    all.forEach(r => {
+      const pm = postMatch(D, r.i); if (!pm) return;
+      const [sh, sa] = r.s, h = r.h, a = r.a, win = sh > sa ? h : sa > sh ? a : null, lose = win ? (win === h ? a : h) : null;
+      const Rb = R.filter(x => x.date < r.date || (x.date === r.date && x.i < r.i)), T0 = table(Rb), T1 = table(R.filter(x => x.date < r.date || (x.date === r.date && x.i <= r.i)));
+      const rw = win && run(resFor(R.filter(x => x.date <= r.date), win)), firstW = win && resFor(R.filter(x => x.date <= r.date), win).filter(x => x.res === 'W').length === 1;
+      const Tend = table(R.filter(x => x.m[0] <= mw)), top = win && T1[0].k === win && T0[0].k !== win && Tend[0].k === win, derby = [h, a].sort().join() === 'GEY,TAM';
+      const opts = !win ? (derby ? ['Eastern Derby ends all square'] : sh === 0 ? [`Honours even between ${H(h)} and ${H(a)}`] : [`${NICK[h]} and ${NICK[a]} share the spoils`, `${H(h)} and ${H(a)} share the spoils`])
+        : firstW ? [`${H(win)} claim first win of the season`] : top ? [`${H(win)} return to SPL summit`, `${H(win)} go top with win over ${H(lose)}`]
+        : Math.abs(sh - sa) >= 4 ? [`${H(win)} run riot against ${NICK[lose]}`] : rw && rw.n >= 3 && rw.n === resFor(R.filter(x => x.date <= r.date), win).length ? [`${NICK[win]} keep perfect record intact`]
+        : rw && rw.n >= 3 ? [`${H(win)} make it ${word(rw.n)} in a row`] : [`${H(win)} see off ${H(lose)}`, `${H(win)} overcome the ${NICK[lose]}`, `${H(win)} brush aside ${H(lose)}`];
+      const head = opts.find(o => !used.has(o.split(' ')[1])) || opts[0]; used.add(head.split(' ')[1]);
+      const goals = goalsOf(r), by = {}; goals.forEach(g => { (by[g.team] = by[g.team] || {}); const k = g.who; (by[g.team][k] = by[g.team][k] || []).push(`${g.og ? 'O.G. ' : g.pen ? 'pen. ' : ''}${g.add ? g.min + '+' + g.add : g.min}’`); });
+      const sideStr = k => Object.entries(by[k] || {}).map(([n, ms]) => `${n} ${ms.join(', ')}`).join(', ');
+      const scorers = [sideStr(h), sideStr(a)].filter(Boolean).join(' | ');
+      const [top5, unf] = pm.body.split('\n\nHow the match unfolded\n\n'), paras = [top5.split('\n\n')[0]].concat((unf || '').split('\n\n').filter(p => p && !p.startsWith('[')));
+      const reds = (r.ev || []).filter(e => e[3] === 'R').map(e => `Red Card – ${pname(e[4], e[5])} (${H(e[4])}) ${e[2] ? e[1] + '+' + e[2] : e[1]}’`);
+      blocks.push([head, `${H(h)} ${sh}-${sa} ${H(a)} | ${VEN(r.m[5])} | ${dayMonth(r.date)}`, scorers, ...paras, '[HOW THE GOALS CAME, AND A CHANCE OR SAVE]', ...(reds.length ? ['Facts', ...reds] : [])].filter(Boolean).join('\n\n'));
+      clauses.push(!win ? (derby ? `${F(h)} and ${F(a)} played out ${sh ? 'a ' + sh + '-' + sa + ' draw' : 'a goalless stalemate'} in the Eastern Derby` : `${F(h)} and ${F(a)} ${sh ? 'shared the points in a ' + sh + '-' + sa + ' draw' : 'played out a goalless draw'}`)
+        : firstW ? `${F(win)} picked up a first victory of the season against ${F(lose)}` : top ? `${F(win)} went top with a win over ${F(lose)}` : `${F(win)} beat ${F(lose)} ${Math.max(sh, sa)}-${Math.min(sh, sa)}`);
+    });
+    const last = all[all.length - 1].date, pub = new Date(new Date(last + 'T12:00:00').getTime() + 864e5).toISOString().slice(0, 10);
+    const intro = `SINGAPORE, ${new Date(pub + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()} – ${clauses.slice(0, 2).join(', while ')}.${clauses.length > 2 ? ' ' + cap(clauses.slice(2).join(', while ')) + '.' : ''} We recap all the action here…`;
+    return { head: `2026/27 Singapore Premier League Matchweek ${mw}: Roundup`, dek: clauses[0] ? cap(clauses[0]) + '.' : '', body: [intro, ...blocks].join('\n\n'), mw, games: all.length };
+  }
+  const latestMw = D => { const R = results(D).filter(r => !(r.m[7] || '').startsWith('Postponed')); return R.length ? Math.max(...R.map(r => r.m[0])) : null; };
+
   // a short story from a storyline, for the newsroom
   function storyDraft(D, s) {
     const R = results(D), k = s.clubs[0], L = resFor(R, k), last = L.slice(-6).reverse().map(x => `${x.res === 'W' ? 'beat' : x.res === 'D' ? 'drew with' : 'lost to'} ${S(x.opp)} ${Math.max(x.f, x.a)}-${Math.min(x.f, x.a)}`);
     const body = [s.text, last.length ? `Their last ${word(Math.min(6, last.length))}: ${last.join(', ')}.` : '', '[CONTEXT: QUOTE, NEXT FIXTURE OR HISTORY]'].filter(Boolean).join('\n\n');
     return { head: s.head, dek: s.text, body };
   }
-  return { results, table, scorers, storylines, postMatch, preMatch, storyDraft, word, ord };
+  return { results, table, scorers, storylines, postMatch, preMatch, roundup, latestMw, storyDraft, word, ord };
 })();

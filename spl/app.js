@@ -34,18 +34,19 @@
   // replay of its Sunday games stays in Settings → Demo.
   const TODAY = '2026-11-20', TODAY_MW = 7;
   const LIVE_IDS = [23, 22]; // tonight's games: the replay plays them, the admin's match console can run them for real
+  // MW6 Sunday team sheets and changes: the official spl.sg Matchweek 6 roundup (2 Nov). Shapes are from the squads' listed positions.
   const XI = {
-    TAM: { f: '4-2-3-1', xi: [24, 2, 5, 33, 26, 49, 88, 10, 8, 81, 25], bench: [28, 71, 16, 11, 21, 15, 18, 9, 27] },
-    GEY: { f: '4-4-2', xi: [1, 2, 4, 3, 23, 7, 8, 5, 6, 18, 9], bench: [25, 11, 15, 20, 14, 21, 24, 32, 10] },
-    BKF: { f: '4-3-3', xi: [71, 3, 23, 4, 2, 14, 10, 7, 22, 17, 19], bench: [21, 15, 20, 25, 12, 18, 24, 30, 5] },
-    LCS: { f: '4-2-3-1', xi: [13, 18, 5, 26, 2, 16, 8, 11, 19, 7, 12], bench: [1, 4, 14, 29, 24, 23, 17, 9, 30] }
+    TAM: { f: '5-3-2', xi: [24,  6,  11,  26,  33,  71,  8,  49,  88,  18,  25], bench: [10,  9,  16,  28,  2,  5,  15,  17,  21] },
+    GEY: { f: '4-4-2', xi: [1,  2,  3,  4,  23,  5,  6,  7,  8,  10,  18], bench: [32,  9,  11,  13,  25,  19,  24,  37] },
+    BKF: { f: '3-5-2', xi: [71,  2,  3,  20,  7,  10,  12,  14,  18,  17,  22], bench: [63,  33,  24,  19,  25,  21,  5] },
+    LCS: { f: '4-4-2', xi: [25,  5,  14,  18,  26,  11,  15,  16,  19,  7,  12], bench: [23,  29,  9,  24,  4,  1,  13,  2,  3] }
   };
   // [half, minute, added, type G goal · Y yellow · S sub · HT · FT, team, shirt, assist or player off, note]
   const EV = {
     // Tampines 0–0 Geylang: Taniguchi's 36th-minute goal for Geylang ruled out for offside (spl.sg MW6 roundup, 2 Nov)
-    23: [[1, 36, 0, 'D', 'GEY', 10, 0, null, null, 'offside'], [1, 45, 2, 'HT'], [2, 90, 4, 'FT']],
+    23: [[1,  36,  0,  'D',  'GEY',  10,  0,  null,  null,  'offside'], [1,  45,  2,  'HT'], [2,  51,  0,  'S',  'GEY',  11,  23], [2,  59,  0,  'S',  'TAM',  10,  18], [2,  59,  0,  'S',  'TAM',  9,  33], [2,  63,  0,  'S',  'GEY',  9,  5], [2,  74,  0,  'S',  'TAM',  16,  71], [2,  87,  0,  'S',  'GEY',  32,  2], [2,  90,  4,  'FT']],
     // Balestier 0–4 Sailors, minutes from the official roundup (spl.sg, 2 Nov): Shawal 31', Mance 37' pen, Phaëton 81', Thy 85'
-    22: [[1, 31, 0, 'G', 'LCS', 7, 19], [1, 37, 0, 'G', 'LCS', 12, 0, 'pen'], [1, 45, 1, 'HT'], [2, 46, 0, 'S', 'LCS', 4, 26], [2, 46, 0, 'S', 'LCS', 9, 12], [2, 66, 0, 'S', 'LCS', 24, 8], [2, 66, 0, 'S', 'LCS', 29, 2], [2, 66, 0, 'S', 'LCS', 23, 11], [2, 81, 0, 'G', 'LCS', 23, 24], [2, 85, 0, 'G', 'LCS', 9, 23], [2, 90, 3, 'FT']]
+    22: [[1,  31,  0,  'G',  'LCS',  7,  19], [1,  37,  0,  'G',  'LCS',  12,  0,  'pen'], [1,  45,  1,  'HT'], [2,  46,  0,  'S',  'LCS',  9,  12], [2,  46,  0,  'S',  'LCS',  4,  26], [2,  66,  0,  'S',  'LCS',  23,  7], [2,  66,  0,  'S',  'LCS',  29,  11], [2,  66,  0,  'S',  'LCS',  24,  16], [2,  71,  0,  'S',  'BKF',  63,  7], [2,  71,  0,  'S',  'BKF',  24,  12], [2,  78,  0,  'S',  'BKF',  19,  17], [2,  78,  0,  'S',  'BKF',  25,  20], [2,  81,  0,  'G',  'LCS',  23,  24], [2,  85,  0,  'G',  'LCS',  9,  23], [2,  90,  0,  'S',  'BKF',  33,  10], [2,  90,  3,  'FT']]
   };
   // full-time figures the stats grow towards: possession, shots, on target, corners, fouls, offsides (reconstructed)
   const POTM = { 23: { nom: [['Syazwan Buhari', 'TAM'], ['Milos Cupic', 'GEY'], ['Kaisei Ogawa', 'GEY']], base: [488, 517, 296] }, 22: { nom: [['Matthias Phaeton', 'LCS'], ['Shawal Anuar', 'LCS'], ['Lennart Thy', 'LCS']], base: [655, 590, 371] } };
@@ -327,7 +328,7 @@
       ${imgBlock(n, 230) ? `<div style="margin:0 -20px">${imgBlock(n, 230)}</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:10px"><span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span><span class="d" style="font-size:28px;line-height:1">${E(n.title)}</span><span style="font-size:15px;line-height:1.5;color:#DCDAF0;font-weight:500">${E(n.dek)}</span></div>
       <div style="height:1px;background:var(--line)"></div>
-      <div class="body">${E(n.body).split(/\n\s*\n/).map(p => /^How the match unfolded$/.test(p.trim()) ? `<h3 class="d" style="font-size:20px;margin:18px 0 4px">${p}</h3>` : `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+      <div class="body">${E(n.body).split(/\n\s*\n/).map(p => { const t = p.trim(); if (/ \| /.test(t) && /\d-\d/.test(t)) return `<p class="lbl" style="margin:-6px 0 0;font-size:12px;color:var(--ink)">${t.replace(/ \| /g, ' · ')}</p>`; if (/’/.test(t) && !/[.!?]$/.test(t)) return `<p style="margin:0;font-style:italic;color:var(--muted);font-size:13px">${t}</p>`; if (t.length < 70 && !/[.!?…]$/.test(t) && !/^SINGAPORE/.test(t)) return `<h3 class="d" style="font-size:20px;margin:22px 0 4px;line-height:1.05">${t}</h3>`; return `<p>${p.replace(/\n/g, '<br>')}</p>`; }).join('')}</div>
       <span class="lbl">Football Association of Singapore</span>
       ${more.length ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="d" style="font-size:18px">More news</span><div class="card" style="padding:0 16px">${more.map(x => newsRow(x, false)).join('')}</div></div>` : ''}`;
   }
@@ -433,7 +434,7 @@
       ${XI[k].xi.map(no => row(k, no, false)).join('')}
       <div class="lbl" style="padding:14px 0 2px 0">Substitutes</div>${XI[k].bench.map(no => row(k, no, true)).join('')}
       <div class="lbl" style="padding-top:12px">Coach</div><div style="font-size:12px;padding-top:2px">${C[k].coach}</div></div>`).join('')}</div>
-      <span style="font-size:11px;color:var(--muted)">Replay: goals and changes from the clubs' match reports; the rest of the team sheets is reconstructed until FAS's feed supplies them.</span>`;
+      <span style="font-size:11px;color:var(--muted)">Replay: team sheets, goals and changes from the official spl.sg Matchweek 6 roundup; match stats are reconstructed until FAS's feed supplies them.</span>`;
   }
   // Guess the crowd (Hafiz, 7 Nov): guess tonight's attendance before half time; the official publishes the turnstile count,
   // the closest guess wins and the stadium screen shows the winner (by name only if they agreed). Also shows the attendance.
