@@ -459,3 +459,6 @@ button:disabled{cursor:default}
 .gtw{padding:4px 20px 10px!important;scroll-padding-left:20px}
 #app[data-look=light] .gtile .gt-tx b,#app[data-look=light] .gtile .gt-tx .d{color:#fff!important}#app[data-look=light] .gtile .gt-dk{color:#DCDAF0!important}#app[data-look=light] .gtile .gt-tx .lbl{color:#7CF2C2!important}
 .gtile .gt-tx .lbl{color:#7CF2C2!important}
+/* story tiles: no white inner line, just the glow (Hafiz, 9 Nov) */
+.gtile::after{box-shadow:inset 0 0 26px rgba(124,92,255,.18)!important}
+.gtile{border:0!important;outline:0}
