@@ -89,11 +89,16 @@
     },
     {
       "source": "/spl",
-      "destination": "/spl/admin.html",
+      "destination": "/spl/index.html",
       "permanent": false
     },
     {
       "source": "/spl/",
+      "destination": "/spl/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/spl/admin",
       "destination": "/spl/admin.html",
       "permanent": false
     }
