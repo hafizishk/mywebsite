@@ -154,6 +154,18 @@ html,body{background:#fff}
 <script src="cloud.js"></script>
 <script src="app.js"></script>
 <script>
+/* Live updates (Hafiz, 9 Nov): the installed app opens this page from the website, so every change reaches phones
+   without a new APK. Inside the app (Capacitor's bridge present) it loads the native helpers the site hosts in native/:
+   the plugins, then native.js (splash hand-over, back button, notifications, push). A copy built into the app already
+   has them (capacitorExports), so this does nothing there or in a browser. */
+(function () {
+  if (!window.Capacitor || !Capacitor.isNativePlatform || !Capacitor.isNativePlatform() || window.capacitorExports) return;
+  window.firebaseMessagingExports = window.firebaseMessagingExports || {};
+  ['core', 'app', 'splash-screen', 'local-notifications', 'messaging', 'native'].forEach(function (n) {
+    var sc = document.createElement('script'); sc.src = 'native/' + n + '.js'; sc.async = false; document.body.appendChild(sc); });
+})();
+</script>
+<script>
 // Splash: 3.8s of animation, then lift away. Tapping skips it.
 (function(){var el=document.getElementById('launch');if(!el)return;var done=false;function out(){if(done)return;done=true;el.classList.add('l-out');setTimeout(function(){el.remove();},500);}
 setTimeout(out,4300);el.addEventListener('click',out);})();
