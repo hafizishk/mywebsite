@@ -181,7 +181,9 @@
     if (S.short == null) return '';
     const j = S.short, x = REEL[j], n = REEL.length;
     // full-screen, like Reels (Hafiz, 5 Nov): tap right for next, left for previous, swipe up or down; the middle reaches the video
-    return `<div class="shorts" role="dialog" aria-label="Must-see moments"><div class="sh-vid ${S.shDir < 0 ? 'in-down' : 'in-up'}" key="${j}"><iframe src="https://www.youtube-nocookie.com/embed/${x.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1&controls=0&enablejsapi=1${/^https?:/.test(location.origin) ? '&origin=' + encodeURIComponent(location.origin) : ''}" title="${x.title.replace(/"/g, '&quot;')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+    // the drop plays once, when the viewer opens; moving between clips only slides the clip sideways, like Stories
+    const open = S.shOpen; S.shOpen = false;
+    return `<div class="shorts${open ? ' opening' : ''}" role="dialog" aria-label="Must-see moments"><div class="sh-vid ${open ? '' : S.shDir < 0 ? 'in-down' : 'in-up'}" key="${j}" style="${ytThumb(x.id)}"><iframe src="https://www.youtube-nocookie.com/embed/${x.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1&controls=0&enablejsapi=1${/^https?:/.test(location.origin) ? '&origin=' + encodeURIComponent(location.origin) : ''}" title="${x.title.replace(/"/g, '&quot;')}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
       <div class="sh-shade"></div>
       <button class="sh-zone left" data-shnav="-1" aria-label="Previous"></button><button class="sh-zone right" data-shnav="1" aria-label="Next"></button>
       <div class="sh-top"><div class="sh-segs">${REEL.map((_, k) => `<span class="${k < j ? 'done' : k === j ? 'on' : ''}">${k === j ? '<i></i>' : ''}</span>`).join('')}</div>
@@ -195,7 +197,7 @@
     const sec = (t, slot, extra) => `<div style="display:flex;align-items:center;gap:14px"><span class="d" style="font-size:20px">${t}</span><span style="flex:1;height:1px;background:var(--line)"></span>${extra || spLine(slot)}</div>`;
     return `<div style="display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:26px;line-height:1">Watch</span><span class="lbl">Live games, moments and highlights</span></div>
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--red)" ><div class="lbl" style="display:flex;justify-content:space-between"><span style="${live ? 'color:#FF6B71' : ''}">${live ? 'Live now' : 'Tonight · 7.30PM'}</span><span>meWATCH</span></div>
-        ${tonight.map(r => `<div style="display:flex;align-items:center;gap:10px">${crest(r.home, 26)}<span style="font-size:14px;font-weight:600">${r.hname}</span><span class="d mono" style="font-size:16px;color:var(--muted);margin:0 4px">${r.sc}</span><span style="font-size:14px;font-weight:600">${r.aname}</span>${crest(r.away, 26)}</div>`).join('')}
+        ${tonight.map(r => `<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px"><span style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:14px;font-weight:600">${r.hname}${crest(r.home, 26)}</span><span class="d mono" style="font-size:16px;color:var(--muted)">${r.sc}</span><span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600">${crest(r.away, 26)}${r.aname}</span></div>`).join('')}
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><a class="btn" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="flex:1">Watch on meWATCH ↗</a></div>
         <span style="font-size:11px;color:var(--muted)">Every SPL match streams live on meWATCH.</span></div>
       ${mustSee()}
@@ -440,9 +442,38 @@
   const realGoals = m => (m[6] || []).map(g => ({ team: g[2], name: g[0], min: (/\+/.test(g[1]) ? g[1] : g[1]) + "'" }));
   const simGoals = (i, L) => L.fired.filter(e => e[3] === 'G').map(e => ({ team: e[4], name: gname(e) + (e[7] === 'pen' ? ' (pen)' : ''), min: minLabel(e[1], e[2]) }));
 
+  // Form & H2H (Hafiz, 9 Nov, option B, the PL's layout): each club's last five (or next five) with the opponent, home or
+  // away and the score; then the head to head, a tally and the last three meetings, this season's first.
+  const RC = { W: '#22A559', D: 'rgba(127,127,150,.28)', L: '#D7263D' };
   function formTab(m, r) {
-    const h2h = SPL.matches.filter((x, i) => i !== S.match && x[4] && ((x[2] === m[2] && x[3] === m[3]) || (x[2] === m[3] && x[3] === m[2]))).map(x => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13px"><span>${short(x[2])} v ${short(x[3])} · MW${x[0]}</span><span class="d mono" style="font-size:16px">${x[4][0]}–${x[4][1]}</span></div>`);
-    return `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><span class="lbl">Last five · league</span><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">${r.hname}</span><span style="display:flex;gap:5px">${dots(form(m[2]), 10)}</span></div><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">${r.aname}</span><span style="display:flex;gap:5px">${dots(form(m[3]), 10)}</span></div><span style="font-size:11px;color:var(--muted)">Green win · grey draw · red loss, most recent on the right</span></div><div class="card" style="padding:6px 16px"><div class="lbl" style="padding:10px 0 4px 0">Head to head · 2026/27</div>${h2h.length ? h2h.join('') : '<div style="padding:10px 0 14px 0;font-size:13px;color:var(--muted)">First meeting this season.</div>'}</div>`;
+    const prev = S.ftab !== 'next';
+    const rowsFor = k => {
+      if (prev) return played().filter(x => x[2] === k || x[3] === k).slice(-5).map(x => { const h = x[2] === k, gf = h ? x[4][0] : x[4][1], ga = h ? x[4][1] : x[4][0], res = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
+        return { mw: x[0], opp: h ? x[3] : x[2], ha: h ? 'H' : 'A', pill: `<span class="fpill" style="background:${RC[res]};color:${res === 'D' ? 'var(--ink)' : '#fff'}">${gf} - ${ga}</span>` }; });
+      return SPL.matches.map((x, i) => [x, i]).filter(([x, i]) => i !== S.match && !x[4] && !(liveOf(i) || {}).started && x[1] >= TODAY && (x[2] === k || x[3] === k)).slice(0, 5)
+        .map(([x]) => ({ mw: x[0], opp: x[2] === k ? x[3] : x[2], ha: x[2] === k ? 'H' : 'A', pill: `<span class="fpill" style="background:var(--soft2,rgba(255,255,255,.1));color:var(--ink)">${new Date(x[1] + 'T12:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>` }));
+    };
+    const block = k => { const rs = rowsFor(k); return `<div style="display:flex;align-items:center;gap:10px">${crest(k, 30)}<span class="d" style="font-size:17px">${short(k)}</span></div>` +
+      (rs.length ? `<div class="fgrid">${rs.map(g => `<div><span class="lbl" style="font-size:10px">MW${g.mw}</span>${crest(g.opp, 26)}<span class="fopp">${g.opp}(${g.ha})</span>${g.pill}</div>`).join('')}</div>` : `<span style="font-size:13px;color:var(--muted)">${prev ? 'No league games yet.' : 'No fixtures announced yet.'}</span>`); };
+    const form = `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="d" style="font-size:19px">Team form</span>
+      <span class="fseg"><button class="${prev ? 'on' : ''}" data-ftab="prev">Previous</button><button class="${prev ? '' : 'on'}" data-ftab="next">Upcoming</button></span></div>
+      ${block(m[2])}<div style="height:1px;background:var(--line2)"></div>${block(m[3])}</div>`;
+    // meetings, newest first: this season's results, then the earlier ones kept in data.js
+    const pair = [m[2], m[3]].sort().join('|');
+    const meet = SPL.matches.map((x, i) => [x, i]).filter(([x, i]) => i !== S.match && ((x[2] === m[2] && x[3] === m[3]) || (x[2] === m[3] && x[3] === m[2])))
+      .map(([x, i]) => { const L = liveOf(i); const sc = L && L.ft ? L.score : x[4]; return sc ? [x[1], x[2], sc[0], x[3], sc[1], 'SPL'] : null; }).filter(Boolean)
+      .concat((SPL.h2hPast || {})[pair] || []).sort((a, b) => b[0] < a[0] ? -1 : 1).slice(0, 3);
+    let h2h;
+    if (!meet.length) h2h = '<div style="font-size:13px;color:var(--muted)">No meetings on record yet.</div>';
+    else {
+      const won = k => meet.filter(x => (x[1] === k && x[2] > x[4]) || (x[3] === k && x[4] > x[2])).length, wa = won(m[2]), wb = won(m[3]), dr = meet.length - wa - wb;
+      const tally = `<div class="htally"><div>${crest(m[2], 34)}<b class="d mono">${wa}</b><span class="lbl">${short(m[2])} ${wa === 1 ? 'win' : 'wins'}</span></div><div><b class="d mono" style="color:var(--muted)">${dr}</b><span class="lbl">${dr === 1 ? 'Draw' : 'Draws'}</span></div><div>${crest(m[3], 34)}<b class="d mono">${wb}</b><span class="lbl">${short(m[3])} ${wb === 1 ? 'win' : 'wins'}</span></div></div>
+        <div class="hbar">${wa ? `<span style="flex:${wa};background:${C[m[2]].c}"></span>` : ''}${dr ? `<span style="flex:${dr};background:rgba(127,127,150,.45)"></span>` : ''}${wb ? `<span style="flex:${wb};background:${C[m[3]].c}"></span>` : ''}</div>`;
+      const rows = meet.map(([d, h, hs, a, as, comp]) => `<div class="hrow"><span style="justify-content:flex-end;font-weight:${hs > as ? 700 : 500}">${short(h)}${crest(h, 24)}</span><b class="d mono">${hs}–${as}</b><span style="font-weight:${as > hs ? 700 : 500}">${crest(a, 24)}${short(a)}</span><em class="lbl">${new Date(d + 'T12:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · ${comp}</em></div>`).join('');
+      const old = ((SPL.h2hPast || {})[pair] || []).some(x => meet.includes(x)) && (m[2] === 'JUR' || m[3] === 'JUR');
+      h2h = tally + `<span class="lbl">Last ${meet.length === 1 ? 'meeting' : meet.length + ' meetings'}</span>` + rows + (old ? '<span style="font-size:11px;color:var(--muted)">Jurong played as Albirex Niigata (S) until 2026.</span>' : '');
+    }
+    return form + `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><span class="d" style="font-size:19px">Head to head</span>${h2h}</div>`;
   }
   function liveMatch(m, r, L) {
     const tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(L.ft ? [['potm', 'Vote']] : []);
@@ -991,7 +1022,7 @@
     if (stage) { let x0 = null; stage.addEventListener('pointerdown', e => { x0 = e.clientX; }); stage.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) pickBy(dx < 0 ? 1 : -1); }); const on = app.querySelector('.pk-c.on'), strip = app.querySelector('#pkstrip'); if (on && strip) strip.scrollLeft = on.offsetLeft - strip.clientWidth / 2 + on.clientWidth / 2; S.pickDir = 0; }
     if (fid === 'crG') { const g = app.querySelector('#crG'); if (g) { g.focus(); g.setSelectionRange(g.value.length, g.value.length); } }
     const sq = app.querySelector('#sq'); if (sq) { sq.focus(); sq.setSelectionRange(sq.value.length, sq.value.length); sq.oninput = e => { S.sq = e.target.value; S.keepScroll = true; render(); }; }
-    const shf = app.querySelector('.shorts iframe'); if (shf) shf.addEventListener('load', () => ytListen(shf)); else { clearInterval(ytPing); ytFor = null; }
+    const shf = app.querySelector('.shorts iframe'); if (shf) shf.addEventListener('load', () => { ytListen(shf); setTimeout(() => shf.classList.add('ready'), 350); }); else { clearInterval(ytPing); ytFor = null; }
     if (S.keepScroll) { app.querySelector('.screen').scrollTop = top; S.keepScroll = false; }
     const vk = S.view + (S.view === 'home' ? ':' + S.htab : S.view === 'match' ? ':' + S.mtab : S.view === 'stats' ? ':' + S.ttab : S.view === 'club' ? ':' + S.club : '');
     if (vk !== lastView) { lastView = vk; if (!EMBED) { SPLSTORE.track('view', vk); app.querySelectorAll('[data-slot]').forEach(x => SPLSTORE.track('imp', x.dataset.slot)); } }
@@ -1000,7 +1031,7 @@
   app.addEventListener('input', e => { if (e.target.id === 'crG') S.crIn = Object.assign(S.crIn || {}, { g: e.target.value }); });
   app.addEventListener('change', e => { if (e.target.id === 'crShow') S.crIn = Object.assign(S.crIn || {}, { show: e.target.checked }); });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    const t = e.target.closest('[data-ftab],[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
     if (t === app || e.target.closest('input,label,select,textarea')) return; // #app carries data-club (the theme): never a link
     const d = t.dataset;
     if (!EMBED) { const k = Object.keys(d)[0]; SPLSTORE.track('tap', k + (d[k] && d[k].length < 24 ? ':' + d[k] : '')); }
@@ -1057,12 +1088,12 @@
     else if (d.player) { if (S.view !== 'player') S.pfrom = S.view === 'club' ? 'club' : S.view === 'search' ? 'search' : S.view === 'stats' ? 'stats' : S.view === 'match' ? 'match' : 'stats'; S.view = 'player'; S.player = d.player; }
     else if (d.mw) { S.mw = +d.mw; S.keepScroll = true; }
     else if (d.htab) { S.htab = d.htab; S.keepScroll = true; }
-    else if (d.mtab) { S.mtab = d.mtab; S.keepScroll = true; }
+    else if (d.mtab) { S.mtab = d.mtab; S.keepScroll = true; } else if (d.ftab) { S.ftab = d.ftab; S.keepScroll = true; }
     else if (d.ttab) { S.ttab = d.ttab; S.keepScroll = true; }
     else if (d.ctab) { S.ctab = d.ctab; S.keepScroll = true; }
     else if (d.vsim) { vsimStart(d.vsim); S.keepScroll = true; }
     else if (d.pvote) { const key = PMONTH.key, mo = PMONTH.month; P.votes[key] = d.pvote; SPLSTORE.track('vote', 'pmonth'); save(); S.keepScroll = true; sendVote('potm', mo, d.pvote, () => { delete P.votes[key]; }); }
-    else if (d.short !== undefined) { S.short = reelOf(+d.short); S.keepScroll = true; }
+    else if (d.short !== undefined) { S.short = reelOf(+d.short); S.shOpen = true; S.keepScroll = true; }
     else if (d.shclose) { S.short = null; S.keepScroll = true; }
     else if (d.shnav) { const t = S.short + +d.shnav; if (t < 0 || t >= REEL.length) { if (t >= REEL.length) S.short = null; } else { S.shDir = +d.shnav; S.short = t; } S.keepScroll = true; }
     else if (d.tv) { S.tv = d.tv; S.keepScroll = true; }
