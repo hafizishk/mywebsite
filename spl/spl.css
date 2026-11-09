@@ -16,7 +16,7 @@ a{color:inherit;text-decoration:none}
 .mono{font-variant-numeric:tabular-nums}
 .lbl{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:4px}
-.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 50px) 20px 120px 20px;display:flex;flex-direction:column;gap:20px;scrollbar-width:none}
+.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(max(var(--safe-area-inset-top,env(safe-area-inset-top,0px)), 34px) + 16px) 20px 120px 20px;display:flex;flex-direction:column;gap:20px;scrollbar-width:none}
 .screen::-webkit-scrollbar{display:none}
 .screen>*{flex-shrink:0}
 .scroll{scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
@@ -79,7 +79,7 @@ button:disabled{cursor:default}
 .demobar{position:absolute;left:0;right:0;top:0;padding:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 6px) 14px 6px 20px;display:flex;align-items:center;gap:10px;background:rgba(11,15,46,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(232,54,61,.45);z-index:7}
 .demobar button{white-space:nowrap;background:none;border:0;border-left:1px solid var(--line);color:#fff;font:600 12px 'Inter',sans-serif;padding:8px 0 8px 10px;cursor:pointer;min-height:32px}
 @keyframes drop{from{transform:translateY(-120%);opacity:0}to{transform:none;opacity:1}}
-.toast{position:absolute;left:12px;right:12px;top:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 52px);display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(22,24,66,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.16);border-radius:4px;box-shadow:0 14px 40px rgba(0,0,0,.5);color:var(--ink);cursor:pointer;z-index:8;animation:drop .35s cubic-bezier(.2,.9,.3,1)}
+.toast{position:absolute;left:12px;right:12px;top:calc(max(var(--safe-area-inset-top,env(safe-area-inset-top,0px)), 34px) + 18px);display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(22,24,66,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.16);border-radius:4px;box-shadow:0 14px 40px rgba(0,0,0,.5);color:var(--ink);cursor:pointer;z-index:8;animation:drop .35s cubic-bezier(.2,.9,.3,1)}
 
 
 /* moments: last round as stories */
