@@ -213,9 +213,13 @@
   const GOTM_ = () => STORE.gotm;
   const sp = k => (STORE.sponsors[k] && STORE.sponsors[k].partner) ? E(STORE.sponsors[k].partner) : '[PARTNER]';
   const spLine = k => `<span class="lbl" data-slot="${k}" style="font-size:9px;color:var(--dim)">Presented by ${sp(k)}</span>`;
-  const IMG = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png' };
+  const IMG = SPLSTORE.IMG;
   const imgBlock = (n, h) => n.img && IMG[n.img] ? `<span class="nimg" style="height:${h}px;background-image:url(${IMG[n.img]})"></span>` : '';
-  const newsRow = (n, big) => `<button class="news rowlink" data-article="${E(n.id)}" style="text-align:left;${big ? '' : 'gap:4px'}"><span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span>${big ? `<span class="d" style="font-size:19px;line-height:1.05">${E(n.title)}</span><span style="font-size:12px;line-height:1.45;color:var(--muted)">${E(n.dek)}</span>` : `<span style="font-size:14px;font-weight:600;line-height:1.3">${E(n.title)}</span>`}</button>`;
+  // every story with its picture: a wide photo in All news, a thumbnail beside the headline elsewhere
+  const newsRow = (n, big) => { const im = n.img && IMG[n.img];
+    const text = `<span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span>${big ? `<span class="d" style="font-size:19px;line-height:1.05">${E(n.title)}</span><span style="font-size:12px;line-height:1.45;color:var(--muted)">${E(n.dek)}</span>` : `<span style="font-size:14px;font-weight:600;line-height:1.3">${E(n.title)}</span>`}`;
+    if (big) return `<button class="news rowlink" data-article="${E(n.id)}" style="text-align:left">${im ? imgBlock(n, 170) : ''}${text}</button>`;
+    return `<button class="news rowlink" data-article="${E(n.id)}" style="text-align:left;display:grid;grid-template-columns:minmax(0,1fr) ${im ? '92px' : ''};gap:12px;align-items:center"><span style="display:flex;flex-direction:column;gap:4px">${text}</span>${im ? `<span class="nimg" style="height:62px;border-radius:10px;background-image:url(${im})"></span>` : ''}</button>`; };
   const ICON = {
     tv: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="13"/><path d="M10 9v5l4-2.5z" fill="currentColor"/><path d="M8 21h8"/></svg>',
     search: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
@@ -255,7 +259,7 @@
       <div class="lbl sp-meta"><span>${on ? scorersLine(r, 0) || posText(r.home) : posText(r.home)}</span><span>${E(r.venue)}</span><span>${on ? scorersLine(r, 1) || posText(r.away) : posText(r.away)}</span></div>
       <div class="sp-form"><span>${formChips(r.home)}</span><span class="lbl">Last 5</span><span>${formChips(r.away)}</span></div>
       <div class="sp-blurb">${on && L.ft ? `${r.hname} ${posText(r.home).split(' · ')[0]}, ${r.aname} ${posText(r.away).split(' · ')[0]} after tonight.` : on ? (last ? `<span class="mono" style="color:var(--muted)">${last[3] === 'HT' ? '' : minLabel(last[1], last[2]) + ' '}</span>${evText(r.id, last)}` : 'Kick-off at ' + r.venue + '.') + '' : blurb}</div>
-      <div style="display:flex;gap:10px"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Player of the Match' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
+      <div class="sp-btns"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Player of the Match' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
     </div>
   </button>`; };
   const tableRows = (rs, clickable) => rs.map(r => `<${clickable ? 'button' : 'div'} class="trow mono" ${clickable ? `data-club="${r.code}"` : ''}><span style="color:${r.move > 0 ? '#3DD68C' : r.move < 0 ? '#FF6B71' : 'var(--muted)'}">${r.pos}</span><span style="display:flex;align-items:center;gap:8px;font-weight:500">${crest(r.code, 22)}${r.name}${r.live ? '<span class="dot pulse" style="width:6px;height:6px;background:#E8363D" aria-label="playing now"></span>' : ''}</span><span style="text-align:right;color:var(--muted)">${r.p}</span><span style="text-align:right;color:var(--muted)">${r.gd}</span><span style="text-align:right;font-weight:700">${r.pts}</span><span style="display:flex;gap:3px;justify-content:flex-end">${dots(r.form)}</span></${clickable ? 'button' : 'div'}>`).join('');
@@ -365,7 +369,7 @@
     all.forEach(r => (groups[r.date] = groups[r.date] || []).push(r));
     return seasonHead('matches') + `
       <div class="tabs"><button class="stab on">SPL</button><button class="stab">SPL2</button><button class="stab">Singapore Cup</button><button class="stab">ACL Two</button></div>
-      <div class="scroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px">${[1, 2, 3, 4, 5, 6, 7, 8].map(n => `<button class="mw ${S.mw === n ? 'on' : ''}" data-mw="${n}">MW ${n}</button>`).join('')}</div>
+      <div class="scroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px">${[...new Set(SPL.matches.map(x => x[0]))].sort((a, b) => a - b).map(n => `<button class="mw ${S.mw === n ? 'on' : ''}" data-mw="${n}">MW ${n}</button>`).join('')}</div>
       ${Object.keys(groups).sort().map(d => `<div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">${fmtDate(d)}</span><div class="card" style="padding:0 4px">${groups[d].map(fixRow).join('')}</div></div>`).join('')}`;
   }
 
@@ -450,7 +454,7 @@
     const rowsFor = k => {
       if (prev) return played().filter(x => x[2] === k || x[3] === k).slice(-5).map(x => { const h = x[2] === k, gf = h ? x[4][0] : x[4][1], ga = h ? x[4][1] : x[4][0], res = gf > ga ? 'W' : gf < ga ? 'L' : 'D';
         return { mw: x[0], opp: h ? x[3] : x[2], ha: h ? 'H' : 'A', pill: `<span class="fpill" style="background:${RC[res]};color:${res === 'D' ? 'var(--ink)' : '#fff'}">${gf} - ${ga}</span>` }; });
-      return SPL.matches.map((x, i) => [x, i]).filter(([x, i]) => i !== S.match && !x[4] && !(liveOf(i) || {}).started && x[1] >= TODAY && (x[2] === k || x[3] === k)).slice(0, 5)
+      return SPL.matches.map((x, i) => [x, i]).filter(([x, i]) => i !== S.match && !x[4] && !(liveOf(i) || {}).started && x[1] >= TODAY && (x[2] === k || x[3] === k)).sort((a, b) => a[0][1] < b[0][1] ? -1 : 1).slice(0, 5)
         .map(([x]) => ({ mw: x[0], opp: x[2] === k ? x[3] : x[2], ha: x[2] === k ? 'H' : 'A', pill: `<span class="fpill" style="background:var(--soft2,rgba(255,255,255,.1));color:var(--ink)">${new Date(x[1] + 'T12:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>` }));
     };
     const block = k => { const rs = rowsFor(k); return `<div style="display:flex;align-items:center;gap:10px">${crest(k, 30)}<span class="d" style="font-size:17px">${short(k)}</span></div>` +
@@ -606,7 +610,7 @@
     const news = NEWS_().filter(n => nm.test(n.title + ' ' + n.dek + ' ' + n.body)).slice(0, 4);
     const vids = CLUBVID.filter(v => v.k === k || nm.test(v.title)).slice(0, 4);
     const sec = (t, link, inner) => `<div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:22px">${t}</span>${link || ''}</div>${inner}</div>`;
-    const IMGN = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png' };
+    const IMGN = SPLSTORE.IMG;
     const ncard = n => `<button class="rowlink" data-article="${E(n.id)}" style="flex:none;width:270px;display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--ink)">${n.img && IMGN[n.img] ? `<span class="nimg" style="height:152px;background-image:url(${IMGN[n.img]})"></span>` : `<span style="height:152px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:${c.c}">${crest(k, 64)}</span>`}<span class="d" style="font-size:17px;line-height:1.05">${E(n.title)}</span><span class="lbl">${E(n.tag)} · ${ndate(n.date)}</span></button>`;
     const vcard = v => `<button class="rowlink" data-video="${v.id}" style="flex:none;width:270px;display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--ink)"><span class="th" style="height:152px;background-color:#1C1A4A;${ytThumb(v.id)}"><span aria-hidden="true" style="position:absolute;left:10px;bottom:10px;width:28px;height:28px;background:#fff;color:#0B0F2E;display:flex;align-items:center;justify-content:center">${ICON.play}</span></span><span style="font-size:14px;font-weight:600;line-height:1.3">${v.title}</span><span class="lbl">${C[v.k].short} channel · ${v.date} · ${v.len}</span></button>`;
     const strip = h => `<div class="scroll" style="display:flex;gap:14px;overflow-x:auto;margin:0 -20px;padding:0 20px">${h}</div>`;

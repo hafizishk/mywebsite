@@ -5,6 +5,11 @@
    Loaded after data.js, before app.js / admin.js. */
 var SPLSTORE = (function () {
   'use strict';
+  // news pictures: the league's own (spl.sg's photo for each story, 9 Nov). A story without one takes its spl.sg photo by id.
+  const IMG = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png',
+    'ph-MW6R': 'assets/news/mw6-roundup.jpg', 'ph-MW6P': 'assets/news/mw6-preview.jpg', 'ph-MW5R': 'assets/news/mw5-roundup.jpg', 'ph-MW5P': 'assets/news/mw5-preview.jpg',
+    'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg' };
+  const NEWS_IMG = { n10: 'ph-MW6R', n3: 'ph-MW4R', n4: 'ph-MW4R', n5: 'ph-MW3R', n7: 'ph-SPL', n8: 'ph-MW5P', n9: 'ph-MW4P', n6: 'ph-SPL' };
   const KEY = 'spl-admin', EVK = 'spl-events';
   const C = SPL.clubs, sh = k => C[k].short;
   const sc = m => `${m[4][0]}–${m[4][1]}`;
@@ -71,7 +76,7 @@ var SPLSTORE = (function () {
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
   function clean(d) {
     const def = DEF(), out = {};
-    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, ''), status: n.status === 'draft' ? 'draft' : 'live' })) : def.news;
+    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', status: n.status === 'draft' ? 'draft' : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
     out.lead = str(d.lead, def.lead);
     out.pushes = Array.isArray(d.pushes) ? d.pushes.filter(isObj).slice(-200).map(p => ({ id: str(p.id, ''), at: +p.at || 0, title: str(p.title, ''), body: str(p.body, ''), aud: str(p.aud, 'all'), kind: str(p.kind, 'manual'), match: Number.isInteger(p.match) ? p.match : null })) : [];
     out.live = {};
@@ -115,5 +120,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, read, write, update, reset, track, events, esc };
 })();

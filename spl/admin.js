@@ -367,8 +367,8 @@
   }
 
   const TAGS = ['Preview', 'Roundup', 'Review', 'Fixtures', 'Club news', 'Announcement', 'Interview'];
-  const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration']];
-  const IMG_URL = { 'bn-DERBY': 'assets/news/eastern-derby-poster.png', 'bn-SAILORS': 'assets/news/sailors-celebration.png' };
+  const IMGS = [['', 'No image'], ['bn-DERBY', 'Eastern Derby poster'], ['bn-SAILORS', 'Sailors celebration'], ['ph-MW6R', 'Matchweek 6: Tanjong Pagar v Jurong'], ['ph-MW6P', 'Matchweek 5: Jurong v Tampines'], ['ph-MW5R', 'Matchweek 5: Young Lions v Balestier'], ['ph-MW5P', 'Matchweek 5 preview photo'], ['ph-MW4R', 'Matchweek 4 roundup photo'], ['ph-MW4P', 'Matchweek 3: Tanjong Pagar v Tampines'], ['ph-MW3R', 'Matchweek 3 roundup photo'], ['ph-SPL', 'SPL logo']];
+  const IMG_URL = SPLSTORE.IMG;
   function news() {
     const list = D.news.slice().sort((a, b) => b.date.localeCompare(a.date));
     const n = A.news === 'new' ? { id: '', tag: 'Announcement', date: new Date().toISOString().slice(0, 10), title: '', dek: '', body: '', img: '', status: 'draft' } : D.news.find(x => x.id === A.news);
