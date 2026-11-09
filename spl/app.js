@@ -719,7 +719,7 @@
     const ord = n => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
     const slide = S.pickDir ? (S.pickDir > 0 ? 'pk-in-r' : 'pk-in-l') : '';
     const arrow = (d, path, lab) => `<button class="pk-arrow" data-pnav="${d}" aria-label="${lab}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#E8363D"><path d="${path}"/></svg></button>`;
-    return `<div style="display:flex;flex-direction:column;gap:4px;padding-top:24px"><span class="lbl">Step 2 of 2</span><span class="d" style="font-size:26px;line-height:.95">Who do you support?</span></div>
+    return `<div style="display:flex;flex-direction:column;gap:4px;padding-top:24px"><span class="lbl">Step 2 of 2</span><span class="d" style="font-size:26px;line-height:.95">Select your favourite team</span><span style="font-size:13px;color:#7CF2C2;margin-top:4px">You can change it anytime in Settings</span></div>
       ${pickCore()}
       <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px"><button class="btn" data-ob="done" style="width:100%;border-top:3px solid ${c.c}">Follow ${c.short}</button><button class="rowlink" data-ob="skip" style="text-align:center;padding:12px;color:var(--muted);font:600 13px 'Inter',sans-serif">Neutral — show me everything</button></div>`;
   }
