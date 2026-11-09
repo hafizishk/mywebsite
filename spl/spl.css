@@ -509,3 +509,6 @@ button:disabled{cursor:default}
 .adl{width:42px;height:28px;background:url(assets/partners/adidas.png) center/contain no-repeat}
 .ssheet{z-index:400!important}.ssh{padding-bottom:calc(36px + var(--safe-area-inset-bottom,0px))!important}
 .szs{display:flex;gap:6px;flex-wrap:wrap}.szs span{min-width:44px;height:36px;padding:0 8px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 12px Inter,sans-serif;background:rgba(255,255,255,.08);color:#fff}.szs span.out{opacity:.35;text-decoration:line-through}
+.noimg{display:flex!important;align-items:center;justify-content:center;background:linear-gradient(150deg,#E8363D,#8E1E4B)!important;color:rgba(255,255,255,.9)}
+.sp{position:relative}.sp .rt{font:600 11px 'Inter',sans-serif;color:var(--muted)}.sp .rt::first-letter{color:#F5C518}
+.sp.gone .im{filter:grayscale(1);opacity:.5}.soldout{position:absolute;left:10px;top:10px;font:800 10px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;background:rgba(5,7,24,.85);color:#fff;padding:4px 8px;border-radius:8px}
