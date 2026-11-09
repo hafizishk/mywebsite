@@ -416,3 +416,18 @@ button:disabled{cursor:default}
 .hero.split .sp-btns{display:flex;gap:10px}.hero.split .sp-btns>span{flex:1;text-align:center;justify-content:center}
 /* news: the story buttons are text blocks, not rounded cards (the round corner clipped the first and last letters) */
 #app button.rowlink[data-article],#app button.news{border-radius:0!important;overflow:visible}
+/* match centre before kick-off, option B (Hafiz, 9 Nov): club glows, countdown, tickets first */
+.mhead{position:relative;overflow:hidden;padding:18px;display:flex;flex-direction:column;gap:14px}
+.mhead::before,.mhead::after{content:'';position:absolute;top:24px;width:230px;height:230px;border-radius:50%;pointer-events:none;opacity:.55}
+.mhead::before{left:-70px;background:radial-gradient(circle,var(--hc),transparent 66%)}.mhead::after{right:-70px;background:radial-gradient(circle,var(--ac),transparent 66%)}
+.mhead>*{position:relative;z-index:1}
+.mh-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
+.mh-club{display:flex!important;flex-direction:column;align-items:center;gap:7px;text-align:center;color:var(--ink)}.mh-club .d{font-size:16px;line-height:1}
+.mh-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:96px}.mh-mid b{font-size:34px;line-height:1}
+.mh-act{display:flex;align-items:flex-start;gap:12px}
+.mh-tix{flex:1;height:52px;border-radius:26px;border:0;background:#fff;color:#15142A;font:700 16px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+#app[data-look=light] .mh-tix{background:#15142A;color:#fff}
+.mh-ic{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;cursor:pointer;font:600 10px 'Inter',sans-serif;color:var(--muted);text-decoration:none}
+.mh-ic>span{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:var(--ink)}
+#app[data-look=light] .mh-ic>span{background:rgba(21,20,42,.06);border-color:rgba(21,20,42,.1)}
+.mh-ic.on>span{background:#E8363D;border-color:#E8363D;color:#fff}.mh-ic.on{color:var(--ink)}

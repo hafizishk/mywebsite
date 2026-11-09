@@ -246,6 +246,24 @@
   const formL = k => played().filter(m => m[2] === k || m[3] === k).slice(-5).map(m => { const h = m[2] === k, gf = h ? m[4][0] : m[4][1], ga = h ? m[4][1] : m[4][0]; return gf > ga ? 'W' : gf < ga ? 'L' : 'D'; });
   const FCOL = { W: '#3DD68C', D: '#A9A6C9', L: '#E8363D' };
   const formChips = k => formL(k).map(x => `<span class="fchip" style="--fc:${FCOL[x]}">${x}</span>`).join('');
+  // kick-off countdown (match centre, Hafiz 9 Nov, option B): the demo's date (TODAY) at the phone's time of day
+  const kickAt = m => { const t = String(m[7] || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); if (!t) return null; const h = +t[1] % 12 + (/PM/i.test(t[3]) ? 12 : 0); return new Date(`${m[1]}T${String(h).padStart(2, '0')}:${t[2]}:00`); };
+  const nowDemo = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return new Date(`${TODAY}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`); };
+  const countdown = m => { const k = kickAt(m); if (!k) return null; const ms = k - nowDemo(); if (ms <= 0) return { big: 'Soon', unit: 'kick-off' };
+    const mins = Math.floor(ms / 60000), d = Math.floor(mins / 1440); if (d >= 1) return { big: String(d), unit: d === 1 ? 'day' : 'days' };
+    return { big: `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`, unit: 'hrs · min' }; };
+  const BELL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg>';
+  const CALI = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+  // before kick-off: each club's colour glowing behind its crest, the countdown between them, then tickets, alerts, calendar
+  const preHead = (m, r, i) => { const c = countdown(m), today = m[1] === TODAY, on = !!P.reminders[i];
+    return `<div class="card mhead" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${E(r.venue)}</span>
+      <div class="mh-row"><button class="rowlink mh-club" data-club="${m[2]}">${crest(m[2], 66)}<span class="d">${r.hname}</span><span class="lbl">${posText(m[2])}</span></button>
+        <div class="mh-mid">${c ? `<span class="lbl" style="color:#FFD1D3">Kick-off in</span><b class="d mono" data-count="${i}">${c.big}</b><span class="lbl" style="font-size:10px" data-countu="${i}">${c.unit}</span>` : `<b class="d">VS</b>`}</div>
+        <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
+      <span class="lbl" style="text-align:center">${today ? 'Tonight' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>
+      <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets</button>
+        <button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button>
+        <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
   const heroCard = (r, blurb) => { const L = r.L, on = L && L.started, last = on ? L.fired.filter(e => e[3] !== 'FT').slice(-1)[0] : null;
     const h = C[r.home], a = C[r.away], m = SPL.matches[r.id];
     return `<button class="card hero split" data-match="${r.id}" style="--hc:${h.c};--hf:${h.cf};--ac:${a.c};--af:${a.cf}">
@@ -511,11 +529,11 @@
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${r.when} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')}</span>
+      ${m[4] ? `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${r.when} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')}</span>
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.hname}</span></div><span class="d mono" style="font-size:${r.sc === 'VS' ? 40 : 54}px;line-height:1">${r.sc}</span><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.aname}</span></div></div>
         ${m[4] ? scorerGrid(m, realGoals(m)) : ''}
         <span class="lbl" style="text-align:center;${m[4] ? 'padding-top:12px;border-top:1px solid var(--line)' : ''}">${r.venue}${m[4] ? ' · meWATCH · Attendance [FROM FAS]' : ''}</span>
-        ${m[4] ? '' : `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><a class="btn2" style="box-sizing:border-box;width:100%;min-height:40px;padding:0 6px;font-size:12px;white-space:nowrap;text-decoration:none" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${S.match}">${P.cal[S.match] ? 'In calendar' : 'Calendar'}</a><button class="btn2" style="box-sizing:border-box;width:100%;min-height:40px;padding:0 6px;font-size:12px;white-space:nowrap;text-decoration:none" data-remind="${S.match}">${P.reminders[S.match] ? 'Reminder set' : 'Remind me'}</button><button class="btn" style="box-sizing:border-box;width:100%;min-height:40px;padding:0 6px;font-size:12px;white-space:nowrap;text-decoration:none" data-tickets="${S.match}">Tickets</button></div>`}</div>
+        </div>` : preHead(m, r, S.match)}
       <div class="tabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -963,7 +981,7 @@
     const now = Date.now();
     STORE.pushes.forEach(p => { if (seenPush.has(p.id) || p.at > now) return; seenPush.add(p.id);
       const club = p.aud.startsWith('club:') ? p.aud.slice(5) : null;
-      if (club && !(P.follows[club] || P.fav === club)) return;
+      if (club && !(P.follows[club] || P.fav === club || (p.match != null && P.reminders[p.match]))) return;
       if (p.kind === 'live' && !P.settings.push.goals) return;
       if (p.kind === 'manual' && p.aud === 'news' && !P.settings.push.news) return;
       S.toast = { title: E(p.title), body: E(p.body), k: club || (p.match !== null && SPL.matches[p.match] ? SPL.matches[p.match][2] : ''), at: now, match: p.match };
@@ -971,12 +989,12 @@
   }
   function tick() {
     duePushes();
-    if (!S.sim) { if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null; app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); if (Date.now() - lastTouch < 700) return; const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); } return; }
+    if (!S.sim) { if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null; app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } }); if (Date.now() - lastTouch < 700) return; const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); } return; }
     const prev = S.sim.T, end = Math.max(...LIVE_IDS.map(ftT));
     const now = Date.now(), dt = Math.min(600, (now - (S.sim.at || now)) / 1000); S.sim.at = now;
     if (S.sim.run) { S.sim.T = Math.min(end, prev + (dt / SEC_PER_MIN) * S.sim.rate); fire(prev, S.sim.T); if (S.sim.T >= end) S.sim.run = false; }
     if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null;
-    app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; });
+    app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } });
     if (Date.now() - lastTouch < 700) return;
     const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); }
   }
