@@ -11,7 +11,7 @@ var SPLSTORE = (function () {
     'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg',
     'R6-1': 'assets/news/mw6r-1.jpg', 'R6-2': 'assets/news/mw6r-2.jpg', 'R6-3': 'assets/news/mw6r-3.jpg', 'R6-4': 'assets/news/mw6r-4.jpg', 'R6-5': 'assets/news/mw6r-5.jpg', 'R6-6': 'assets/news/mw6r-6.jpg', 'R6-7': 'assets/news/mw6r-7.jpg', 'R6-8': 'assets/news/mw6r-8.jpg' };
   // shop photos (FAS's Shopee Mall listings, 9 Nov 2026), as library keys 'shop:<name>'
-  ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain', 'hgu-home', 'lcs-away', 'lcs-awayb', 'yls-home', 'gey-home'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
+  ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain', 'hgu-home', 'lcs-away', 'lcs-awayb', 'yls-home', 'gey-home', 'lcs-home'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
   // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
   const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
   const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
@@ -101,7 +101,7 @@ var SPLSTORE = (function () {
     ['', 'Singapore Fan Scarf', 'lions', 'gear', '15.00', 0, '', '4.8', 217, 1],
     ['', 'Singapore Home Stadium Jersey 2024', 'lions', 'jersey', '115.00', 0, '', '5.0', 46, 1],
     ['hgu-home', 'KELME x Hougang United, Men\'s Player Home Regular Fit', 'clubs', 'jersey', '49.90', 0, '50% 45%', '', 0, 0, '', 'HGU'],
-    ['', 'Lion City Sailors 26/27 Home Jersey, Stripes Of Home', 'clubs', 'jersey', '99.00', 0, '', '', 0, 0, '', 'LCS', 'lcs-home'],
+    ['lcs-home', 'Lion City Sailors 26/27 Home Jersey, Stripes Of Home', 'clubs', 'jersey', '99.00', 0, '50% 30%', '', 0, 0, '', 'LCS'],
     ['lcs-away', 'Lion City Sailors 26/27 Away Jersey, Charting The Course', 'clubs', 'jersey', '99.00', 0, '50% 30%', '', 0, 0, 'lcs-awayb', 'LCS'],
     ['', 'BG Tampines Rovers FC 2024/25 Home Jersey', 'clubs', 'jersey', '60.00', 0, '', '', 0, 0, '', 'TAM', 'tam-home'],
     ['gey-home', 'FBT x GIFC 2026 Jersey, Unisex Home (Green/White)', 'clubs', 'jersey', '60.00', 0, '50% 50%', '', 0, 0, '', 'GEY'],
