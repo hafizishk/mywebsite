@@ -825,7 +825,7 @@
     ['ball', 'adidas TIRO Pro 26, SPL official match ball', 'league', 'gear', '[PRICE]', 0, '58% 50%'],
     ['home', 'Singapore 26/27 Home Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '4.9', 768],
     ['away', 'Singapore 26/27 Away Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '5.0', 128],
-    ['', 'Fan Jersey', 'lions', 'jersey', '14.90', 40, '', '4.9', 419],
+    ['fanjersey', 'Fan Jersey', 'lions', 'jersey', '14.90', 40, '50% 35%', '4.9', 419],
     ['asean2004', 'Singapore 2004 ASEAN Champions Jersey', 'lions', 'retro', '35.00', 0, '44% 50%', '4.9', 305],
     ['retro94', 'Singapore 1994 Double Commemorative Jersey', 'lions', 'retro', '35.00', 0, '50% 30%', '4.9', 327],
     ['', '1998 Inspired Limited Edition Jersey', 'lions', 'retro', '35.00', 0, '', '4.9', 422],
