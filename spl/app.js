@@ -1280,6 +1280,17 @@
   app.addEventListener('touchend', e => { if (shY == null) return; const dy = e.changedTouches[0].clientY - shY, dx = e.changedTouches[0].clientX - shX; shY = shX = null;
     if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx) >= 60) shortGo(dx < 0 ? 1 : -1); return; } if (Math.abs(dy) < 60) return;
     shortGo(dy < 0 ? 1 : -1); }, { passive: true });
+  // with a mouse (the laptop page, a browser), the sideways rows drag like a swipe; a drag doesn't count as a tap
+  if (matchMedia('(pointer:fine)').matches) {
+    let drag = null;
+    const rowAt = el => { for (; el && el !== app; el = el.parentElement) { const cs = getComputedStyle(el); if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 4) return el; } return null; };
+    app.addEventListener('mousedown', e => { if (e.button) return; const r = rowAt(e.target); if (r) drag = { r, x: e.clientX, l: r.scrollLeft, moved: false, snap: r.style.scrollSnapType }; });
+    addEventListener('mousemove', e => { if (!drag) return; const dx = e.clientX - drag.x; if (Math.abs(dx) > 5 && !drag.moved) { drag.moved = true; drag.r.style.scrollSnapType = 'none'; drag.r.style.cursor = 'grabbing'; }
+      if (drag.moved) { drag.r.scrollLeft = drag.l - dx; e.preventDefault(); } });
+    addEventListener('mouseup', () => { if (!drag) return; const d = drag; drag = null; d.r.style.cursor = ''; if (d.moved) { d.r.style.scrollSnapType = d.snap;
+      const eat = ev => { ev.stopPropagation(); ev.preventDefault(); }; app.addEventListener('click', eat, { capture: true, once: true }); setTimeout(() => app.removeEventListener('click', eat, { capture: true }), 0); } });
+    app.addEventListener('dragstart', e => { if (rowAt(e.target)) e.preventDefault(); });
+  }
   window.SPLAPP = { state: S, render, go: v => { S.view = v; S.story = null; render(); }, sim: simStart, openMatch: i => { S.story = null; S.from = 'home'; S.view = 'match'; S.match = i; S.mtab = 'overview'; render(); }, remindSync, closeStory: () => { if (S.short != null) { S.short = null; render(); return true; } if (!S.story) return false; S.story = null; render(); return true; }, reschedule };
   if (/[?&]live\b/.test(location.search) && P.user !== undefined) simStart();
   // the admin and the app share the store: a change in one tab shows in the other straight away
