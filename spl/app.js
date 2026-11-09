@@ -1014,6 +1014,9 @@
     const el = app.querySelector('.screen'), top = el ? el.scrollTop : 0, fid = document.activeElement && document.activeElement.id;
     const bare = S.view === 'onboard';
     app.dataset.club = theme(); app.dataset.look = P.settings.look === 'light' ? 'light' : 'dark';
+    // Must-see moments: keep a still of the outgoing clip so it can slide out while the next one slides in (like Stories)
+    const oldV = app.querySelector('.shorts .sh-vid'), oldKey = oldV && oldV.getAttribute('key'), ghost = oldV && oldV.cloneNode(true);
+    if (ghost) ghost.querySelectorAll('iframe').forEach(f => f.remove());
     app.innerHTML = `<div class="screen" style="${S.view === 'home' ? '' : S.view === 'club' ? 'padding-top:0' : 'padding-top:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 54px)'}${bare ? ';padding-bottom:30px' : ''}">${SCREEN[S.view]()}</div>
       ${bare ? '' : `<nav class="navbar" aria-label="Main">${NAV.map(([v, l, i, views]) => `<button class="nav ${views.includes(S.view) ? 'on' : ''} ${v === 'clubs' ? 'mid' : ''}" data-go="${v}">${v === 'clubs' ? `<span class="nav-up">${i}</span>` : i}${l}</button>`).join('')}</nav>`}<div class="sbar ${S.view === 'club' ? 'clear' : ''}"></div>${shortEl()}<div id="chrome">${demoBar()}${toastEl()}</div>${storyEl()}${authEl()}`;
     // the club hero runs up behind the status bar; the strip fills in once the hero has scrolled away
@@ -1022,6 +1025,8 @@
     if (stage) { let x0 = null; stage.addEventListener('pointerdown', e => { x0 = e.clientX; }); stage.addEventListener('pointerup', e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) pickBy(dx < 0 ? 1 : -1); }); const on = app.querySelector('.pk-c.on'), strip = app.querySelector('#pkstrip'); if (on && strip) strip.scrollLeft = on.offsetLeft - strip.clientWidth / 2 + on.clientWidth / 2; S.pickDir = 0; }
     if (fid === 'crG') { const g = app.querySelector('#crG'); if (g) { g.focus(); g.setSelectionRange(g.value.length, g.value.length); } }
     const sq = app.querySelector('#sq'); if (sq) { sq.focus(); sq.setSelectionRange(sq.value.length, sq.value.length); sq.oninput = e => { S.sq = e.target.value; S.keepScroll = true; render(); }; }
+    const newV = app.querySelector('.shorts .sh-vid');
+    if (ghost && newV && newV.getAttribute('key') !== oldKey) { ghost.className = 'sh-vid ' + (S.shDir < 0 ? 'out-right' : 'out-left'); ghost.setAttribute('aria-hidden', 'true'); newV.before(ghost); setTimeout(() => ghost.remove(), 360); }
     const shf = app.querySelector('.shorts iframe'); if (shf) shf.addEventListener('load', () => { ytListen(shf); setTimeout(() => shf.classList.add('ready'), 350); }); else { clearInterval(ytPing); ytFor = null; }
     if (S.keepScroll) { app.querySelector('.screen').scrollTop = top; S.keepScroll = false; }
     const vk = S.view + (S.view === 'home' ? ':' + S.htab : S.view === 'match' ? ':' + S.mtab : S.view === 'stats' ? ':' + S.ttab : S.view === 'club' ? ':' + S.club : '');

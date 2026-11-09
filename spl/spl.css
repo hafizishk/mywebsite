@@ -246,7 +246,7 @@ button:disabled{cursor:default}
 .shorts{position:absolute;inset:0;z-index:21;background:#000;overflow:hidden}.shorts.opening{animation:drop .3s cubic-bezier(.2,.9,.3,1)}
 .shorts .sh-vid{position:absolute;inset:0;background:#000 center/cover no-repeat}
 .shorts .sh-vid.in-up{animation:shUp .32s cubic-bezier(.2,.9,.3,1)}.shorts .sh-vid.in-down{animation:shDown .32s cubic-bezier(.2,.9,.3,1)}
-@keyframes shUp{from{transform:translateX(100%)}}@keyframes shDown{from{transform:translateX(-100%)}}
+@keyframes shUp{from{transform:translateX(100%)}}@keyframes shDown{from{transform:translateX(-100%)}}.shorts .sh-vid.out-left{animation:shOutL .32s cubic-bezier(.2,.9,.3,1) forwards;pointer-events:none}.shorts .sh-vid.out-right{animation:shOutR .32s cubic-bezier(.2,.9,.3,1) forwards;pointer-events:none}@keyframes shOutL{to{transform:translateX(-100%)}}@keyframes shOutR{to{transform:translateX(100%)}}
 .shorts iframe{position:absolute;top:0;left:50%;height:100%;aspect-ratio:9/16;min-width:100%;transform:translateX(-50%);border:0;opacity:0;transition:opacity .25s}.shorts iframe.ready{opacity:1}
 .shorts .sh-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 18%,rgba(0,0,0,0) 58%,rgba(0,0,0,.85) 100%)}
 .shorts .sh-zone{position:absolute;top:110px;bottom:170px;width:32%;background:none;border:0;padding:0;cursor:pointer;z-index:2;touch-action:none}
