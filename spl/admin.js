@@ -753,7 +753,7 @@
         <button class="ib" data-setlook="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
         <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
         <span class="newwrap"><button class="new" data-newmenu="1">+ New</button>${A.newOpen ? `<div class="nmenu"><button data-qnews="1">${icon('news')}Story</button><button data-page="push">${icon('push')}Notification</button><button data-console="${TONIGHT[0]}">${icon('matchday')}Live game</button><button data-page="votes">${icon('votes')}Goal of the Month</button></div>` : ''}</span>
-        <span class="me" title="${E(CL.on ? CL.state.email : '')}">${E(initials(myName()))}${CL.on ? `<span class="mmenu"><b>${E(myName())}</b><span class="note">${E(CL.state.email)}</span><button class="lnk" data-signout="1">Sign out</button></span>` : ''}</span></header>
+        <span class="me" tabindex="0" title="${E(CL.on ? CL.state.email : '')}">${E(initials(myName()))}${CL.on ? `<span class="mmenu"><b>${E(myName())}</b><span class="note">${E(CL.state.email)}</span><button class="lnk" data-signout="1">Sign out</button></span>` : ''}</span></header>
       <main class="main">${PAGES[A.page][1]()}</main></div>${A.flash ? `<div class="flash">${E(A.flash)}</div>` : ''}`;
     document.scrollingElement.scrollTop = keep;
     if (focusQ) { const el = document.getElementById('gq'); el.focus(); el.setSelectionRange(caret, caret); }
