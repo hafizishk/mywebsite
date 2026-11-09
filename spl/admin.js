@@ -625,12 +625,12 @@
 
   // ---------- Shop (Hafiz, 9 Nov, option A): the office adds each product with its Shopee link and photos ----------
   // Phase 2 (option C): FAS's Shopee seller account connected through Shopee's Open Platform, so photos, prices and stock sync nightly.
-  const SH_TAB = { league: 'League · adidas', lions: 'Lions · FAS on Shopee' }, SH_KIND = { jersey: 'Jersey', retro: 'Retro', gear: 'Fan gear' };
+  const SH_TAB = { league: 'League · adidas', lions: 'Lions · FAS on Shopee', clubs: 'A club' }, SH_KIND = { jersey: 'Jersey', retro: 'Retro', gear: 'Fan gear' };
   const SH_POS = [['50% 15%', 'Top'], ['50% 50%', 'Centre'], ['50% 80%', 'Bottom']];
   const SH_LIB = Object.keys(SPLSTORE.IMG).filter(k => k.startsWith('shop:'));
   const keepShop = () => { const g = id => { const el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined; };
-    A.sDraft = { url: g('sUrl'), name: g('sName'), tab: g('sTab'), kind: g('sKind'), price: g('sPrice'), off: g('sOff'), rating: g('sRate'), sold: g('sSold'), out: g('sOut'), pos: g('sPos') }; };
-  const linkState = u => !u ? ['No link yet: Buy opens the store', 'var(--dim)'] : SPLSTORE.shopeeUrl(u) ? ['Shopee link', '#3DD68C'] : ['Not a Shopee link', '#FF9AA0'];
+    A.sDraft = { url: g('sUrl'), name: g('sName'), tab: g('sTab'), kind: g('sKind'), price: g('sPrice'), club: g('sClub'), off: g('sOff'), rating: g('sRate'), sold: g('sSold'), out: g('sOut'), pos: g('sPos') }; };
+  const linkState = u => !u ? ['No link yet: Buy opens the store', 'var(--dim)'] : SPLSTORE.shopeeUrl(u) ? ['Shopee link', '#3DD68C'] : SPLSTORE.shopLink(u) ? ['Shop link (not Shopee): fine for club and adidas kit', '#F5C518'] : ['Not a web address', '#FF9AA0'];
   function shop() {
     const L = D.shop, i = A.shopE, blank = { id: '', name: '', tab: 'lions', kind: 'jersey', price: '', off: 0, pos: '50% 50%', rating: '', sold: 0, out: false, url: '', imgs: [] };
     const p = i === 'new' ? blank : i != null && L[i] ? L[i] : null;
@@ -651,13 +651,14 @@
         <div class="grid2"><label class="fld"><span>Price S$</span><input class="in" id="sPrice" value="${E(v.price)}" placeholder="[PRICE]" inputmode="decimal"></label><label class="fld"><span>Discount %</span><input class="in" id="sOff" value="${v.off || ''}" placeholder="0" inputmode="numeric"></label></div>
         <label class="sktg"><span>Sold out</span><input type="checkbox" class="swi" id="sOut" ${v.out ? 'checked' : ''}></label>
         ${A.shopMore || i === 'new' ? `<div class="grid2"><label class="fld"><span>Section</span>${sel('sTab', Object.entries(SH_TAB), v.tab)}</label><label class="fld"><span>Kind</span>${sel('sKind', Object.entries(SH_KIND), v.kind)}</label>
+          <label class="fld"><span>Club · for a club's kit</span>${sel('sClub', [['', '—']].concat(Object.keys(C).map(k => [k, C[k].name])), v.club || '')}</label><span></span>
           <label class="fld"><span>Rating on Shopee</span><input class="in" id="sRate" value="${E(v.rating)}" placeholder="4.9"></label><label class="fld"><span>Sold on Shopee</span><input class="in" id="sSold" value="${v.sold || ''}" placeholder="0" inputmode="numeric"></label>
           <label class="fld"><span>Tile shows the</span>${sel('sPos', SH_POS.some(([k]) => k === v.pos) ? SH_POS : SH_POS.concat([[v.pos, 'As set']]), v.pos)}</label><label class="fld"><span>Or a photo already in the shop</span><select class="in" id="sLib"><option value="">Add…</option>${SH_LIB.map(k => `<option value="${k}">${E(k.slice(5))}</option>`).join('')}</select></label></div>
           ${i !== 'new' ? `<div style="display:flex;gap:14px"><button class="lnk" data-shopmv="${i}:-1">Move earlier</button><button class="lnk" data-shopmv="${i}:1">Move later</button></div>` : ''}` : `<button class="lnk" style="align-self:flex-start" data-shopmore="1">More: section, kind, rating, order</button>`}
         <div style="display:flex;gap:10px;align-items:center"><button class="btn" data-shopsave="1">${i === 'new' ? 'Add to the shop' : 'Save'}</button><span style="flex:1"></span>${i !== 'new' ? `<button class="lnk" style="color:#FF9AA0" data-shopdel="${i}">Remove</button>` : ''}</div></div>` : '';
     return `<div class="skh"><div><h1>Shop</h1><p>${L.length} products · Buy in the app opens each one on FAS's Shopee store</p></div><span style="flex:1"></span><button class="btn2" data-shopstoreopen="1">Store link</button><button class="btn" data-shopnew="1">Add product</button></div>
       ${A.shopStore ? `<div class="skw" style="flex-direction:row;align-items:flex-end;gap:12px"><label class="fld" style="flex:1"><span>FAS's store on Shopee · the Lions banner, and any product without its own link, open this</span><input class="in" id="shStore" value="${E(D.shopUrl)}"></label><button class="btn" data-shopstore="1">Save</button><button class="lnk" data-shopstoreopen="1">Cancel</button></div>` : ''}
-      <div class="skf">${chip('all', 'All', L.length)}${chip('lions', 'Lions', L.filter(x => x.tab === 'lions').length)}${chip('league', 'League', L.filter(x => x.tab === 'league').length)}${noPic ? chip('nophoto', 'Needs a photo', noPic, 'warn') : ''}</div>
+      <div class="skf">${chip('all', 'All', L.length)}${chip('lions', 'Lions', L.filter(x => x.tab === 'lions').length)}${chip('league', 'League', L.filter(x => x.tab === 'league').length)}${chip('clubs', 'Clubs', L.filter(x => x.tab === 'clubs').length)}${noPic ? chip('nophoto', 'Needs a photo', noPic, 'warn') : ''}</div>
       <div class="skg ${v ? 'ed' : ''}"><div><div class="skc4">${shown.map(card).join('')}</div><p class="note" style="margin-top:22px">Coming in Phase 2: with FAS's Shopee seller account connected, photos, prices and stock update themselves every night.</p></div>${editor}</div>`;
   }
 
@@ -882,11 +883,12 @@
       save(d2 => { const a = d2.shop, x = a[j]; a[j] = a[k]; a[k] = x; }, 'Order saved.'); if (A.shopE === j) { A.shopE = k; A.sFor = k; } return; }
     if (d.shopstore) { const u = SPLSTORE.shopeeUrl(val('shStore')); if (!u) { flash('That isn\'t a Shopee address (shopee.sg or shp.ee).'); return; } save(d2 => { d2.shopUrl = u; }, 'Store link saved.'); A.shopStore = false; render(); return; }
     if (d.shopdel !== undefined) { const j = +d.shopdel; if (!confirm('Remove "' + D.shop[j].name + '" from the shop?')) return; save(d2 => { d2.shop.splice(j, 1); }, 'Removed from the shop.'); A.shopE = null; A.sFor = undefined; render(); return; }
-    if (d.shopsave) { keepShop(); const cur = A.shopE === 'new' ? { tab: 'lions', kind: 'jersey', pos: '50% 50%', rating: '', sold: 0 } : D.shop[A.shopE], r = Object.assign({}, cur, ...Object.keys(A.sDraft).filter(k => A.sDraft[k] !== undefined).map(k => ({ [k]: A.sDraft[k] }))), url = String(r.url || '').trim(), name = String(r.name || '').trim();
+    if (d.shopsave) { keepShop(); const cur = A.shopE === 'new' ? { tab: 'lions', club: '', kind: 'jersey', pos: '50% 50%', rating: '', sold: 0 } : D.shop[A.shopE], r = Object.assign({}, cur, ...Object.keys(A.sDraft).filter(k => A.sDraft[k] !== undefined).map(k => ({ [k]: A.sDraft[k] }))), url = String(r.url || '').trim(), name = String(r.name || '').trim();
       if (!name) { flash('Give the product a name.'); return; }
-      if (url && !SPLSTORE.shopeeUrl(url)) { flash('That link isn\'t a Shopee address. Copy it from the product page on shopee.sg.'); return; }
+      if (url && !(r.tab === 'lions' ? SPLSTORE.shopeeUrl(url) : SPLSTORE.shopLink(url))) { flash(r.tab === 'lions' ? 'Lions products link to Shopee. Copy the address from the product page on shopee.sg.' : 'That isn\'t a web address (https://…).'); return; }
+      if (r.tab === 'clubs' && !C[r.club]) { flash('Pick the club under More.'); return; }
       const pr = String(r.price || '').replace(/^S?\$\s*/i, '').trim(); if (pr && !/^\d{1,4}(\.\d{1,2})?$/.test(pr)) { flash('Price as a number, like 35 or 14.90.'); return; }
-      const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: String(r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url, imgs: (A.sImgs || []).slice(0, 4) };
+      const x = { id: A.shopE === 'new' ? uid('p') : D.shop[A.shopE].id, name, tab: r.tab, club: r.tab === 'clubs' ? r.club : '', kind: r.kind, price: pr ? (+pr).toFixed(2) : '', off: +r.off || 0, pos: r.pos || '50% 50%', rating: String(r.rating || '').trim(), sold: +r.sold || 0, out: !!r.out, url, imgs: (A.sImgs || []).slice(0, 4) };
       const isNew = A.shopE === 'new';
       save(d2 => { if (isNew) d2.shop.push(x); else d2.shop[A.shopE] = x; }, isNew ? 'Added to the shop. It\'s in the app now.' : 'Saved. The app has it now.');
       if (isNew) { A.shopE = D.shop.length - 1; A.sFor = A.shopE; } A.sDraft = null; render(); return; }

@@ -11,7 +11,7 @@ var SPLSTORE = (function () {
     'ph-MW4R': 'assets/news/mw4-roundup.jpg', 'ph-MW4P': 'assets/news/mw4-preview.jpg', 'ph-MW3R': 'assets/news/mw3-roundup.jpg', 'ph-SPL': 'assets/news/spl-notice.jpg',
     'R6-1': 'assets/news/mw6r-1.jpg', 'R6-2': 'assets/news/mw6r-2.jpg', 'R6-3': 'assets/news/mw6r-3.jpg', 'R6-4': 'assets/news/mw6r-4.jpg', 'R6-5': 'assets/news/mw6r-5.jpg', 'R6-6': 'assets/news/mw6r-6.jpg', 'R6-7': 'assets/news/mw6r-7.jpg', 'R6-8': 'assets/news/mw6r-8.jpg' };
   // shop photos (FAS's Shopee Mall listings, 9 Nov 2026), as library keys 'shop:<name>'
-  ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
+  ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain', 'hgu-home'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
   // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
   const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
   const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
@@ -99,11 +99,15 @@ var SPLSTORE = (function () {
     ['', 'The Lions Kids Fan Tee, Roar & Rise', 'lions', 'gear', '20.00', 0, '', '5.0', 68],
     ['', 'The Lions Kids Fan Tee, Classic Crest', 'lions', 'gear', '20.00', 0, '', '4.9', 57],
     ['', 'Singapore Fan Scarf', 'lions', 'gear', '15.00', 0, '', '4.8', 217, 1],
-    ['', 'Singapore Home Stadium Jersey 2024', 'lions', 'jersey', '115.00', 0, '', '5.0', 46, 1]
-  ].map((p, j) => ({ id: p[0] || 'p' + (j + 1), name: p[1], tab: p[2], kind: p[3], price: p[4], off: p[5], pos: p[6] || '50% 50%', rating: p[7], sold: p[8], out: !!p[9], url: '',
+    ['', 'Singapore Home Stadium Jersey 2024', 'lions', 'jersey', '115.00', 0, '', '5.0', 46, 1],
+    ['hgu-home', 'KELME x Hougang United, Men\'s Player Home Regular Fit', 'clubs', 'jersey', '49.90', 0, '50% 45%', '', 0, 0, '', 'HGU'],
+    ['', 'Lion City Sailors 26/27 Home Jersey, Stripes Of Home', 'clubs', 'jersey', '99.00', 0, '', '', 0, 0, '', 'LCS', 'lcs-home'],
+    ['', 'Lion City Sailors Varsity Tee, The Varsity Edit', 'clubs', 'gear', '59.00', 0, '', '', 0, 0, '', 'LCS', 'lcs-varsity']
+  ].map((p, j) => ({ id: p[12] || p[0] || 'p' + (j + 1), name: p[1], tab: p[2], club: p[11] || '', kind: p[3], price: p[4], off: p[5], pos: p[6] || '50% 50%', rating: p[7], sold: p[8], out: !!p[9], url: '',
     imgs: [p[0], p[10]].filter(Boolean).map(k => 'shop:' + k) }));
   // a Shopee address: the product page, a short link, or the store
   const shopeeUrl = u => typeof u === 'string' && /^https:\/\/(shopee\.sg|s\.shopee\.sg|shp\.ee|sg\.shp\.ee)\/[^\s"'<>]*$/.test(u.trim()) ? u.trim().slice(0, 400) : '';
+  const shopLink = u => shopeeUrl(u) || (typeof u === 'string' && /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/[^\s"'<>]*)?$/i.test(u.trim()) ? u.trim().slice(0, 400) : '');
   const DEF = () => ({ shop: seedShop(), shopUrl: SHOP_URL, news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
@@ -147,10 +151,11 @@ var SPLSTORE = (function () {
       list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };
     const shopImg = x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 500000));
     out.shop = Array.isArray(d.shop) ? d.shop.filter(isObj).slice(0, 60).map((x, j) => ({ id: str(x.id, 'p' + j).slice(0, 40), name: str(x.name, '').slice(0, 120),
-      tab: ['league', 'lions'].includes(x.tab) ? x.tab : 'lions', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
+      tab: ['league', 'lions', 'clubs'].includes(x.tab) ? x.tab : 'lions', club: x.tab === 'clubs' && C[x.club] ? x.club : '', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
       price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
-      rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: shopeeUrl(x.url),
+      rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: x.tab === 'lions' ? shopeeUrl(x.url) : shopLink(x.url),
       imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })).map(x => x.id === 'ball' && !x.price ? Object.assign(x, { name: def.shop[0].name, price: def.shop[0].price }) : x) : def.shop;
+    def.shop.filter(x => x.tab === 'clubs' && !out.shop.some(y => y.id === x.id)).forEach(x => out.shop.push(x)); // club kit added 9 Nov reaches saved stores too
     out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
@@ -163,5 +168,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, shopeeUrl, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, shopeeUrl, shopLink, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();
