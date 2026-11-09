@@ -159,7 +159,10 @@ var SPLSTORE = (function () {
       price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
       rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: x.tab === 'lions' ? shopeeUrl(x.url) : shopLink(x.url),
       imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })).map(x => x.id === 'ball' && !x.price ? Object.assign(x, { name: def.shop[0].name, price: def.shop[0].price }) : x) : def.shop;
-    def.shop.filter(x => x.tab === 'clubs' && !out.shop.some(y => y.id === x.id)).forEach(x => out.shop.push(x)); // club kit added 9 Nov reaches saved stores too
+    // kit and photos added to the seed reach saved stores too: a missing seed product is added, and a seed product saved
+    // before its photo or price arrived takes them from the seed
+    def.shop.forEach(x => { const y = out.shop.find(z => z.id === x.id); if (!y) { if (x.tab === 'clubs') out.shop.push(x); return; }
+      if (!y.imgs.length && x.imgs.length) { y.imgs = x.imgs.slice(); y.pos = x.pos; } if (!y.price && x.price) y.price = x.price; });
     out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
