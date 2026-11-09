@@ -271,6 +271,19 @@
       <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets${tixFrom(m[2]) ? `<small> from S$${tixFrom(m[2])}</small>` : ''}</button>
         <button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button>
         <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
+  // live and full time (Hafiz, 9 Nov, option B): the pre-match header's look, with the score in the middle, a bar for the
+  // match clock (red while live, a tick at half time), the scorers, then Watch (meWATCH live; the highlights after) and the bell
+  const playHead = (m, r, i, o) => { const on = !!P.reminders[i], hl = o.ft ? hlFor(i) : null, pct = o.ft ? 100 : Math.max(0, Math.min(100, (o.T || 0) / 90 * 100));
+    const mid = o.ft ? '<span class="lbl">Full time</span>' : o.started ? `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${i}">${o.clock}</span></span>` : '<span class="lbl">Team sheets in</span>';
+    const watch = hl ? `<button class="mh-tix" data-video="${hl.id}">Watch the highlights</button>` : `<a class="mh-tix" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="text-decoration:none;display:flex;align-items:center;justify-content:center">${o.ft ? 'Watch on meWATCH' : 'Watch live on meWATCH'}</a>`;
+    return `<div class="card mhead" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${E(r.venue)}</span>
+      <div class="mh-row"><button class="rowlink mh-club" data-club="${m[2]}">${crest(m[2], 66)}<span class="d">${r.hname}</span><span class="lbl">${posText(m[2])}</span></button>
+        <div class="mh-mid">${mid}<b class="d mono" style="font-size:${o.started || o.ft ? 56 : 40}px;line-height:1">${o.started || o.ft ? r.sc : 'VS'}</b></div>
+        <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
+      ${o.started || o.ft ? `<div class="mh-bar"><i data-bar="${o.ft ? '' : i}" style="width:${pct}%;background:${o.ft ? '#A9A6C9' : '#E8363D'}"></i><b></b></div>` : ''}
+      ${o.goals.length ? scorerGrid(m, o.goals) : ''}
+      <span class="lbl" style="text-align:center">${o.ft ? E(r.venue) + ' · meWATCH' : 'Live on meWATCH'}${crowdTag(i)}</span>
+      <div class="mh-act">${watch}<button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button></div></div>`; };
   // attendance in the match centre (Hafiz, 9 Nov, option A): once the official publishes it, at the end of the info line
   const crowdTag = i => { const x = STORE.crowd && STORE.crowd[i]; return x && x.attendance !== null ? ` · <b style="color:var(--ink)">Crowd ${x.attendance.toLocaleString()}</b>` : ''; };
   // the newsroom's preview and report for a game, once FAS publishes them (Hafiz, 9 Nov)
@@ -530,11 +543,8 @@
     const tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(L.ft ? [['potm', 'Vote']] : []);
     if (!tabs.some(t => t[0] === S.mtab)) S.mtab = 'overview';
     const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match) : pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
-    const head = L.ft ? '<span class="lbl" style="text-align:center">Full time</span>' : L.started ? `<span class="lbl" style="text-align:center;color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${S.match}">${L.clock}</span></span>` : '<span class="lbl" style="text-align:center">Kick-off 7.30PM · team sheets in</span>';
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px">${head}
-        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:10px"><button class="rowlink" data-club="${m[2]}" style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.hname}</span></button><span class="d mono" style="font-size:${L.started ? 58 : 40}px;line-height:1;padding-top:6px">${L.started ? r.sc : 'VS'}</span><button class="rowlink" data-club="${m[3]}" style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.aname}</span></button></div>${scorerGrid(m, simGoals(S.match, L))}
-        <span class="lbl" style="text-align:center;padding-top:12px;border-top:1px solid var(--line)">Matchweek ${m[0]} · ${r.venue} · meWATCH${crowdTag(S.match)}</span></div>
+      ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L) })}
       <div class="tabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -558,11 +568,7 @@
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      ${m[4] ? `<div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${r.when} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')}</span>
-        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.hname}</span></div><span class="d mono" style="font-size:${r.sc === 'VS' ? 40 : 54}px;line-height:1">${r.sc}</span><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 54)}<span class="d" style="font-size:14px;text-align:center;line-height:1">${r.aname}</span></div></div>
-        ${m[4] ? scorerGrid(m, realGoals(m)) : ''}
-        <span class="lbl" style="text-align:center;${m[4] ? 'padding-top:12px;border-top:1px solid var(--line)' : ''}">${r.venue}${m[4] ? ' · meWATCH' + crowdTag(S.match) : ''}</span>
-        </div>` : preHead(m, r, S.match)}
+      ${m[4] ? playHead(m, r, S.match, { ft: true, goals: realGoals(m) }) : preHead(m, r, S.match)}
       <div class="tabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -1112,12 +1118,12 @@
     ps.forEach((p, k) => p.classList.toggle('on', k === j)); bs.forEach((b, k) => { b.classList.toggle('on', k === j); b.classList.toggle('done', k < j); }); const t = c.querySelector('.nc-n'); if (t) t.textContent = `${j + 1} / ${n}`; }), 3000);
   function tick() {
     duePushes();
-    if (!S.sim) { if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null; app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } }); if (Date.now() - lastTouch < 700) return; const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); } return; }
+    if (!S.sim) { if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null; app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-bar]').forEach(el => { if (el.dataset.bar === '') return; const L = liveOf(+el.dataset.bar); if (L && !L.ft) el.style.width = Math.max(0, Math.min(100, L.T / 90 * 100)) + '%'; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } }); if (Date.now() - lastTouch < 700) return; const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); } return; }
     const prev = S.sim.T, end = Math.max(...LIVE_IDS.map(ftT));
     const now = Date.now(), dt = Math.min(600, (now - (S.sim.at || now)) / 1000); S.sim.at = now;
     if (S.sim.run) { S.sim.T = Math.min(end, prev + (dt / SEC_PER_MIN) * S.sim.rate); fire(prev, S.sim.T); if (S.sim.T >= end) S.sim.run = false; }
     if (S.toast && Date.now() - S.toast.at > 4500) S.toast = null;
-    app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } });
+    app.querySelectorAll('[data-clock]').forEach(el => { const L = liveOf(+el.dataset.clock); if (L && el.textContent !== L.clock) el.textContent = L.clock; }); app.querySelectorAll('[data-bar]').forEach(el => { if (el.dataset.bar === '') return; const L = liveOf(+el.dataset.bar); if (L && !L.ft) el.style.width = Math.max(0, Math.min(100, L.T / 90 * 100)) + '%'; }); app.querySelectorAll('[data-count]').forEach(el => { const c = countdown(SPL.matches[+el.dataset.count]); if (c && el.textContent !== c.big) { el.textContent = c.big; const u = app.querySelector(`[data-countu="${el.dataset.count}"]`); if (u) u.textContent = c.unit; } });
     if (Date.now() - lastTouch < 700) return;
     const key = simKey(); if (key !== lastKey) { lastKey = key; if (LIVE_VIEWS.includes(S.view)) { S.keepScroll = true; render(); } else renderChrome(); }
   }
