@@ -490,3 +490,22 @@ button:disabled{cursor:default}
 @media (prefers-reduced-motion: reduce){.gtile{animation:none}}
 .gtw{padding:16px 20px 22px!important;margin-top:-12px!important;margin-bottom:-12px!important}
 .body .bimg{display:block;width:calc(100% + 40px);margin:6px -20px 14px;height:auto;aspect-ratio:3/2;object-fit:cover}
+/* Shop (Hafiz, 9 Nov, option A) */
+.shead{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:linear-gradient(135deg,rgba(238,77,45,.32),rgba(124,92,255,.18));border:1px solid rgba(238,77,45,.4);color:#fff;text-decoration:none}
+.shead b{font:700 14px 'Inter',sans-serif}.shead span span{font:500 11px 'Inter',sans-serif;color:#FFD9CF}
+.fasb{width:44px;height:44px;flex:none;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:900 13px 'Archivo',sans-serif;font-style:italic;color:#0A2E7A}
+.shf{flex:none;height:32px;padding:0 14px;border-radius:16px;border:0;background:rgba(255,255,255,.08);color:var(--muted);font:600 12px 'Inter',sans-serif;cursor:pointer}.shf.on{background:#fff;color:#15142A}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sp{border-radius:16px!important;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;padding:0;cursor:pointer;text-align:left;color:var(--ink)}
+.sp .im{display:block;width:100%;aspect-ratio:1/1;background-color:#EEF0F2;background-size:cover;background-repeat:no-repeat}
+.sp .tx{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px}.sp .t{font:600 12.5px/1.3 'Inter',sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.sp .pr{font:800 15px 'Inter',sans-serif}.sp .was{font:500 11px 'Inter',sans-serif;color:var(--muted);text-decoration:line-through;margin-left:6px}.sp .off{font:800 10px 'Inter',sans-serif;color:#fff;background:#E8363D;border-radius:6px;padding:2px 6px;margin-left:6px;white-space:nowrap}
+.ssheet{position:fixed;inset:0;z-index:60;background:rgba(5,7,24,.6);display:flex;align-items:flex-end}.ssh{width:100%;background:#12143A;color:#fff;border-radius:24px 24px 0 0;padding:14px 20px calc(30px + var(--safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;box-sizing:border-box;animation:sheetup .3s cubic-bezier(.2,.9,.3,1)}
+.ssh .grab{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.25);align-self:center}.ssh .sim{width:120px;height:120px;flex:none;border-radius:14px;background-color:#EEF0F2;background-size:cover}
+.sbuy{height:50px;border-radius:25px;background:#EE4D2D;color:#fff;font:700 15px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;text-decoration:none}
+#app[data-look=light] .sp{background:#fff;border-color:rgba(21,20,42,.08)}#app[data-look=light] .shf{background:rgba(21,20,42,.06)}#app[data-look=light] .shf.on{background:#15142A;color:#fff}#app[data-look=light] .shead{color:#15142A}#app[data-look=light] .shead span span{color:#8A3A22}
+.sban{position:relative;height:170px;border-radius:20px;overflow:hidden;background:#0B0F2E}.sban .sbg{position:absolute;inset:0;background-size:cover;background-position:60% 50%;opacity:.85}
+.sban .sbt{position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;background:linear-gradient(90deg,rgba(11,15,46,.92) 0%,rgba(11,15,46,.55) 55%,rgba(11,15,46,0))}.sban b{font-size:26px;line-height:.95;color:#fff;max-width:60%}
+.adl{width:42px;height:28px;background:url(assets/partners/adidas.png) center/contain no-repeat}
+.ssheet{z-index:400!important}.ssh{padding-bottom:calc(36px + var(--safe-area-inset-bottom,0px))!important}
+.szs{display:flex;gap:6px;flex-wrap:wrap}.szs span{min-width:44px;height:36px;padding:0 8px;box-sizing:border-box;border-radius:10px;display:flex;align-items:center;justify-content:center;font:700 12px Inter,sans-serif;background:rgba(255,255,255,.08);color:#fff}.szs span.out{opacity:.35;text-decoration:line-through}

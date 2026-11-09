@@ -236,6 +236,7 @@
     cal: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     bars: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
     shield: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+    bag: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.5 8h13l-1.2 12.5H6.7z"/><path d="M9 8a3 3 0 016 0"/></svg>',
     cog: '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
     user: '<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>'
   };
@@ -373,7 +374,7 @@
     const head = `<div style="display:flex;align-items:center">
       <span class="spl-h" role="img" aria-label="Singapore Premier League" style="width:118px;height:44px;margin-left:-6px;flex:none"></span>
       <span class="aia" role="img" aria-label="AIA, title sponsor" style="width:28px;height:30px;margin-left:8px;flex:none"></span><span style="flex:1"></span>
-      <div style="display:flex;align-items:center;gap:8px"><button class="hbtn" aria-label="Settings" data-go="settings">${ICON.cog}</button><button class="hbtn" aria-label="Alerts" data-go="settings" data-focus="notif">${ICON.bell}</button>${meBtn()}</div>
+      <div style="display:flex;align-items:center;gap:8px"><button class="hbtn" aria-label="Settings" data-go="settings">${ICON.cog}</button><button class="hbtn" aria-label="Shop" data-go="shop">${ICON.bag}</button>${meBtn()}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="tabs">${[['tonight', 'Matchday'], ['news', 'News']].map(([k, l]) => `<button class="stab ${S.htab === k ? 'on' : ''}" data-htab="${k}">${l}</button>`).join('')}</div>
@@ -816,6 +817,30 @@
       ${q && !clubs.length && !players.length && !fixtures.length && !news.length ? `<span style="font-size:13px;color:var(--muted)">Nothing for "${S.sq}".</span>` : ''}`;
   }
 
+  // Shop (Hafiz, 9 Nov, option A): FAS's official store on Shopee Mall. Products, pictures and prices as listed there
+  // (9 Nov 2026); Buy opens Shopee to pay and deliver. The ball is adidas's TIRO Pro 26, the SPL's official match ball.
+  const SHOPEE = 'https://shopee.sg/search?keyword=football%20association%20of%20singapore';
+  const SHOP = [
+    ['ball', 'adidas TIRO Pro 26, SPL official match ball', 'league', '[PRICE]', '', '58% 50%'],
+    ['home', 'Singapore 26/27 Home Replica Jersey', 'lions', '99.00', '', '50% 12%'], ['away', 'Singapore 26/27 Away Replica Jersey', 'lions', '99.00', '', '50% 20%'],
+    ['cap', 'The Lions Fan Cap', 'lions', '12.00', '15.00', '42% 50%'], ['retro94', 'Singapore 1994 Double Commemorative Jersey', 'lions', '35.00', '', '50% 30%'],
+    ['asean2004', 'Singapore 2004 ASEAN Cup Jersey', 'lions', '35.00', '', '44% 50%'], ['keychain', 'The Lions Blindbox Keychain', 'lions', '10.00', '', '50% 60%']];
+  // the home jersey's Shopee page (9 Nov 2026): rating, sold, sizes in stock
+  const SHOPD = { home: { rate: '4.9', ratings: 279, sold: 768, sizes: [['XS', 0], ['S', 1], ['M', 0], ['L', 1], ['XL', 1], ['2XL', 1], ['3XL', 0]], ship: 'Get by tomorrow · 15-day free returns · 100% authentic' } };
+  // the deck's shop (League · Lions · Clubs): the league's adidas collection, FAS's Lions store on Shopee, each club's own shop
+  function shop() {
+    const f = ['league', 'lions', 'clubs'].includes(S.shopF) ? S.shopF : 'league', sel = S.shopP != null ? SHOP[S.shopP] : null;
+    const price = p => p[3].startsWith('[') ? p[3] : 'S$' + p[3];
+    const grid = list => `<div class="sgrid">${list.map(p => `<button class="sp" data-shopp="${SHOP.indexOf(p)}"><span class="im" style="background-image:url(assets/shop/${p[0]}.jpg);background-position:${p[5]}"></span><span class="tx"><span class="t">${E(p[1])}</span><span><span class="pr">${price(p)}</span>${p[4] ? `<span class="was">S$${p[4]}</span><span class="off">−${Math.round((1 - p[3] / p[4]) * 100)}%</span>` : ''}</span></span></button>`).join('')}</div>`;
+    const body = f === 'league' ? `<div class="sban"><span class="sbg" style="background-image:url(assets/shop/ball.jpg)"></span><span class="sbt"><span style="display:flex;align-items:center;gap:8px"><span class="adl" role="img" aria-label="adidas"></span><span class="lbl" style="color:#fff">× SPL</span></span><b class="d">The league collection</b><span class="lbl" style="color:#DCDAF0">Official partner · adidas</span></span></div>${grid(SHOP.filter(p => p[2] === 'league'))}<span style="font-size:11px;color:var(--muted)">More of the league's adidas range as FAS and adidas add it: [PRODUCTS].</span>`
+      : f === 'lions' ? `<a class="shead" href="${SHOPEE}" target="_blank" rel="noopener" data-trip="shopee"><span class="fasb">FAS</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><b>The Lions · FAS official store</b><span>On Shopee Mall · 4.9 ★</span></span><span style="font-size:18px">↗</span></a>${grid(SHOP.filter(p => p[2] === 'lions'))}<span style="font-size:11px;color:var(--muted)">Products and prices as listed by FAS on Shopee Mall. Buy opens Shopee to pay and deliver.</span>`
+      : `<div class="card" style="padding:4px 16px">${Object.keys(C).map(k => `<button class="pl" data-club="${k}" style="gap:12px">${crest(k, 32)}<span style="flex:1;display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:14px;font-weight:600">${C[k].name}</span><span style="font-size:11px;color:var(--muted)">${E(C[k].kit || 'Club kit')}</span></span><span class="lbl">[CLUB SHOP] ›</span></button>`).join('')}</div><span style="font-size:11px;color:var(--muted)">Each club's own shop, linked once the clubs share them.</span>`;
+    return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span style="flex:1;display:flex;flex-direction:column"><span class="d" style="font-size:24px;line-height:1">Shop</span><span class="lbl">League, Lions and club kit</span></span></div>
+      <div class="tabs">${[['league', 'League'], ['lions', 'Lions'], ['clubs', 'Clubs']].map(([k, l]) => `<button class="stab ${f === k ? 'on' : ''}" data-shopf="${k}">${l}</button>`).join('')}</div>
+      ${body}
+      ${sel ? `<div class="ssheet" data-shopx="1"><div class="ssh" data-stop="1"><span class="grab"></span><div style="display:flex;gap:14px"><span class="sim" style="background-image:url(assets/shop/${sel[0]}.jpg);background-position:${sel[5]}"></span><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><b style="font:700 16px/1.25 'Inter',sans-serif">${E(sel[1])}</b><span style="font:800 20px 'Inter',sans-serif">${price(sel)}</span><span style="font-size:11px;color:var(--muted)">${sel[2] === 'lions' ? 'Sold by FAS on Shopee Mall' : 'The league\'s adidas collection'}</span>${SHOPD[sel[0]] ? `<span style="font-size:12px;color:#F5C518">★ ${SHOPD[sel[0]].rate} <span style="color:var(--muted)">· ${SHOPD[sel[0]].ratings} ratings · ${SHOPD[sel[0]].sold} sold</span></span>` : ''}</div></div>${SHOPD[sel[0]] ? `<div class="szs">${SHOPD[sel[0]].sizes.map(([z, ok]) => `<span class="${ok ? '' : 'out'}">${z}</span>`).join('')}</div><span style="font-size:12px;color:#7CF2C2">${SHOPD[sel[0]].ship}</span>` : ''}
+        ${sel[2] === 'lions' ? `<a class="sbuy" href="${SHOPEE}" target="_blank" rel="noopener" data-trip="shopee">Buy on Shopee ↗</a><span style="font-size:11px;color:var(--muted);text-align:center">Opens Shopee to choose a size, pay and have it delivered.</span>` : `<span class="sbuy" style="background:rgba(255,255,255,.12)">Where to buy: [STOCKIST]</span>`}</div></div>` : ''}`;
+  }
   // Me (Hafiz, 9 Nov, option B): who you are, your level and how to earn XP, then Settings
   function me() {
     const f = favC(), x = xpOf(), name = P.user && P.user.name ? P.user.name : 'Guest', ini = name.trim()[0].toUpperCase(), R = 44, L = 2 * Math.PI * R;
@@ -995,7 +1020,7 @@
   // ---------- shell ----------
   // Home · Season · Clubs (raised, centre; MLS) · Stats · Players. The raised button is square like every other button.
   const NAV = [['home', 'Home', ICON.home, ['home']], ['matches', 'Season', ICON.cal, ['matches', 'match', 'table']], ['clubs', 'Clubs', ICON.shield, ['clubs', 'club']], ['stats', 'Stats', ICON.bars, ['stats', 'player']], ['watch', 'Watch', ICON.tv, ['watch', 'video']]];
-  const SCREEN = { me, awards, pmonth, watch, home, matches, match, table: tableScreen, stats, clubs, club, players: stats, player, onboard, search, settings, gotm, tickets, video, article };
+  const SCREEN = { shop, me, awards, pmonth, watch, home, matches, match, table: tableScreen, stats, clubs, club, players: stats, player, onboard, search, settings, gotm, tickets, video, article };
 
   // ---------- the simulated feed's clock ----------
   const SEC_PER_MIN = 2; // one match minute every two seconds at 1×: a game in about three and a half minutes
@@ -1112,6 +1137,7 @@
     const sq = app.querySelector('#sq'); if (sq) { sq.focus(); sq.setSelectionRange(sq.value.length, sq.value.length); sq.oninput = e => { S.sq = e.target.value; S.keepScroll = true; render(); }; }
     const newV = app.querySelector('.shorts .sh-vid');
     if (ghost && newV && newV.getAttribute('key') !== oldKey) { ghost.className = 'sh-vid ' + (S.shDir < 0 ? 'out-right' : 'out-left'); ghost.setAttribute('aria-hidden', 'true'); newV.before(ghost); setTimeout(() => ghost.remove(), 360); }
+    const shs = app.querySelector('.ssheet'); if (shs) app.appendChild(shs); // the product sheet sits above the tab bar
     const shf = app.querySelector('.shorts iframe'); if (shf) shf.addEventListener('load', () => { ytListen(shf); setTimeout(() => shf.classList.add('ready'), 350); }); else { clearInterval(ytPing); ytFor = null; }
     if (S.keepScroll) { app.querySelector('.screen').scrollTop = top; S.keepScroll = false; }
     const vk = S.view + (S.view === 'home' ? ':' + S.htab : S.view === 'match' ? ':' + S.mtab : S.view === 'stats' ? ':' + S.ttab : S.view === 'club' ? ':' + S.club : '');
@@ -1121,7 +1147,7 @@
   app.addEventListener('input', e => { if (e.target.id === 'crG') S.crIn = Object.assign(S.crIn || {}, { g: e.target.value }); });
   app.addEventListener('change', e => { if (e.target.id === 'crShow') S.crIn = Object.assign(S.crIn || {}, { show: e.target.checked }); });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-ftab],[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    const t = e.target.closest('[data-shopf],[data-shopp],[data-shopx],[data-ftab],[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
     if (t === app || e.target.closest('input,label,select,textarea')) return; // #app carries data-club (the theme): never a link
     const d = t.dataset;
     if (!EMBED) { const k = Object.keys(d)[0]; SPLSTORE.track('tap', k + (d[k] && d[k].length < 24 ? ':' + d[k] : '')); }
@@ -1155,7 +1181,10 @@
     if (d.wallet) { S.wallet = true; S.keepScroll = true; render(); return; }
     if (d.mytk !== undefined) { S.tkFrom = S.view; S.tk = { match: +d.mytk, step: 2, q: {}, pay: 'paynow' }; S.view = 'tickets'; render(); return; }
     if (d.go === 'onboard-club') { S.view = 'onboard'; S.ob = 1; S.pick = P.fav; }
-    else if (d.go) { if (d.go === 'settings') S.setBack = S.view === 'me' ? 'me' : 'home'; if (d.htabBack) S.htab = d.htabBack; if (d.mw) S.mw = +d.mw; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
+    else if (d.shopf) { S.shopF = d.shopf; S.keepScroll = true; }
+    else if (d.shopp !== undefined) { S.shopP = +d.shopp; S.keepScroll = true; }
+    else if (d.shopx && !e.target.closest('[data-stop]')) { S.shopP = null; S.keepScroll = true; }
+    else if (d.go) { if (d.go === 'shop') S.shopP = null; if (d.go === 'settings') S.setBack = S.view === 'me' ? 'me' : 'home'; if (d.htabBack) S.htab = d.htabBack; if (d.mw) S.mw = +d.mw; if (S.vsim && d.go !== S.view) { S.vsim = null; clearInterval(vsimTimer); } S.view = d.go; if (d.go === 'matches') S.match = null; if (d.go === 'search') S.sq = ''; if (d.focus === 'notif') setTimeout(() => { const el = [...app.querySelectorAll('.lbl')].find(x => /^Notifications/i.test(x.textContent.trim())); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80); }
     else if (d.ob) { if (d.ob === 'done' || d.ob === 'skip') { const was = theme(); if (d.ob === 'done') dressUp(S.pick, was); P.fav = d.ob === 'done' ? S.pick : null; if (P.fav) P.follows[P.fav] = true; if (!P.user) P.user = { name: 'Guest', via: 'guest' }; save(); S.view = 'home'; } else if (d.ob === 'guest') { P.user = null; save(); S.ob = 1; S.pick = null; } else { S.auth = { via: d.ob, step: d.ob === 'signpass' ? 'waiting' : 'sheet', share: true }; if (d.ob === 'signpass') authAfter(2600, 'consent'); } }
     else if (d.pick) { const o = PICK_ORDER(); S.pickDir = Math.sign(o.indexOf(d.pick) - o.indexOf(S.pick || o[0])); S.pick = d.pick; S.keepScroll = true; }
     else if (d.pnav) { pickBy(+d.pnav); return; }
