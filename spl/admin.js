@@ -275,9 +275,21 @@
       ${gen.story.length ? `<div class="pm-chips"><span class="lbl">Storylines · tap to add</span>${gen.story.map(s => `<button class="chip st" data-pmadd="${E(s.text)}">+ ${E(s.text)}</button>`).join('')}</div>` : ''}
       ${open.length ? `<p class="note" style="margin:0;color:#F5D76A">To fill before publishing: ${open.map(E).join(' · ')}</p>` : ''}
       ${gen.approx ? '<p class="note" style="margin:0">Minutes for this game come from club reports, so the draft keeps them loose ("in the first half").</p>' : ''}
+      ${kind === 'pre' ? `<label class="chk"><input type="checkbox" data-autopre="1" ${D.autoPreview ? 'checked' : ''}> Write every game's preview automatically the evening before, as a draft for approval</label>` : ''}
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
         ${done ? `<button class="btn2" data-pmopen="${E(done.id)}">Open in News</button>` : `<button class="btn2" data-pmsend="${k}">Schedule in News</button><button class="btn red" data-pmpub="${k}">Publish ${kind === 'post' ? 'report' : 'preview'}</button>`}</div></div>`;
   }
+  // automatic previews: at 6pm the evening before (and for anything today still without one), a draft in News
+  function autoPreviews() {
+    if (!D.autoPreview || !window.SPLNEWS) return;
+    const now = new Date(), hh = now.getHours(), z = n => String(n).padStart(2, '0');
+    const day = (o) => { const d = new Date(TODAY + 'T12:00:00'); d.setDate(d.getDate() + o); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+    const due = SPL.matches.map((m, i) => [m, i]).filter(([m, i]) => !m[4] && (m[1] === TODAY || (m[1] === day(1) && hh >= 18)) && !(D.live[i] && D.live[i].phase !== 'pre') && !D.news.some(n => n.match === i && n.tag === 'Preview'));
+    if (!due.length) return;
+    save(d2 => { due.forEach(([m, i]) => { const g = SPLNEWS.preMatch(d2, i); if (!g) return; d2.news.push({ id: uid('n'), tag: 'Preview', date: TODAY, title: g.head, dek: g.dek, body: g.body, img: '', imgs: [], match: i, at: 0, alert: false, status: 'draft', auto: true }); }); },
+      `${due.length} preview${due.length > 1 ? 's' : ''} drafted for approval in News.`);
+  }
+  setTimeout(autoPreviews, 1200); setInterval(autoPreviews, 15 * 60 * 1000);
   function pmSave(k, live) {
     const kind = k.startsWith('post') ? 'post' : 'pre', i = +k.replace(/^\D+/, ''), cur = A.pm[k], m = SPL.matches[i];
     if (!cur.head.trim()) { flash('Give it a headline.'); render(); return; }
@@ -855,6 +867,7 @@
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   root.addEventListener('change', e => {
+    if (e.target.dataset && e.target.dataset.autopre) { save(d2 => { d2.autoPreview = e.target.checked; }, e.target.checked ? 'On: each game\'s preview is drafted the evening before, in News, for you to approve.' : 'Automatic previews off.'); autoPreviews(); render(); return; }
     if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(shrink)).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }
     if (e.target.id === 'nLib' && e.target.value) { keepNews(); A.nImgs = (A.nImgs || []).concat([e.target.value]).slice(0, 12); render(); return; }
     const t = e.target;

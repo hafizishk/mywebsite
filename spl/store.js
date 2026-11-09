@@ -106,6 +106,8 @@ var SPLSTORE = (function () {
     // monthly awards: kept as the admin wrote them, with every text field capped; the app reads potm and gotm, which the admin keeps in step
     const pick = x => { const o = {}; Object.keys(x).slice(0, 16).forEach(k => { const v = x[k]; if (typeof v === 'string') o[k] = v.slice(0, 600); else if (typeof v === 'number') o[k] = v; }); return o; };
     const aw = isObj(d.awards) && Array.isArray(d.awards.months) ? d.awards : def.awards;
+    // the newsroom writes each game's preview the evening before, for FAS to approve (Hafiz, 9 Nov)
+    out.autoPreview = d.autoPreview === true;
     out.awards = { months: aw.months.filter(isObj).slice(-24).map(m => ({ key: str(m.key, ''), month: str(m.month, ''), stage: ['shortlist', 'voting', 'announced'].includes(m.stage) ? m.stage : 'shortlist', opens: str(m.opens, ''), closes: str(m.closes, ''),
       potm: { picks: isObj(m.potm) && Array.isArray(m.potm.picks) ? m.potm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.potm) ? str(m.potm.winner, '') : '' },
       gotm: { picks: isObj(m.gotm) && Array.isArray(m.gotm.picks) ? m.gotm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.gotm) ? str(m.gotm.winner, '') : '' } })) };
