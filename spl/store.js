@@ -83,7 +83,7 @@ var SPLSTORE = (function () {
   // Seed: FAS's Shopee Mall store as listed on 9 Nov 2026. A product's photos: the first is its tile, the second its sheet.
   const SHOP_URL = 'https://shopee.sg/search?keyword=football%20association%20of%20singapore';
   const seedShop = () => [
-    ['ball', 'adidas TIRO Pro 26, SPL official match ball', 'league', 'gear', '', 0, '58% 50%', '', 0],
+    ['ball', 'adidas TIRO Singapore Premier League Ball', 'league', 'gear', '75.00', 0, '58% 50%', '', 0],
     ['home', 'Singapore 26/27 Home Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '4.9', 768],
     ['away', 'Singapore 26/27 Away Replica Jersey', 'lions', 'jersey', '99.00', 0, '50% 12%', '5.0', 128],
     ['fanjersey', 'Fan Jersey', 'lions', 'jersey', '14.90', 40, '50% 35%', '4.9', 419],
@@ -150,7 +150,7 @@ var SPLSTORE = (function () {
       tab: ['league', 'lions'].includes(x.tab) ? x.tab : 'lions', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
       price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
       rating: /^[0-5]\.\d$/.test(x.rating) ? x.rating : '', sold: Math.max(0, Math.round(+x.sold) || 0), out: !!x.out, url: shopeeUrl(x.url),
-      imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })) : def.shop;
+      imgs: Array.isArray(x.imgs) ? x.imgs.filter(shopImg).slice(0, 4) : [] })).map(x => x.id === 'ball' && !x.price ? Object.assign(x, { name: def.shop[0].name, price: def.shop[0].price }) : x) : def.shop;
     out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
