@@ -487,6 +487,12 @@
   // everyone signed in votes once, from the 75th minute to the final whistle; the split stays hidden until full time.
   // A console game uses the nominees the official confirmed (store.live[i].potm), else the suggestion at 75'.
   const VOTE_FROM = 75, NOMS = {};
+  // the award's partner (Hafiz, 10 Nov, option B: naming rights and a strip under the result): the Player of the Match
+  // sponsor slot in the admin, Polar in the demo until FAS sets one; its colour logo from the partners strip when it has one
+  const potmPartner = () => { const n = (STORE.sponsors.potm && STORE.sponsors.potm.partner) || 'Polar', p = (STORE.partners || []).find(x => x.name.toLowerCase() === n.toLowerCase());
+    return { name: n, logo: p && /^assets\/partners\/[a-z-]+\.png$/.test(p.logo) ? p.logo.replace('assets/partners/', 'assets/partners/colour/') : '' }; };
+  const potmTitle = () => `${E(potmPartner().name)} Fans' Player of the Match`;
+  const potmStrip = () => { const pp = potmPartner(); return `<div style="margin:4px -16px -16px;padding:12px 16px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font:600 12px 'Inter',sans-serif;color:#1B2A6B">Official partner of the SPL</span>${pp.logo ? `<img src="${pp.logo}" alt="${E(pp.name)}" style="height:34px;max-width:140px;object-fit:contain">` : `<b style="color:#1B2A6B">${E(pp.name)}</b>`}</div>`; };
   const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'soon';
   const potmNoms = (i, L) => { if (L && L.admin) { const A = STORE.live[i]; return A.potm && A.potm.length ? A.potm : SPLSTORE.potmSuggest(i, A.ev, VOTE_FROM); }
     if (!NOMS[i]) { const m = SPL.matches[i], gk = {}; [m[2], m[3]].forEach(k => { if (XI[k]) gk[k] = XI[k].xi[0]; }); NOMS[i] = SPLSTORE.potmSuggest(i, EV[i], VOTE_FROM, gk); } return NOMS[i]; };
@@ -495,23 +501,23 @@
   function potmWinner(i, L, compact) {
     const noms = potmNoms(i, L), t = potmTally(i, noms), tot = t.reduce((a, b) => a + b, 0), w = t.indexOf(Math.max(...t)), [n, k] = noms[w] || [];
     if (!n) return '';
-    return `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid #3DD68C"><span class="lbl" style="color:#7CF2C2">Fans' Player of the Match</span>
+    return `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid #3DD68C"><span class="lbl" style="color:#7CF2C2">${potmTitle()}</span>
       <div style="display:flex;align-items:center;gap:12px">${crest(k, 44)}<span style="display:flex;flex-direction:column;gap:2px"><b class="d" style="font-size:24px;line-height:1">${E(n)}</b><span style="font-size:12px;color:var(--muted)">${nomRole(noms[w])} · ${Math.round(100 * t[w] / tot)}% of ${tot.toLocaleString()} votes</span></span></div>
       ${compact ? '' : noms.map(([nm, kk], j) => `<div style="display:grid;grid-template-columns:140px 1fr 40px;gap:10px;align-items:center;font-size:12px"><span>${E(nm)}</span><span style="height:6px;border-radius:3px;background:rgba(255,255,255,.12);position:relative"><i style="position:absolute;top:0;bottom:0;left:0;width:${Math.round(100 * t[j] / tot)}%;border-radius:3px;background:${j === w ? '#3DD68C' : '#A9A6C9'}"></i></span><span class="mono" style="text-align:right">${Math.round(100 * t[j] / tot)}%</span></div>`).join('')}
-      <span style="font-size:11px;color:var(--muted)">Voting closed at the final whistle.${spLine('potm') ? '' : ' Presented by [PARTNER].'} Vote counts are placeholders in this demo.</span>${compact ? `<button class="btn2" data-mtab="potm" style="min-height:40px">See the vote</button>` : ''}</div>`;
+      <span style="font-size:11px;color:var(--muted)">Voting closed at the final whistle. Vote counts are placeholders in this demo.</span>${compact ? `<button class="btn2" data-mtab="potm" style="min-height:40px">See the vote</button>` : ''}${potmStrip()}</div>`;
   }
   // on Overview: the call to vote while it's open, the winner after
   const potmCard = (i, L) => { const ph = potmPhase(L); if (ph === 'ft') return potmWinner(i, L, true); if (ph !== 'open') return '';
     const noms = potmNoms(i, L), mine = P.potm[i];
-    return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:3px solid #E8363D"><div style="display:flex;align-items:center;gap:8px"><span class="dot pulse" style="background:#E8363D"></span><b style="font-size:15px">Fans' Player of the Match</b><span style="flex:1"></span><span class="lbl">Until the final whistle</span></div>
+    return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:3px solid #E8363D"><div style="display:flex;align-items:center;gap:8px"><span class="dot pulse" style="background:#E8363D"></span><b style="font-size:15px">${potmTitle()}</b><span style="flex:1"></span><span class="lbl">Until the final whistle</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${noms.map(([n, k]) => `<span style="display:flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px">${crest(k, 18)}${E(n)}</span>`).join('')}</div>
       <button class="btn" data-mtab="potm" style="min-height:40px">${mine === undefined ? 'Vote now' : 'Your vote is in · result at full time'}</button></div>`; };
   function potmTab(i, L) {
     const ph = potmPhase(L), noms = potmNoms(i, L), mine = P.potm[i];
     if (ph === 'ft') return potmWinner(i, L, false);
-    if (ph === 'soon') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}</div>
+    if (ph === 'soon') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">${potmTitle()}</span></div>
       <div class="card" style="padding:16px"><b style="font-size:16px">Voting opens at ${VOTE_FROM}'</b></div>`;
-    return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}
+    return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">${potmTitle()}</span>
       <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#FFD1D3"><span class="dot pulse" style="background:#E8363D"></span>Voting open until the final whistle</span>
       <span style="font-size:12px;color:var(--muted)">${mine === undefined ? 'One vote per signed-in fan, at the ground or at home. The result stays hidden until full time.' : 'Your vote is in. The result comes at full time.'}</span></div>
       ${noms.map(([n, k], j) => `<button class="card" data-potm="${i}:${j}" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;color:var(--ink);width:100%;border-top:3px solid ${mine === j ? C[k].c : 'transparent'}" ${mine !== undefined ? 'disabled' : ''}>${crest(k, 32)}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:16px;line-height:1">${E(n)}</span><span class="lbl">${nomRole([n, k])}</span></span><span class="lbl" style="color:#fff">${mine === j ? 'Your pick' : mine === undefined ? 'Vote' : ''}</span></button>`).join('')}`;
