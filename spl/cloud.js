@@ -110,9 +110,9 @@ var SPLCLOUD = (function () {
 
   // push to locked phones (supabase/functions/push): staff only; quietly does nothing until the function is deployed
   // the AI report writer (supabase/functions/report): staff only; returns { head, dek, body } or { error }
-  async function writeReport(facts, model) {
+  async function writeReport(facts) {
     if (!on || !ST.admin) return { error: 'Sign in with the backend on to use the writer.' };
-    try { const { data, error } = await sb.functions.invoke('report', { body: { facts, model } });
+    try { const { data, error } = await sb.functions.invoke('report', { body: { facts } });
       if (error) { let msg = error.message || 'error'; try { const b = await error.context.json(); if (b && b.error) msg = b.error; } catch (x) {} return { error: msg }; }
       return data || { error: 'No reply.' }; }
     catch (e) { return { error: e.message }; }
