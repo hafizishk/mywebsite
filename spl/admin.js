@@ -517,8 +517,13 @@
     const days = Array.from({ length: 7 }, (_, k) => { const d = new Date(mon); d.setDate(mon.getDate() + k); return dayKey(d); });
     const items = {}; const add = (k, h) => { (items[k] = items[k] || []).push(h); };
     D.news.forEach(n => { const t = nWhen(n), [lbl, col] = nState(n); add(dayKey(t), [t, `<button class="ci" draggable="true" data-dragnews="${E(n.id)}" data-editnews="${E(n.id)}" style="--c:${col}">${E(n.title)}<small>${hmS(t)} · story · ${lbl.toLowerCase()}</small></button>`]); });
-    D.pushes.forEach(p => add(dayKey(p.at), [p.at, `<button class="ci" data-page="push" style="--c:#E8363D">${E(p.title)}<small>${hmS(p.at)} · alert</small></button>`]));
-    SPL.matches.forEach(m => { if (days.includes(m[1])) add(m[1], [new Date(m[1] + 'T19:30:00').getTime(), `<span class="ci fx">${E(short(m[2]))} v ${E(short(m[3]))}<small>${E(String(m[7] || '').replace(/^\w+ /, ''))} · match</small></span>`]); });
+    // a game's automatic alerts (kick-off, goals, half and full time, the vote) are one line per game and day: the calendar
+    // is for planning, the Notifications page lists each one
+    const grp = {}; D.pushes.forEach(p => { if (p.kind === 'live' && Number.isInteger(p.match) && SPL.matches[p.match]) { const k = dayKey(p.at) + '|' + p.match; (grp[k] = grp[k] || []).push(p); }
+      else add(dayKey(p.at), [p.at, `<button class="ci" data-page="push" style="--c:#E8363D">${E(p.title)}<small>${hmS(p.at)} · alert</small></button>`]); });
+    Object.entries(grp).forEach(([k, ps]) => { const m = SPL.matches[+k.split('|')[1]], a = ps[0].at, z = ps[ps.length - 1].at;
+      add(k.split('|')[0], [a, `<button class="ci" data-page="push" style="--c:#E8363D">${E(short(m[2]))} v ${E(short(m[3]))}<small>${ps.length} match ${ps.length === 1 ? 'alert' : 'alerts'} · ${hmS(a)}${ps.length > 1 ? '–' + hmS(z) : ''}</small></button>`]); });
+    SPL.matches.forEach(m => { if (days.includes(m[1])) add(m[1], [(() => { const t = String(m[7] || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); return new Date(`${m[1]}T${t ? String(+t[1] % 12 + (/PM/i.test(t[3]) ? 12 : 0)).padStart(2, '0') + ':' + t[2] : '19:30'}:00`).getTime(); })(), `<span class="ci fx">${E(short(m[2]))} v ${E(short(m[3]))}<small>${E(String(m[7] || '').replace(/^\w+ /, ''))} · match</small></span>`]); });
     const rng = `${new Date(days[0] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(days[6] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     return `<div class="panel cal"><div class="cal-h"><h2 style="margin:0">Content calendar<span class="lbl">${rng}</span></h2><span style="flex:1"></span><button class="btn2 sm" data-calwk="-1">‹</button><button class="btn2 sm" data-calwk="0">This week</button><button class="btn2 sm" data-calwk="1">›</button></div>
       <div class="cal-w">${days.map(k => `<div class="cal-d ${k === TODAY ? 'today' : ''}" data-dropday="${k}"><span class="cal-dh">${new Date(k + 'T12:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}</span>${(items[k] || []).sort((x, y) => x[0] - y[0]).map(x => x[1]).join('')}</div>`).join('')}</div>
