@@ -473,12 +473,12 @@
   function news() {
     const list = D.news.slice().sort((a, b) => nWhen(b) - nWhen(a));
     const n = A.news === 'new' ? { id: '', tag: 'Announcement', date: TODAY, title: '', dek: '', body: '', img: '', imgs: [], status: 'draft', at: 0, alert: false } : D.news.find(x => x.id === A.news);
-    if (n && A.nFor !== A.news) { A.nFor = A.news; A.nImgs = SPLSTORE.picsOf(n).slice(); A.nDraft = null; A.nWhenT = n.status === 'scheduled' ? 'schedule' : n.status === 'draft' && n.id ? 'draft' : 'now'; }
+    if (n && A.nFor !== A.news) { A.nFor = A.news; A.nImgs = SPLSTORE.picsOf(n).slice(); A.nPos = (n.pos || []).slice(0, A.nImgs.length); A.nDraft = null; A.nWhenT = n.status === 'scheduled' ? 'schedule' : n.status === 'draft' && n.id ? 'draft' : 'now'; }
     const dr = n && A.nDraft ? A.nDraft : {}, pick = (k, v) => dr[k] !== undefined ? dr[k] : v;
     const nv = n ? Object.assign({}, n, { title: pick('title', n.title), dek: pick('dek', n.dek), body: pick('body', n.body), tag: pick('tag', n.tag), alert: pick('alert', n.alert) }) : null;
     const when = A.nWhenT || 'now', at = n && n.at ? new Date(n.at) : new Date(new Date(TODAY + 'T09:00:00').getTime() + 864e5);
     const dv = (A.nDraft && A.nDraft.day) || dayKey(at), tv = (A.nDraft && A.nDraft.time) || `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
-    const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)})">${j ? '' : '<b>Cover</b>'}<span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
+    const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)});background-position:${(A.nPos || [])[j] || '50% 50%'}">${j ? '' : '<b>Cover</b>'}<button class="pt-f" data-picframe="${j}" title="Choose what stays in view">Frame</button><span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
     return head('News', 'Plan the week, then write: stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + storyPanel() + calendar() + `
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
@@ -813,7 +813,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -946,14 +946,15 @@
       const isNew = A.shopE === 'new';
       save(d2 => { if (isNew) d2.shop.push(x); else d2.shop[A.shopE] = x; }, isNew ? 'Added to the shop. It\'s in the app now.' : 'Saved. The app has it now.');
       if (isNew) { A.shopE = D.shop.length - 1; A.sFor = A.shopE; } A.sDraft = null; render(); return; }
-    if (d.picdel !== undefined) { keepNews(); A.nImgs.splice(+d.picdel, 1); render(); return; }
-    if (d.picmv) { keepNews(); const [j, dir] = d.picmv.split(':').map(Number), a = A.nImgs, t = a[j]; a[j] = a[j + dir]; a[j + dir] = t; render(); return; }
+    if (d.picframe !== undefined) { keepNews(); const j = +d.picframe; frameStory(SPLSTORE.picUrl(A.nImgs[j]), (A.nPos || [])[j] || '50% 50%', v => { A.nPos = A.nPos || []; A.nPos[j] = v; render(); flash('Framed. Save the story to keep it.'); }); return; }
+    if (d.picdel !== undefined) { keepNews(); A.nImgs.splice(+d.picdel, 1); (A.nPos || []).splice(+d.picdel, 1); render(); return; }
+    if (d.picmv) { keepNews(); const [j, dir] = d.picmv.split(':').map(Number), a = A.nImgs, t = a[j]; a[j] = a[j + dir]; a[j + dir] = t; const q = A.nPos = A.nPos || []; const u = q[j]; q[j] = q[j + dir] || ''; q[j + dir] = u || ''; render(); return; }
     if (d.savenews) { const title = val('nTitle').trim(); if (!title) { flash('Give the story a headline.'); render(); return; }
       const mode = d.savenews, old = A.news === 'new' ? null : D.news.find(x => x.id === A.news);
       let at = mode === 'schedule' ? new Date(`${val('nDay')}T${val('nTime') || '09:00'}:00`).getTime() : mode === 'now' ? (old && old.status === 'live' ? (old.at || new Date(old.date + 'T09:00:00').getTime()) : Date.now()) : (old ? old.at : 0);
       if (mode === 'schedule' && !(at > Date.now())) { flash('Pick a time in the future to schedule it.'); render(); return; }
-      const alert = mode !== 'draft' && !!(document.getElementById('nAlert') || {}).checked, imgs = (A.nImgs || []).slice(0, 12);
-      const n = { id: old ? old.id : uid('n'), tag: val('nTag'), date: dayKey(at || Date.now()), title, dek: val('nDek').trim(), body: val('nBody'), img: imgs[0] || '', imgs, at, alert, status: mode === 'now' ? 'live' : mode === 'schedule' ? 'scheduled' : 'draft' };
+      const alert = mode !== 'draft' && !!(document.getElementById('nAlert') || {}).checked, imgs = (A.nImgs || []).slice(0, 12), pos = imgs.map((_, j) => (A.nPos || [])[j] || '');
+      const n = { id: old ? old.id : uid('n'), tag: val('nTag'), date: dayKey(at || Date.now()), title, dek: val('nDek').trim(), body: val('nBody'), img: imgs[0] || '', imgs, pos, at, alert, status: mode === 'now' ? 'live' : mode === 'schedule' ? 'scheduled' : 'draft' };
       save(d2 => { const j = d2.news.findIndex(x => x.id === n.id); if (j >= 0) d2.news[j] = n; else d2.news.push(n);
         // the alert goes with the story: now, or at its scheduled time (replacing one set earlier for this story)
         d2.pushes = d2.pushes.filter(p => !(p.story === n.id && p.at > Date.now()));
@@ -991,6 +992,23 @@
   root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
+  // a story photo's focus (Hafiz, 10 Nov): the same photo shows tall on Home's tiles, wide as the cover and 3:2 in the
+  // story, so instead of one crop the office drags the point that must stay in view, with the three shapes previewed
+  function frameStory(src, cur, done) {
+    const o = document.createElement('div'); o.className = 'frm';
+    o.innerHTML = `<div class="frm-box" style="width:auto;max-width:760px"><b>Frame the photo</b><span class="note">Tap or drag on the photo to set what stays in view. The app crops it to each shape around that point.</span>
+      <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap"><div class="frs-v"><img alt=""><i></i></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><span class="lbl">Home tile</span><span class="frs-p" style="width:120px;height:160px"></span><span class="lbl">Cover</span><span class="frs-p" style="width:220px;height:110px"></span><span class="lbl">In the story</span><span class="frs-p" style="width:165px;height:110px"></span></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn2" data-x="c">Centre</button><span style="flex:1"></span><button class="btn2" data-x="0">Cancel</button><button class="btn" data-x="1">Use this</button></div></div>`;
+    document.body.appendChild(o);
+    const v = o.querySelector('.frs-v'), img = v.querySelector('img'), dot = v.querySelector('i'), pv = o.querySelectorAll('.frs-p'); img.src = src;
+    let [px, py] = cur.split(' ').map(x => parseFloat(x));
+    const draw = () => { dot.style.left = px + '%'; dot.style.top = py + '%'; pv.forEach(p => { p.style.backgroundImage = `url(${src})`; p.style.backgroundPosition = `${px}% ${py}%`; }); };
+    const at = e => { const r = img.getBoundingClientRect(); px = Math.round(Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100))); py = Math.round(Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100))); draw(); };
+    let drag = false; v.addEventListener('pointerdown', e => { drag = true; v.setPointerCapture(e.pointerId); at(e); }); v.addEventListener('pointermove', e => { if (drag) at(e); }); v.addEventListener('pointerup', () => { drag = false; });
+    o.addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return; if (b.dataset.x === 'c') { px = py = 50; draw(); return; } if (b.dataset.x === '1') done(`${px}% ${py}%`); o.remove(); });
+    draw();
+  }
   // a player's photo (Hafiz, 10 Nov: frame it in the dashboard): pick an image, then drag it into place and zoom in the
   // square frame; Save crops it to 400px in the browser and keeps it against the player for the app and the admin
   function framePhoto(src, done) {
@@ -1012,6 +1030,7 @@
           c.width = c.height = 400; c.getContext('2d').drawImage(im, -x / sc, -y / sc, F / sc, F / sc, 0, 0, 400, 400); done(c.toDataURL('image/jpeg', .85)); } o.remove(); });
     }; im.src = src;
   }
+  root.addEventListener('change', e => { if (e.target.id === 'nFiles' || e.target.id === 'nLib') { A.nPos = (A.nPos || []).slice(0, (A.nImgs || []).length); } });
   root.addEventListener('change', e => { const pp = e.target.dataset && e.target.dataset.pphoto; if (!pp || !e.target.files[0]) return;
     const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
     r.readAsDataURL(e.target.files[0]); e.target.value = ''; });

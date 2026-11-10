@@ -141,7 +141,7 @@ var SPLSTORE = (function () {
   const str = (x, d) => typeof x === 'string' ? x.slice(0, 4000) : d;
   function clean(d) {
     const def = DEF(), out = {};
-    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', imgs: photos(n.imgs), match: Number.isInteger(n.match) && SPL.matches[n.match] ? n.match : null, at: Number.isFinite(+n.at) ? +n.at : 0, alert: !!n.alert, status: n.status === 'draft' || n.status === 'scheduled' ? n.status : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
+    out.news = Array.isArray(d.news) ? d.news.filter(isObj).map(n => ({ id: str(n.id, 'n' + Math.random().toString(36).slice(2, 8)), tag: str(n.tag, 'News'), date: str(n.date, ''), title: str(n.title, ''), dek: str(n.dek, ''), body: str(n.body, ''), img: str(n.img, '') || NEWS_IMG[str(n.id, '')] || '', imgs: photos(n.imgs), pos: Array.isArray(n.pos) ? n.pos.slice(0, 12).map(v => typeof v === 'string' && /^\d{1,3}% \d{1,3}%$/.test(v) ? v : '') : [], match: Number.isInteger(n.match) && SPL.matches[n.match] ? n.match : null, at: Number.isFinite(+n.at) ? +n.at : 0, alert: !!n.alert, status: n.status === 'draft' || n.status === 'scheduled' ? n.status : 'live' })) : def.news.map(n => Object.assign({}, n, { img: n.img || NEWS_IMG[n.id] || '' }));
     // the MW6 roundup in spl.sg's format with the round's photos (9 Nov) replaces the first version in saved stores
     { const nw = def.news.find(x => x.id === 'n10'), o = out.news.find(x => x.id === 'n10'); if (nw && o && !/\[PHOTO\]/.test(o.body)) Object.assign(o, { title: nw.title, dek: nw.dek, body: nw.body, img: nw.img, imgs: nw.imgs.slice() }); }
     out.lead = str(d.lead, def.lead);
@@ -204,5 +204,7 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  // a story photo's focus point (Hafiz, 10 Nov: frame it), '' = the photo's default
+  const posOf = (n, j) => (n && Array.isArray(n.pos) && n.pos[j]) || '';
+  return { KEY, EVK, SLOTS, IMG, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();
