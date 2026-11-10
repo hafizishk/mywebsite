@@ -283,6 +283,7 @@
       ${o.started || o.ft ? `<div class="mh-bar"><i data-bar="${o.ft ? '' : i}" style="width:${pct}%;background:${o.ft ? '#A9A6C9' : '#E8363D'}"></i><b></b></div>` : ''}
       ${o.goals.length ? scorerGrid(m, o.goals) : ''}
       <span class="lbl" style="text-align:center">${o.ft ? E(r.venue) + ' · meWATCH' : 'Live on meWATCH'}${crowdTag(i)}</span>
+      ${o.ft && o.L ? potmLine(i, o.L) : ''}
       <div class="mh-act">${watch}<button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button></div></div>`; };
   // attendance in the match centre (Hafiz, 9 Nov, option A): once the official publishes it, at the end of the info line
   const crowdTag = i => { const x = STORE.crowd && STORE.crowd[i]; return x && x.attendance !== null ? ` · <b style="color:var(--ink)">Crowd ${x.attendance.toLocaleString()}</b>` : ''; };
@@ -491,6 +492,8 @@
   // sponsor slot in the admin, Polar in the demo until FAS sets one; its colour logo from the partners strip when it has one
   const potmPartner = () => { const n = (STORE.sponsors.potm && STORE.sponsors.potm.partner) || 'Polar', p = (STORE.partners || []).find(x => x.name.toLowerCase() === n.toLowerCase());
     return { name: n, logo: p && /^assets\/partners\/[a-z-]+\.png$/.test(p.logo) ? p.logo.replace('assets/partners/', 'assets/partners/colour/') : '' }; };
+  const potmLine = (i, L) => { const noms = potmNoms(i, L); if (!noms.length) return ''; const t = potmTally(i, noms), tot = t.reduce((a, b) => a + b, 0), w = t.indexOf(Math.max(...t)), pp = potmPartner();
+    return `<button class="rowlink" data-mtab="potm" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06);text-align:left;width:100%"><span style="color:#F5C518;font-size:16px">★</span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span class="lbl">Fans' Player of the Match</span><b style="font-size:14px">${E(noms[w][0])} · ${Math.round(100 * t[w] / tot)}% of the vote</b></span>${pp.logo ? `<span style="display:inline-flex;align-items:center;background:#fff;border-radius:6px;padding:2px 5px;height:20px"><img src="${pp.logo}" alt="${E(pp.name)}" style="height:100%"></span>` : `<span class="lbl">${E(pp.name)}</span>`}</button>`; };
   const potmTitle = () => `${E(potmPartner().name)} Fans' Player of the Match`;
   const potmStrip = () => { const pp = potmPartner(); return `<div style="margin:4px -16px -16px;padding:12px 16px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font:600 12px 'Inter',sans-serif;color:#1B2A6B">Official partner of the SPL</span>${pp.logo ? `<img src="${pp.logo}" alt="${E(pp.name)}" style="height:34px;max-width:140px;object-fit:contain">` : `<b style="color:#1B2A6B">${E(pp.name)}</b>`}</div>`; };
   const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'soon';
@@ -507,7 +510,7 @@
       <span style="font-size:11px;color:var(--muted)">Voting closed at the final whistle. Vote counts are placeholders in this demo.</span>${compact ? `<button class="btn2" data-mtab="potm" style="min-height:40px">See the vote</button>` : ''}${potmStrip()}</div>`;
   }
   // on Overview: the call to vote while it's open, the winner after
-  const potmCard = (i, L) => { const ph = potmPhase(L); if (ph === 'ft') return potmWinner(i, L, true); if (ph !== 'open') return '';
+  const potmCard = (i, L) => { const ph = potmPhase(L); if (ph !== 'open') return '';
     const noms = potmNoms(i, L), mine = P.potm[i];
     return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:3px solid #E8363D"><div style="display:flex;align-items:center;gap:8px"><span class="dot pulse" style="background:#E8363D"></span><b style="font-size:15px">${potmTitle()}</b><span style="flex:1"></span><span class="lbl">Until the final whistle</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${noms.map(([n, k]) => `<span style="display:flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px">${crest(k, 18)}${E(n)}</span>`).join('')}</div>
@@ -573,7 +576,7 @@
     if (!tabs.some(t => t[0] === S.mtab)) S.mtab = 'overview';
     const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L) })}
+      ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L), L })}
       <div class="tabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
