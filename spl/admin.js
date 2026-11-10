@@ -7,6 +7,9 @@
   const A = { page: 'overview', live: null, evType: 'G', evTeam: null, news: null, flash: '', pushWhen: 'now', pushAud: 'all' };
   // the admin's day (Hafiz, 6 Nov): Friday 20 November, the first night of Matchweek 7. ROUND is the weekend's games, TONIGHT tonight's
   const TODAY = '2026-11-20', ROUND = SPL.matches.map((m, i) => m[0] === 7 ? i : -1).filter(i => i >= 0), TONIGHT = ROUND.filter(i => SPL.matches[i][1] === TODAY);
+  // the top bar's clock (Hafiz, 10 Nov): the demo's day, the real time, ticking every second
+  const clockNow = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  setInterval(() => { const el = document.getElementById('clkT'); if (el) el.textContent = clockNow(); }, 1000);
   const dayName = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'long' });
   A.live = TONIGHT[0];
   // the table as the admin's day sees it: the stored table plus Matchweek 6's Sunday games (kept unplayed in the data for the app's live replay; spl.sg, 1 Nov)
@@ -283,8 +286,8 @@
       return null; }).filter(Boolean);
     const sc = (L.ev || []).reduce((a, e) => { if (e[3] === 'G') a[e[4] === m[2] ? 0 : 1]++; return a; }, [0, 0]);
     return { competition: 'AIA Singapore Premier League 2026/27', matchweek: m[0], date: m[1], ground: m[5], home: C[m[2]].name, away: C[m[3]].name, score: `${short(m[2])} ${sc[0]}-${sc[1]} ${short(m[3])}`,
-      events_in_order: ev, officials_notes: (L.notes || []).map(([mi, t]) => `${mi}': ${t}`), from_the_data: gen ? gen.facts : [], storylines: gen ? gen.story.map(x => x.text) : [],
-      background: SPLNEWS.context ? SPLNEWS.context(D, i, (L.notes || []).map(x => x[1])) : null };
+      events_in_order: ev, officials_notes: (L.notes || []).map(SPLNEWS.noteLine), from_the_data: gen ? gen.facts : [], storylines: gen ? gen.story.map(x => x.text) : [],
+      background: SPLNEWS.context ? SPLNEWS.context(D, i, L.notes || []) : null };
   }
   function writerPanel(i, kind) {
     if (!window.SPLNEWS) return '';
@@ -341,9 +344,21 @@
     const L = D.live[i]; if (!L || L.phase === 'pre') return ''; const c = clockOf(i), notes = L.notes || [];
     const now = c.phase === 'FT' || c.phase === 'HT' ? '' : String(Math.min(c.n, c.cap || 90)) + (c.n > (c.cap || 90) ? '+' + (c.n - c.cap) : '');
     return `<div class="panel"><h2>Notes for the report <span class="lbl">One line per moment · chances, saves, woodwork, how a goal came</span></h2>
-      ${notes.map(([m, t], j) => `<div style="display:grid;grid-template-columns:64px 1fr 28px;gap:10px;align-items:center;margin-bottom:8px"><span class="in" style="display:flex;align-items:center">${E(m)}'</span><span class="in" style="display:flex;align-items:center">${E(t)}</span><button class="lnk" data-notedel="${i}:${j}" title="Remove">×</button></div>`).join('')}
-      <div style="display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center"><input class="in" id="noteM" value="${E(now)}" placeholder="Min" inputmode="numeric"><input class="in" id="noteT" maxlength="240" placeholder="e.g. Mustapic tipped Satsukida's shot over the bar"><button class="btn2" data-noteadd="${i}">Add</button></div>
-      <p class="note" style="margin-top:10px">The writer only uses what's here, the console's goals, cards, changes and VAR, the table and the storylines. Nothing else.</p></div>`;
+      ${notes.map(([m, t, tags], j) => `<div style="display:grid;grid-template-columns:64px 1fr 28px;gap:10px;align-items:start;margin-bottom:10px"><span class="in" style="display:flex;align-items:center">${E(m)}'</span><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><span class="in" style="display:flex;align-items:center">${E(t)}</span>${noteTags(i, j, tags || SPLNEWS.tagNames(t, [SPL.matches[i][2], SPL.matches[i][3]]))}</div><button class="lnk" data-notedel="${i}:${j}" title="Remove" style="margin-top:12px">×</button></div>`).join('')}
+      <div style="display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center"><input class="in" id="noteM" value="${E(now)}" placeholder="Min" inputmode="numeric"><input class="in" id="noteT" maxlength="240" placeholder="Write it as you'd say it, e.g. mustapic tipped satsukida's shot over. Names are matched to the squads"><button class="btn2" data-noteadd="${i}">Add</button></div>
+      <p class="note" style="margin-top:10px">The writer gets each player's full name, club and position from the tags. Tap a tag to swap the player, × to drop it. It only uses what's here, the console and the table.</p></div>`;
+  }
+  // a note's tags, made now for a note written before tagging existed
+  const ntOf = (d2, i, j) => { const nt = d2.live[i].notes[j]; if (!Array.isArray(nt[2])) nt[2] = SPLNEWS.tagNames(nt[1], [SPL.matches[i][2], SPL.matches[i][3]]); return nt[2]; };
+  // a note's tags (Hafiz, 10 Nov, option C): a chip per player; a name that fits two players asks which; tap to swap
+  function noteTags(i, j, tags) {
+    const m = SPL.matches[i], sides = [m[2], m[3]], ed = A.ntag && A.ntag.i === i && A.ntag.j === j ? A.ntag.t : null;
+    const pick = t => `<select class="in" data-ntsel="${i}:${j}:${t}" style="height:30px;padding:0 10px;font-size:12px;width:auto"><option value="">${t < 0 ? 'Tag a player…' : 'Swap for…'}</option>${sides.map(k => `<optgroup label="${E(C[k].name)}">${SPL.squads[k].map(p => `<option value="${k}:${p[0]}">${p[0]} ${E(p[1])}</option>`).join('')}</optgroup>`).join('')}${t >= 0 ? '<option value="-">Drop this tag</option>' : ''}</select>`;
+    const chip = (t, x) => { const p = SPLNEWS.tagged(t); if (!p) return ''; if (ed === x) return pick(x);
+      return `<span class="ntag"><button data-ntedit="${i}:${j}:${x}" title="Swap"><span class="crest cr-${p.k}"></span><b>${E(p.name)}</b><span>${E(p.short)} · #${p.shirt}</span></button><button data-ntdel="${i}:${j}:${x}" title="Drop">×</button></span>`; };
+    const ask = (t, x) => { const [q, ...opts] = t.slice(1).split('|');
+      return `<span class="ntag ask">${E(q[0].toUpperCase() + q.slice(1))}: which one?</span>${opts.map(o => { const p = SPLNEWS.tagged(o); return p ? `<button class="ntag opt" data-ntpick="${i}:${j}:${x}:${o}"><span class="crest cr-${p.k}"></span>${E(p.name)}<span>#${p.shirt} · ${E(p.position)}</span></button>` : ''; }).join('')}<button class="ntag opt" data-ntdel="${i}:${j}:${x}">Neither</button>`; };
+    return `<div class="ntags">${tags.map((t, x) => t[0] === '?' ? ask(t, x) : chip(t, x)).join('')}${ed === -1 ? pick(-1) : `<button class="lnk" data-ntedit="${i}:${j}:-1" style="font-size:12px">+ Tag a player</button>`}</div>`;
   }
   function potmPanel(i) {
     const L = D.live[i], c = clockOf(i); if (!L || !(L.phase === '2H' && c.n >= 70 || L.phase === 'FT' || L.potmOpen)) return '';
@@ -790,13 +805,13 @@
     const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
     const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TONIGHT' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
       (k === 'matchday' ? ROUND.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span><em class="dd">${dayName(m[1]).slice(0, 3)}</em>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
-    const now = new Date(), stamp = 'Friday 20 November · ' + now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const stamp = `Matchweek ${SPL.matches[ROUND[0]][0]}${TONIGHT.length ? ` · ${TONIGHT.length === 1 ? 'one game' : TONIGHT.length + ' games'} tonight` : ''}`;
     root.innerHTML = `<div class="glow" aria-hidden="true"><span></span><span></span><span></span></div>
       <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
       <nav>${GROUPS.map(([t, ks]) => `<div class="sec">${t}</div>${ks.map(nv).join('')}`).join('')}</nav>
       <div class="foot">${statusLine()}<a class="lnk" href="index.html" target="_blank" rel="noopener">Open the app ↗</a></div></aside>
       <div class="col"><header class="top g">${backTo() ? `<button class="ib back" data-back="1" aria-label="Back to ${E(backTo())}" title="Back to ${E(backTo())}">${icon('back')}</button>` : ''}<div class="tt"><b>${PAGES[A.page][0]}${A.page === 'votes' && A.awm ? ' · ' + E(mName(A.awm)) : ''}</b><span>${backTo() ? 'Back to ' + E(backTo()) : stamp}</span></div>
-        <div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
+        <div class="clk" title="The demo's day is ${E(dayName(TODAY))} ${E(new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }))}, the first night of Matchweek ${SPL.matches[ROUND[0]][0]}. The time is the real time, and the console's clock runs on it."><span>${E(new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</span><b id="clkT">${clockNow()}</b></div><div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
         <button class="ib" data-setlook="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
         <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
         <span class="newwrap"><button class="new" data-newmenu="1">+ New</button>${A.newOpen ? `<div class="nmenu"><button data-qnews="1">${icon('news')}Story</button><button data-page="push">${icon('push')}Notification</button><button data-console="${TONIGHT[0]}">${icon('matchday')}Live game</button><button data-page="votes">${icon('votes')}Goal of the Month</button></div>` : ''}</span>
@@ -837,7 +852,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -937,7 +952,11 @@
     if (d.newnews) { A.nFor = null; A.news = 'new'; render(); return; }
     if (d.editnews) { A.nFor = null; A.news = d.editnews; render(); return; }
     if (d.noteadd !== undefined) { const i = +d.noteadd, mi = val('noteM').trim().replace(/'/g, ''), t = val('noteT').trim(); if (!t) { flash('Write the moment first.'); render(); return; } if (!/^\d{1,3}(\+\d{1,2})?$/.test(mi)) { flash('Add the minute it happened, e.g. 23 or 45+2.'); render(); return; }
-      save(d2 => { const L = d2.live[i]; L.notes = (L.notes || []).concat([[mi, t]]).slice(0, 40); }, 'Noted for the report.'); return; }
+      const m = SPL.matches[i], tags = SPLNEWS.tagNames(t, [m[2], m[3]]), open = tags.filter(x => x[0] === '?').length;
+      save(d2 => { const L = d2.live[i]; L.notes = (L.notes || []).concat([[mi, t, tags]]).slice(0, 40); }, open ? 'Noted. One name fits two players: pick which under the note.' : tags.length ? `Noted, with ${tags.length} ${tags.length > 1 ? 'players' : 'player'} tagged.` : 'Noted for the report.'); return; }
+    if (d.ntedit) { const [i, j, x] = d.ntedit.split(':').map(Number); A.ntag = { i, j, t: x }; render(); return; }
+    if (d.ntdel) { const [i, j, x] = d.ntdel.split(':').map(Number); A.ntag = null; save(d2 => { ntOf(d2, i, j).splice(x, 1); }, 'Tag dropped.'); return; }
+    if (d.ntpick) { const [i, j, x, k, n] = d.ntpick.split(':'); A.ntag = null; save(d2 => { const tg = ntOf(d2, +i, +j); tg[+x] = k + ':' + n; d2.live[+i].notes[+j][2] = tg.filter((v, y) => tg.indexOf(v) === y); }, 'Tagged.'); return; }
     if (d.notedel) { const [i, j] = d.notedel.split(':').map(Number); save(d2 => { d2.live[i].notes.splice(j, 1); }, 'Note removed.'); return; }
     if (d.pmai) { const k = d.pmai, i = +k.replace(/^\D+/, ''); if (!CL.on) { flash('The AI writer needs the backend on and the Claude key in Supabase.'); render(); return; }
       A.aiBusy = k; render(); const gen = SPLNEWS.postMatch(D, i);
@@ -1082,6 +1101,8 @@
   root.addEventListener('change', e => { const pp = e.target.dataset && e.target.dataset.pphoto; if (!pp || !e.target.files[0]) return;
     const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
     r.readAsDataURL(e.target.files[0]); e.target.value = ''; });
+  root.addEventListener('change', e => { const ns = e.target.dataset && e.target.dataset.ntsel; if (!ns || !e.target.value) return; const [i, j, x] = ns.split(':').map(Number), v = e.target.value; A.ntag = null;
+    save(d2 => { const tg = ntOf(d2, i, j); if (v === '-') tg.splice(x, 1); else if (x < 0) { if (!tg.includes(v)) tg.push(v); } else tg[x] = v; d2.live[i].notes[j][2] = tg.filter((t, y) => tg.indexOf(t) === y).slice(0, 8); }, v === '-' ? 'Tag dropped.' : 'Tagged.'); });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
     const [i, j] = pn.split(':').map(Number), L = D.live[i]; if (!A.potmDraft || A.potmDraft.i !== i) A.potmDraft = { i, noms: (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM)).map(x => x.slice()) };
     const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; render(); });

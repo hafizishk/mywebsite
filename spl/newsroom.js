@@ -249,6 +249,31 @@ var SPLNEWS = (function () {
     const body = [s.text, last.length ? `Their last ${word(Math.min(6, last.length))}: ${last.join(', ')}.` : '', '[CONTEXT: QUOTE, NEXT FIXTURE OR HISTORY]'].filter(Boolean).join('\n\n');
     return { head: s.head, dek: s.text, body };
   }
+  // who a note is about (Hafiz, 10 Nov, option C): the official writes freely; on Add, names are matched to the two
+  // squads. A tag is 'CLUB:num' when sure, or '?word|CLUB:num|CLUB:num' when a name fits more than one player.
+  const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const NOTNAME = new Set(['the', 'and', 'for', 'from', 'with', 'shot', 'save', 'saved', 'goal', 'box', 'bar', 'post', 'head', 'header', 'headed', 'corner', 'free', 'kick', 'cross', 'ball', 'area', 'wide', 'late', 'over', 'off', 'his', 'her', 'own', 'pen', 'card', 'line', 'yard', 'yards', 'near', 'far', 'top', 'low', 'high', 'left', 'right']);
+  const near = (a, b) => { if (a === b) return true; if (a.length < 5 || Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, e = 0; while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue; } if (++e > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; } } return e + (a.length - i) + (b.length - j) <= 1; };
+  function tagNames(text, clubs) {
+    const toks = fold(text).split(/[^a-z']+/).map(t => t.replace(/'s$|'/g, '')).filter(t => t.length > 2 && !NOTNAME.has(t));
+    const ps = []; clubs.forEach(k => (SPL.squads[k] || []).forEach(p => ps.push({ k, n: p[0], parts: fold(p[1]).split(/[\s-]+/).filter(w => w.length > 2) })));
+    const hits = toks.map(t => ps.filter(p => p.parts.some(w => w === t)).concat(ps.filter(p => !p.parts.some(w => w === t) && p.parts.some(w => near(t, w)))));
+    // exact before fuzzy: if any exact match exists for a token, drop the near ones
+    const best = toks.map((t, x) => { const ex = hits[x].filter(p => p.parts.includes(t)); return ex.length ? ex : hits[x]; });
+    const out = [], used = new Set(), key = p => p.k + ':' + p.n;
+    // two tokens naming the same player ("joshua pereira") settle it
+    best.forEach((h, x) => { if (x && h.length > 1) { const both = h.filter(p => best[x - 1].includes(p)); if (both.length === 1) { best[x] = both; best[x - 1] = both; } } });
+    best.forEach((h, x) => { if (!h.length) return; if (h.length === 1) { if (!used.has(key(h[0]))) { used.add(key(h[0])); out.push(key(h[0])); } return; }
+      if (h.length <= 4 && !h.some(p => used.has(key(p)))) { const q = '?' + toks[x] + '|' + h.map(key).join('|'); if (!out.includes(q)) out.push(q); } });
+    return out.slice(0, 8);
+  }
+  const POSW = { GK: 'goalkeeper', DF: 'defender', MF: 'midfielder', FW: 'forward' };
+  const tagged = t => { const [k, n] = String(t).split(':'), p = (SPL.squads[k] || []).find(x => x[0] === +n); return p ? { name: p[1], club: F(k), short: H(k), k, shirt: p[0], position: POSW[p[2]] } : null; };
+  // a note for the writer: the line, then who it is about; an unsettled name is flagged so it is not used
+  const noteLine = ([m, t, tags]) => { const who = (tags || []).filter(x => x[0] !== '?').map(tagged).filter(Boolean), open = (tags || []).filter(x => x[0] === '?').map(x => x.slice(1).split('|')[0]);
+    return `${m}': ${t}${who.length ? ` [who: ${who.map(p => `${p.name} (${p.club}, ${p.position}, #${p.shirt})`).join('; ')}]` : ''}${open.length ? ` [not sure who "${open.join('", "')}" is: do not name them]` : ''}`; };
+
   // the background a report writer needs, all worked out after the result (Hafiz, 10 Nov): the table, each side's last
   // five and runs, the season tally of everyone who scored, earlier meetings, and who the officials' notes are about
   function context(D, i, notes) {
@@ -263,9 +288,8 @@ var SPLNEWS = (function () {
     const G = goalsOf(r), names = [...new Set(G.filter(g => !g.og).map(g => g.who))];
     const meetings = before.filter(x => [x.h, x.a].sort().join() === [r.h, r.a].sort().join()).map(x => `${x.date}: ${H(x.h)} ${x.s[0]}-${x.s[1]} ${H(x.a)}`);
     // names in the officials' notes, matched to the two squads (surname or first name, whole word)
-    const said = (notes || []).join(' ').toLowerCase(), people = [];
-    [r.h, r.a].forEach(k => (SPL.squads[k] || []).forEach(p => { const parts = p[1].toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      if (parts.some(w => new RegExp(`(^|[^a-z])${w.replace(/[^a-z]/g, '.')}([^a-z]|$)`).test(said))) people.push({ name: p[1], club: F(k), shirt: p[0], position: { GK: 'goalkeeper', DF: 'defender', MF: 'midfielder', FW: 'forward' }[p[2]] }); }));
+    // who the notes name: the official's tags (older notes without tags are matched now)
+    const people = []; (notes || []).forEach(nt => (Array.isArray(nt[2]) ? nt[2] : tagNames(nt[1], [r.h, r.a])).forEach(t => { const p = t[0] !== '?' && tagged(t); if (p && !people.some(x => x.name === p.name)) people.push({ name: p.name, club: p.club, shirt: p.shirt, position: p.position }); }));
     return { table_after_this_game: T.map(x => `${x.pos}. ${F(x.k)} P${x.p} ${x.pts} pts, GD ${x.gf - x.ga > 0 ? '+' : ''}${x.gf - x.ga}`),
       home_side: side(r.h), away_side: side(r.a),
       scorers_season_tally_after_this_game: names.map(n => { const x = sc.find(y => y.name === n); const now = G.filter(g => g.who === n && !g.og).length; return x && !x.partial ? { player: n, league_goals_this_season: x.g, of_which_this_game: now, top_of_the_scoring_chart: sc[0].g === x.g } : { player: n, of_which_this_game: now, season_tally: 'not on record (only the top of the scoring chart is stored), so do not say how many he has this season or that it was his first' }; }),
@@ -290,11 +314,11 @@ var SPLNEWS = (function () {
           if (e[3] === 'S') return `${mn(e)}' substitution, ${F(k)}: ${pname(k, e[5])} on, ${pname(k, e[6])} off`;
           return `${mn(e)}' ${e[3] === 'Y' ? 'yellow' : 'red'} card, ${pname(k, e[5])} (${F(k)})`; });
         const reds = (r.ev || []).filter(e => e[3] === 'R').map(e => `Red Card – ${pname(e[4], e[5])} (${H(e[4])}) ${mn(e)}’`);
-        const notes = ((D.live && D.live[r.i] && D.live[r.i].notes) || []).map(([m, t]) => `${m}': ${t}`), ctx = context(D, r.i, notes);
+        const raw = (D.live && D.live[r.i] && D.live[r.i].notes) || [], notes = raw.map(noteLine), ctx = context(D, r.i, raw);
         return { home: F(h), away: F(a), score: `${H(h)} ${r.s[0]}-${r.s[1]} ${H(a)}`, ground: r.m[5],
           copy_these_lines_exactly: { score_line: `${H(h)} ${r.s[0]}-${r.s[1]} ${H(a)} | ${VEN(r.m[5])} | ${dayMonth(r.date)}`, scorers_line: [side(h), side(a)].filter(Boolean).join(' | ') || null, facts_lines: reds },
           events_in_order: r.ev ? ev : goals.map(g => `${g.add ? g.min + '+' + g.add : g.min}' ${g.og ? 'own goal by ' + g.who + ' for ' + F(g.team) : (g.pen ? 'penalty scored by ' : 'goal, ') + g.who + ' (' + F(g.team) + ')'}`),
           events_complete: !!r.ev, officials_notes: notes, background: ctx }; }) };
   }
-  return { results, table, scorers, storylines, postMatch, preMatch, roundup, roundupFacts, latestMw, mwPreview, nextMw, storyDraft, context, word, ord };
+  return { results, table, scorers, storylines, postMatch, preMatch, roundup, roundupFacts, tagNames, tagged, noteLine, latestMw, mwPreview, nextMw, storyDraft, context, word, ord };
 })();
