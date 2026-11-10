@@ -184,6 +184,7 @@ var SPLSTORE = (function () {
     out.potm = { month: str(pm.month, def.potm.month), mkey: str(pm.mkey, def.potm.mkey), closes: str(pm.closes, ''), open: pm.open !== false, winner: str(pm.winner, ''),
       list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };
     const shopImg = x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 500000));
+    out.demo = isObj(d.demo) && Number.isInteger(d.demo.i) && SPL.matches[d.demo.i] && Number.isFinite(+d.demo.at) && +d.demo.at > 0 ? { i: d.demo.i, at: +d.demo.at } : null;
     out.shop = Array.isArray(d.shop) ? d.shop.filter(isObj).slice(0, 60).map((x, j) => ({ id: str(x.id, 'p' + j).slice(0, 40), name: str(x.name, '').slice(0, 120),
       tab: ['league', 'lions', 'clubs'].includes(x.tab) ? x.tab : 'lions', club: x.tab === 'clubs' && C[x.club] ? x.club : '', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
       price: /^\d{1,4}\.\d{2}$/.test(x.price) ? x.price : '', off: Math.min(90, Math.max(0, Math.round(+x.off) || 0)), pos: /^\d{1,3}% \d{1,3}%$/.test(x.pos) ? x.pos : '50% 50%',
@@ -196,10 +197,26 @@ var SPLSTORE = (function () {
     out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
-  function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} return clean(isObj(d) ? d : {}); }
+  function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} const o = clean(isObj(d) ? d : {}); applyDemo(o.demo); return o; }
+  // the real date (Hafiz, 10 Nov): the app and the admin run on today. A demo game (set in the console) plays one fixture
+  // at a chosen time, say the FAS meeting: its date and kick-off move there in memory, everything else keeps its date,
+  // and the app says what the real fixture is (demoOf).
+  const z2 = n => String(n).padStart(2, '0'), isoOf = t => { const d = new Date(t); return `${d.getFullYear()}-${z2(d.getMonth() + 1)}-${z2(d.getDate())}`; };
+  const today = () => isoOf(Date.now());
+  const ORIG = SPL.matches.map(m => [m[1], m[7]]);
+  let DEMO = null;
+  function applyDemo(dm) {
+    if (DEMO && SPL.matches[DEMO.i]) { SPL.matches[DEMO.i][1] = ORIG[DEMO.i][0]; SPL.matches[DEMO.i][7] = ORIG[DEMO.i][1]; }
+    DEMO = dm && SPL.matches[dm.i] && !SPL.matches[dm.i][4] ? dm : null; if (!DEMO) return;
+    const d = new Date(DEMO.at), h = d.getHours();
+    SPL.matches[DEMO.i][1] = isoOf(DEMO.at); SPL.matches[DEMO.i][7] = `${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${h % 12 || 12}.${z2(d.getMinutes())}${h < 12 ? 'AM' : 'PM'}`;
+  }
+  const demoOf = i => DEMO && DEMO.i === i ? { date: ORIG[i][0], status: ORIG[i][1] } : null;
+  // the round in play: the earliest matchweek with a fixture still to come today or later (postponed games aside)
+  const roundOf = day => { if (DEMO && SPL.matches[DEMO.i][1] >= day) return SPL.matches[DEMO.i][0]; const up = SPL.matches.filter(m => !m[4] && m[1] >= day && !String(m[7] || '').startsWith('Postponed')); return up.length ? Math.min(...up.map(m => m[0])) : Math.max(...SPL.matches.map(m => m[0])); };
   // saved here, and to the backend when FAS staff are signed in (cloud.js; a no-op in demo mode or for fans)
   function write(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} if (window.SPLCLOUD) SPLCLOUD.save(d); }
-  function update(fn) { const d = read(); fn(d); write(d); return d; }
+  function update(fn) { const d = read(); fn(d); write(d); applyDemo(d.demo); return d; }
   function reset() { try { localStorage.removeItem(KEY); localStorage.removeItem(EVK); } catch (e) {} }
   // analytics: the app records each screen it shows, each tap and each sponsor slot seen; the admin counts them
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
@@ -207,5 +224,5 @@ var SPLSTORE = (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   // a story photo's focus point (Hafiz, 10 Nov: frame it), '' = the photo's default
   const posOf = (n, j) => (n && Array.isArray(n.pos) && n.pos[j]) || '';
-  return { KEY, EVK, SLOTS, IMG, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, today, roundOf, demoOf, applyDemo, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();

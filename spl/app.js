@@ -30,9 +30,10 @@
   // depth to make it six wins on the trot"); minutes it gives loosely are approximate. Starting XIs other than the
   // players that report names, the stats and the Player of the Match counts are reconstructed for the demo,
   // and every live screen says "Replay".
-  // the app's day (Hafiz, 6 Nov): Friday 20 November, the first night of Matchweek 7, as the admin. MW6 is final; the
-  // replay of its Sunday games stays in Settings → Demo.
-  const TODAY = '2026-11-20', TODAY_MW = 7;
+  // the app's day (Hafiz, 10 Nov): the real date. The round in play is the earliest with a game still to come; a demo game
+  // set in the console moves one fixture to a chosen time (SPLSTORE.demoOf). MW6's replay stays in Settings → Demo.
+  let TODAY = SPLSTORE.today();
+  const curMw = () => SPLSTORE.roundOf(TODAY);
   const LIVE_IDS = [23, 22]; // tonight's games: the replay plays them, the admin's match console can run them for real
   // MW6 Sunday team sheets and changes: the official spl.sg Matchweek 6 roundup (2 Nov). Shapes are from the squads' listed positions.
   const XI = {
@@ -199,7 +200,7 @@
     const tonight = rows().filter(r => r.date === (S.sim ? '2026-11-01' : TODAY)), live = tonight.some(r => r.live);
     const sec = (t, slot, extra) => `<div style="display:flex;align-items:center;gap:14px"><span class="d" style="font-size:20px">${t}</span><span style="flex:1;height:1px;background:var(--line)"></span>${extra || spLine(slot)}</div>`;
     return `<div style="display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:26px;line-height:1">Watch</span><span class="lbl">Live games, moments and highlights</span></div>
-      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--red)" ><div class="lbl" style="display:flex;justify-content:space-between"><span style="${live ? 'color:#FF6B71' : ''}">${live ? 'Live now' : 'Tonight · 7.30PM'}</span><span>meWATCH</span></div>
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--red)" ><div class="lbl" style="display:flex;justify-content:space-between"><span style="${live ? 'color:#FF6B71' : ''}">${live ? 'Live now' : tonight[0] ? 'Today · ' + String(tonight[0].status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '') : 'No game today'}</span><span>meWATCH</span></div>
         ${tonight.map(r => `<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px"><span style="display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:14px;font-weight:600">${r.hname}${crest(r.home, 26)}</span><span class="d mono" style="font-size:16px;color:var(--muted)">${r.sc}</span><span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600">${crest(r.away, 26)}${r.aname}</span></div>`).join('')}
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><a class="btn" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="flex:1">Watch on meWATCH ↗</a></div>
         <span style="font-size:11px;color:var(--muted)">Every SPL match streams live on meWATCH.</span></div>
@@ -256,7 +257,10 @@
   const formChips = k => formL(k).map(x => `<span class="fchip" style="--fc:${FCOL[x]}">${x}</span>`).join('');
   // kick-off countdown (match centre, Hafiz 9 Nov, option B): the demo's date (TODAY) at the phone's time of day
   const kickAt = m => { const t = String(m[7] || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); if (!t) return null; const h = +t[1] % 12 + (/PM/i.test(t[3]) ? 12 : 0); return new Date(`${m[1]}T${String(h).padStart(2, '0')}:${t[2]}:00`); };
-  const nowDemo = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return new Date(`${TODAY}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`); };
+  const nowDemo = () => new Date();
+  const kt = m => String((m && m[7]) || '7.30PM').replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Tonight) /, '');
+  // a demo game says so, with the real fixture
+  const demoNote = i => { const o = SPLSTORE.demoOf(i); return o ? `<span class="lbl" style="text-align:center;color:#F5D76A;text-transform:none;letter-spacing:0">Demo game · the real fixture is ${E(fmtDate(o.date))}, ${E(String(o.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, ''))}</span>` : ''; };
   const countdown = m => { const k = kickAt(m); if (!k) return null; const ms = k - nowDemo(); if (ms <= 0) return { big: 'Soon', unit: 'kick-off' };
     const mins = Math.floor(ms / 60000), d = Math.floor(mins / 1440); if (d >= 1) return { big: String(d), unit: d === 1 ? 'day' : 'days' };
     return { big: `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`, unit: 'hrs · min' }; };
@@ -268,7 +272,7 @@
       <div class="mh-row"><button class="rowlink mh-club" data-club="${m[2]}">${crest(m[2], 66)}<span class="d">${r.hname}</span><span class="lbl">${posText(m[2])}</span></button>
         <div class="mh-mid">${c ? `<span class="lbl" style="color:#FFD1D3">Kick-off in</span><b class="d mono" data-count="${i}">${c.big}</b><span class="lbl" style="font-size:10px" data-countu="${i}">${c.unit}</span>` : `<b class="d">VS</b>`}</div>
         <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
-      <span class="lbl" style="text-align:center">${today ? 'Tonight' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>
+      <span class="lbl" style="text-align:center">${today ? 'Today' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>${demoNote(i)}
       <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets${tixFrom(m[2]) ? `<small> from S$${tixFrom(m[2])}</small>` : ''}</button>
         <button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button>
         <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
@@ -384,7 +388,7 @@
         <span class="wk-g"><span class="wk-t" style="justify-content:flex-end">${r.hname}${crest(r.home, 28)}</span><b class="d mono">${r.live ? `<span style="color:#FF6B71">${r.sc}</span>` : r.sc !== 'VS' ? r.sc : String(SPL.matches[r.id][7] || '').replace(/^\w+ /, '')}</b><span class="wk-t">${crest(r.away, 28)}${r.aname}</span></span>
         <span class="lbl wk-v">${E(r.venue)}${r.live ? ' · <span style="color:#FF6B71">' + E(r.status) + '</span>' : ''}</span></button>`).join('')).join('')}</div>`; };
   function home() {
-    const all = rows(), demo = !!S.sim, tonight = all.filter(r => r.date === (demo ? '2026-11-01' : TODAY)), weekend = demo ? [] : all.filter(r => r.mw === TODAY_MW && r.date !== TODAY), liveN = tonight.filter(r => r.live).length;
+    const all = rows(), demo = !!S.sim, tonight = all.filter(r => r.date === (demo ? '2026-11-01' : TODAY)), weekend = demo ? [] : all.filter(r => r.mw === curMw() && r.date !== TODAY && r.sc === 'VS'), liveN = tonight.filter(r => r.live).length;
     const latest = all.filter(r => r.sc !== 'VS').slice(-6).reverse();
     const head = `<div style="display:flex;align-items:center">
       <span class="spl-h" role="img" aria-label="Singapore Premier League" style="width:118px;height:44px;margin-left:-6px;flex:none"></span>
@@ -393,12 +397,12 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="tabs">${[['tonight', 'Matchday'], ['news', 'News']].map(([k, l]) => `<button class="stab ${S.htab === k ? 'on' : ''}" data-htab="${k}">${l}</button>`).join('')}</div>
-      <div class="lbl" style="display:flex;justify-content:space-between"><span>${demo ? 'Replay · Sun 1 Nov · Matchweek 6' : 'Fri 20 Nov · Matchweek ' + TODAY_MW}</span><span>${liveN ? `<span style="color:#FF6B71">${liveN} live</span>` : demo && S.sim.T >= 0 ? 'Full time' : tonight.length === 1 ? 'A game tonight' : tonight.length + ' games tonight'}</span></div>
+      <div class="lbl" style="display:flex;justify-content:space-between"><span>${demo ? 'Replay · Sun 1 Nov · Matchweek 6' : fmtDate(TODAY) + ' · Matchweek ' + curMw()}</span><span>${liveN ? `<span style="color:#FF6B71">${liveN} live</span>` : demo && S.sim.T >= 0 ? 'Full time' : tonight.length ? (tonight.length === 1 ? 'A game today' : tonight.length + ' games today') : weekend.length ? 'Next: ' + weekend[0].when : ''}</span></div>
     </div>`;
     if (S.htab === 'news') return head + `<div class="card" style="padding:0 16px">${NEWS_().map(n => newsRow(n, true)).join('')}</div>`;
     if (S.htab === 'watch') S.htab = 'tonight';
     const fav = favC();
-    const favFx = fav ? rows().filter(r => (r.home === P.fav || r.away === P.fav) && r.sc === 'VS').slice(0, 1) : [];
+    const favFx = fav ? rows().filter(r => (r.home === P.fav || r.away === P.fav) && r.sc === 'VS' && r.date >= TODAY && !/^Postponed/.test(r.status)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 1) : [];
     const favStrip = fav ? `<div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-top:3px solid ${fav.c}">${crest(P.fav, 36)}<div style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:15px;line-height:1">${fav.short}</span><span class="lbl">${posText(P.fav)} · ${favFx.length ? 'next ' + favFx[0].when + ' v ' + (favFx[0].home === P.fav ? favFx[0].aname : favFx[0].hname) : 'no fixture scheduled'}</span></div><button class="rowlink" data-club="${P.fav}" style="width:auto;color:var(--muted);font:600 12px 'Inter',sans-serif">My club →</button></div>` : '';
     const G = GOTM_(), voted = P.votes[G.month], win = G.winner && G.goals.find(g => g.id === G.winner);
     const gotmCard = `<button class="card" data-go="gotm" style="padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;color:var(--ink);width:100%"><div style="display:flex;justify-content:space-between" class="lbl"><span style="color:#C9A227">Goal of the Month · ${E(G.month)}</span><span>${win ? 'Result' : voted ? 'Voted' : G.open ? 'Closes ' + fmtDate(G.closes) : 'Voting closed'}</span></div><span class="d" style="font-size:20px;line-height:1">${win ? E(win.player) + ' wins' : voted ? 'See how the vote stands' : G.open ? G.goals.length + ' goals. One vote.' : 'Result coming soon'}</span><span style="font-size:12px;color:var(--muted)">${win ? E(win.match) + ' · ' + E(win.min) : G.goals.map(g => E(backName(g.player))).join(' · ')}</span>${spLine('gotm')}</button>`;
@@ -482,7 +486,7 @@
       const cell = `<span style="display:flex;flex-direction:column;gap:2px;${h ? 'align-items:flex-end;text-align:right;padding-right:10px' : 'padding-left:10px'}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:${e[3] === 'G' ? 700 : 500}">${h ? '' : icon(e)}${who}${h ? icon(e) : ''}</span>${sub ? `<span style="font-size:11px;color:var(--muted)">${sub}</span>` : ''}</span>`;
       return `<div style="display:grid;grid-template-columns:1fr 50px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)">${h ? cell : '<span></span>'}<span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${minLabel(e[1], e[2])}</span>${h ? '<span></span>' : cell}</div>`;
     });
-    return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · 7.30PM</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off 7.30PM.</div>'}</div>
+    return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · ' + kt(SPL.matches[i]) + '</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off ' + kt(SPL.matches[i]) + '.</div>'}</div>
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH</span></div>`;
   }
   // Fans' Player of the Match (Hafiz, 10 Nov, option B, F1's Driver of the Day): four nominees from either side;
@@ -597,7 +601,7 @@
     const events = (m[6] || []).map(g => { const h = g[2] === m[2]; return `<div style="display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)"><span style="font-size:13px;text-align:right;padding-right:8px;font-weight:${h ? 600 : 400}">${h ? g[0] : ''}</span><span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${g[1]}'</span><span style="font-size:13px;padding-left:8px;font-weight:${h ? 400 : 600}">${h ? '' : g[0]}</span></div>`; });
     const squad = k => SPL.squads[k].map(p => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:11px"><span class="mono" style="color:var(--muted);width:18px">${p[0]}</span><span style="flex:1">${p[1]}</span><span style="color:var(--muted)">${p[2]}</span></div>`).join('');
     let body = '';
-    if (S.mtab === 'overview') body = pmCard(S.match) + crowdCard(S.match) + (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off 7.30PM. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
+    if (S.mtab === 'overview') body = pmCard(S.match) + crowdCard(S.match) + (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off ${kt(m)}. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
     else if (S.mtab === 'potm' && !m[4]) body = potmTab(S.match, null);
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
@@ -1072,7 +1076,7 @@
     return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-tkback="1" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:22px">Tickets</span></div>
       <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:14px;border-top:3px solid ${C[m[2]].c}">
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[2], 48)}<span class="d" style="font-size:14px">${r.hname}</span></div><span class="d" style="font-size:30px;color:rgba(255,255,255,.7)">VS</span><div style="display:flex;flex-direction:column;align-items:center;gap:8px">${crest(m[3], 48)}<span class="d" style="font-size:14px">${r.aname}</span></div></div>
-        <span class="lbl" style="text-align:center">${r.when} · 7.30PM · ${r.venue}</span></div>
+        <span class="lbl" style="text-align:center">${r.when} · ${kt(m)} · ${r.venue}</span></div>
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px">
         <span class="lbl">Sold on Trip.com · ${E(C[m[2]].short)} home games</span>
         ${TIXC[m[2]] ? `<div style="display:flex;flex-direction:column">${[['Adult', '17–59', TIXC[m[2]].adult], ['Senior', '60 and over', TIXC[m[2]].senior]].map(t => `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line2)"><span style="font-size:14px;font-weight:600">${t[0]} <span style="font-weight:400;color:var(--muted);font-size:12px">${t[1]}</span></span><span class="d mono" style="font-size:18px">from S$${t[2]}</span></div>`).join('')}</div>
@@ -1350,7 +1354,7 @@
   // the admin and the app share the store: a change in one tab shows in the other straight away
   window.addEventListener('storage', e => {
     if (e.key !== SPLSTORE.KEY && e.key !== null) return;
-    STORE = SPLSTORE.read(); potmSync(); duePushes();
+    STORE = SPLSTORE.read(); TODAY = SPLSTORE.today(); potmSync(); duePushes();
     if (!['players', 'search', 'onboard', 'tickets'].includes(S.view)) { S.keepScroll = true; render(); } else renderChrome();
   });
   if (!timer) timer = setInterval(tick, 250);

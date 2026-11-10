@@ -5,13 +5,14 @@
   'use strict';
   const C = SPL.clubs, E = SPLSTORE.esc, root = document.getElementById('adm');
   const A = { page: 'overview', live: null, evType: 'G', evTeam: null, news: null, flash: '', pushWhen: 'now', pushAud: 'all' };
-  // the admin's day (Hafiz, 6 Nov): Friday 20 November, the first night of Matchweek 7. ROUND is the weekend's games, TONIGHT tonight's
-  const TODAY = '2026-11-20', ROUND = SPL.matches.map((m, i) => m[0] === 7 ? i : -1).filter(i => i >= 0), TONIGHT = ROUND.filter(i => SPL.matches[i][1] === TODAY);
-  // the top bar's clock (Hafiz, 10 Nov): the demo's day, the real time, ticking every second
+  // the admin's day (Hafiz, 10 Nov): the real date. ROUND is the round in play (the earliest with a game still to come),
+  // TONIGHT today's games; a demo game set on the Matchday page moves one fixture to a chosen time (SPLSTORE.demoOf)
+  let TODAY, ROUND, TONIGHT;
+  function setDay() { TODAY = SPLSTORE.today(); const mw = SPLSTORE.roundOf(TODAY); ROUND = SPL.matches.map((m, i) => m[0] === mw ? i : -1).filter(i => i >= 0).sort((a, b) => SPL.matches[a][1].localeCompare(SPL.matches[b][1]) || a - b); TONIGHT = ROUND.filter(i => SPL.matches[i][1] === TODAY); }
+  // the top bar's clock (Hafiz, 10 Nov): today's date and the time, ticking every second
   const clockNow = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   setInterval(() => { const el = document.getElementById('clkT'); if (el) el.textContent = clockNow(); }, 1000);
   const dayName = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'long' });
-  A.live = TONIGHT[0];
   // the table as the admin's day sees it: the stored table plus Matchweek 6's Sunday games (kept unplayed in the data for the app's live replay; spl.sg, 1 Nov)
   const SUNDAY6 = { 22: [0, 4], 23: [0, 0] };
   const tableNow = () => { const t = SPL.table.map(r => r.slice()); Object.entries(SUNDAY6).forEach(([i, sc]) => { const m = SPL.matches[+i]; [[m[2], sc[0], sc[1]], [m[3], sc[1], sc[0]]].forEach(([k, f, a]) => { const r = t.find(x => x[0] === k); if (!r) return; r[1]++; if (f > a) { r[2]++; r[7] += 3; } else if (f === a) { r[3]++; r[7] += 1; } else r[4]++; r[5] += f; r[6] += a; }); }); return t.sort((x, y) => y[7] - x[7] || (y[5] - y[6]) - (x[5] - x[6]) || y[5] - x[5]); };
@@ -19,8 +20,10 @@
   const LEFT = 4 * 36e5;
   const stale = i => { const L = D.live[i]; return !!(L && ['1H', 'HT', '2H'].includes(L.phase) && L.t0 && Date.now() - L.t0 > LEFT); };
   const consoleGames = () => ROUND.concat(Object.keys(D.live).map(Number).filter(i => SPL.matches[i] && !ROUND.includes(i) && D.live[i].phase !== 'pre').sort((a, b) => a - b));
-  const relDay = iso => iso === TODAY ? 'Tonight' : (Date.parse(iso) - Date.parse(TODAY)) === 864e5 ? 'Tomorrow' : dayName(iso);
-  let D = SPLSTORE.read();
+  const rspan = () => { const ds = ROUND.map(i => SPL.matches[i][1]).sort(), f = d => new Date(d + 'T12:00:00'), a = f(ds[0]), b = f(ds[ds.length - 1]), mo = d => d.toLocaleDateString('en-GB', { month: 'long' }); return ds[0] === ds[ds.length - 1] ? `${a.getDate()} ${mo(a)}` : mo(a) === mo(b) ? `${a.getDate()}–${b.getDate()} ${mo(b)}` : `${a.getDate()} ${mo(a)} – ${b.getDate()} ${mo(b)}`; };
+  const kickT = m => String(m[7] || '').replace(/^\w+ /, '');
+  const relDay = iso => iso === TODAY ? 'Today' : (Date.parse(iso) - Date.parse(TODAY)) === 864e5 ? 'Tomorrow' : dayName(iso);
+  let D = SPLSTORE.read(); setDay(); if (A.live === undefined || !ROUND.includes(A.live)) A.live = TONIGHT[0] !== undefined ? TONIGHT[0] : ROUND[0];
   // alerts saved by this save that are due now also go to locked phones (Firebase, through the push function)
   function pushOut(b, a) { if (!CL.on) return; const seen = {}; (b.pushes || []).forEach(p => { seen[p.id] = 1; });
     (a.pushes || []).filter(p => !seen[p.id] && p.at <= Date.now() + 30000).forEach(p => { const m = p.match !== null && SPL.matches[p.match];
@@ -193,14 +196,14 @@
   function spark(col, pts) { const W = 112, H = 42, mx = Math.max(1, ...pts), xy = pts.map((v, j) => `${(j * W / (pts.length - 1)).toFixed(1)} ${(H - 4 - (H - 10) * v / mx).toFixed(1)}`), id = 'sg' + col.slice(1);
     const d = 'M' + xy.join(' L'); return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".45"/><stop offset="1" stop-color="${col}" stop-opacity=".04"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>`; }
   function dial() {
-    const pool = TONIGHT, i = pool.includes(A.dial) ? A.dial : TONIGHT[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
-    let frac = 0, top = m[1] === TODAY ? 'Kick-off tonight' : 'Kick-off ' + dayName(m[1]), big = '7.30PM', sub = E(m[5]);
+    const pool = TONIGHT.length ? TONIGHT : [ROUND[0]], i = pool.includes(A.dial) ? A.dial : pool[0], m = SPL.matches[i], c = clockOf(i), s = scoreOf(i), R = 86, L = 2 * Math.PI * R;
+    let frac = 0, top = m[1] === TODAY ? 'Kick-off today' : 'Kick-off ' + dayName(m[1]), big = kickT(m), sub = E(m[5]);
     if (c.phase === '1H' || c.phase === '2H') { frac = Math.min(1, c.n / 90); top = c.phase === '1H' ? 'First half' : 'Second half'; big = `${s[0]}–${s[1]}`; sub = `<span data-aclock="${i}">${c.label}</span>`; }
     else if (c.phase === 'HT') { frac = .5; top = 'Half time'; big = `${s[0]}–${s[1]}`; sub = 'Back in 15 minutes'; }
     else if (c.phase === 'FT') { frac = 1; top = 'Full time'; big = `${s[0]}–${s[1]}`; sub = E(m[5]); }
     const ang = 2 * Math.PI * frac, dot = frac > 0 && frac < 1 ? `<circle cx="${(100 + R * Math.sin(ang)).toFixed(1)}" cy="${(100 - R * Math.cos(ang)).toFixed(1)}" r="8" fill="#fff"/>` : '';
     const live = c.phase === '1H' || c.phase === '2H';
-    return `<div class="g dial"><div class="dhd"><b>${c.phase === 'pre' ? (pool.length > 1 ? 'MW7' : 'Next kick-off') : live || c.phase === 'HT' ? 'Live now' : 'Full time'}</b><span class="dsw">${(pool.length > 1 ? pool : []).map(j => `<button class="${j === i ? 'on' : ''}" data-dial="${j}">${SPL.matches[j][2]} v ${SPL.matches[j][3]}</button>`).join('')}</span></div>
+    return `<div class="g dial"><div class="dhd"><b>${c.phase === 'pre' ? (pool.length > 1 ? 'MW' + m[0] : 'Next kick-off') : live || c.phase === 'HT' ? 'Live now' : 'Full time'}</b><span class="dsw">${(pool.length > 1 ? pool : []).map(j => `<button class="${j === i ? 'on' : ''}" data-dial="${j}">${SPL.matches[j][2]} v ${SPL.matches[j][3]}</button>`).join('')}</span></div>
       <div class="ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--track)" stroke-width="10"/>${frac ? `<circle cx="100" cy="100" r="${R}" fill="none" stroke="#E8363D" stroke-width="10" stroke-linecap="round" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${(L * (1 - frac)).toFixed(1)}" transform="rotate(-90 100 100)"/>` : ''}${dot}</svg>
         <div class="c"><small class="${live ? 'live' : ''}">${top}</small><b>${big}</b><span>${sub}</span></div></div>
       <div class="vs">${crest(m[2], 30)}<b>${short(m[2])}</b><span>v</span><b>${short(m[3])}</b>${crest(m[3], 30)}</div>
@@ -211,12 +214,12 @@
     const lead = tableNow()[0], liveN = ROUND.filter(i => ['1H', '2H', 'HT'].includes((D.live[i] || {}).phase)).length, g = D.gotm;
     const day = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-SG', { weekday: 'short' });
     const left = Object.keys(D.live).map(Number).filter(stale);
-    const chips = [left.length ? `<button class="chip y" data-console="${left[0]}" style="border:0;cursor:pointer">⚠ ${left.length === 1 ? short(SPL.matches[left[0]][2]) + ' v ' + short(SPL.matches[left[0]][3]) + ' left running' : left.length + ' games left running'}: finish or reset</button>` : '', liveN ? `<span class="chip r">● ${liveN} live now</span>` : `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game tonight' : TONIGHT.length + ' games tonight'}</span>`, `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
+    const chips = [left.length ? `<button class="chip y" data-console="${left[0]}" style="border:0;cursor:pointer">⚠ ${left.length === 1 ? short(SPL.matches[left[0]][2]) + ' v ' + short(SPL.matches[left[0]][3]) + ' left running' : left.length + ' games left running'}: finish or reset</button>` : '', liveN ? `<span class="chip r">● ${liveN} live now</span>` : (TONIGHT.length ? `<span class="chip r">● ${TONIGHT.length === 1 ? 'A game today' : TONIGHT.length + ' games today'}</span>` : `<span class="chip">Next game ${dayName(SPL.matches[ROUND[0]][1])} ${new Date(SPL.matches[ROUND[0]][1] + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>`), `<span class="chip">${short(lead[0])} top on ${lead[7]}</span>`,
       g.winner ? `<span class="chip">${E(g.month)} winner published</span>` : g.open && g.closes >= TODAY ? `<span class="chip">${E(g.month)} vote closes ${day(g.closes)}</span>` : `<span class="chip y">${E(g.month)} vote closed: publish it</span>`,
       mockTag() + (CL.on ? (CL.state.status === 'live' ? '<span class="chip gr">● Live in the app</span>' : '<span class="chip y">● Offline, changes wait</span>') : '<span class="chip">Demo, this browser only</span>')].join('');
     const later = ROUND.filter(i => !TONIGHT.includes(i)).map(i => SPL.matches[i]), m1 = SPL.matches[TONIGHT[0]];
     const byDay = {}; later.forEach(m => { (byDay[m[1]] = byDay[m[1]] || []).push(`${short(m[2])} v ${short(m[3])}`); });
-    const summary = `${m1 ? `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])} tonight, 7.30PM` : 'No game tonight'}${Object.keys(byDay).length ? '; ' + Object.entries(byDay).map(([d, l]) => `${relDay(d).toLowerCase() === 'tomorrow' ? 'tomorrow' : 'on ' + dayName(d)}, ${l.join(' and ')}`).join(', then ') : ''}. ` +
+    const summary = `${m1 ? `${C[m1[2]].short} host ${C[m1[3]].short} at ${E(m1[5])} today, ${kickT(m1)}` : 'No game today'}${Object.keys(byDay).length ? '; ' + Object.entries(byDay).map(([d, l]) => `${relDay(d).toLowerCase() === 'tomorrow' ? 'tomorrow' : 'on ' + dayName(d)}, ${l.join(' and ')}`).join(', then ') : ''}. ` +
       (g.winner ? '' : g.open && g.closes >= TODAY ? `Goal of the Month closes ${fmt(g.closes).replace(/^\w+ /, '')}` : `${E(g.month)}'s vote has closed and is waiting for its winners`) +
       (unsold ? `${g.winner ? '' : ', and '}${unsold} sponsor ${unsold === 1 ? 'slot still has' : 'slots still have'} no partner.` : '.') + (drafts ? ` ${drafts} ${drafts === 1 ? 'story is' : 'stories are'} in draft.` : '');
     const QA = [['push', 'push', '#E8363D', 'Send an alert', 'Goals, kick-off, news'], ['news', 'newnews', '#4A86FF', 'Post a story', drafts ? `${drafts} in draft` : 'Lead story on Home'], ['matchday', 'console', '#3DD68C', 'Run a game live', 'The matchday console'],
@@ -247,7 +250,7 @@
           <div class="chips">${chips}</div><p class="sum">${summary}</p>
           <span class="k cap">Quick actions</span><div class="qa">${qa}</div></div>
         ${dial()}</div>
-      ${ROUND.length ? `<div class="g rstrip"><span class="rsh"><b>Matchweek 7</b><span class="note">20–22 November</span></span>${ROUND.map(i => { const m = SPL.matches[i], c2 = clockOf(i), s2 = scoreOf(i), on = c2.phase !== 'pre'; return `<button class="rg ${m[1] === TODAY ? 'tn' : ''}" data-console="${i}"><span class="lbl ${['1H', '2H'].includes(c2.phase) ? 'live' : ''}">${on ? (c2.phase === 'FT' ? 'Full time' : 'Live · ' + c2.label) : relDay(m[1]) + ' · 7.30PM'}</span><span class="rgm">${crest(m[2], 30)}<b>${on ? s2[0] + '–' + s2[1] : 'v'}</b>${crest(m[3], 30)}</span><span class="rgn">${short(m[2])} v ${short(m[3])}</span><span class="note">${E(m[5])}</span></button>`; }).join('')}</div>` : ''}
+      ${ROUND.length ? `<div class="g rstrip"><span class="rsh"><b>Matchweek ${SPL.matches[ROUND[0]][0]}</b><span class="note">${E(rspan())}</span></span>${ROUND.map(i => { const m = SPL.matches[i], c2 = clockOf(i), s2 = scoreOf(i), on = c2.phase !== 'pre'; return `<button class="rg ${m[1] === TODAY ? 'tn' : ''}" data-console="${i}"><span class="lbl ${['1H', '2H'].includes(c2.phase) ? 'live' : ''}">${on ? (c2.phase === 'FT' ? 'Full time' : 'Live · ' + c2.label) : relDay(m[1]) + ' · ' + kickT(m)}</span><span class="rgm">${crest(m[2], 30)}<b>${on ? s2[0] + '–' + s2[1] : 'v'}</b>${crest(m[3], 30)}</span><span class="rgn">${short(m[2])} v ${short(m[3])}</span><span class="note">${E(m[5])}</span></button>`; }).join('')}</div>` : ''}
       <div class="kpis">${kp}</div>
       <div class="g clubs"><div class="chd"><span><b>Clubs</b><span>Follows in the app, from fans' taps</span></span></div><div class="tiles">${order.map(tile).join('')}</div></div>
       <div class="grid2"><div class="panel"><h2>Latest notifications<button class="lnk" data-page="push">All</button></h2>${pushTable(D.pushes.slice(-5).reverse(), true)}</div>
@@ -425,7 +428,7 @@
         <div class="mcc">${A.evType === 'G' ? `<label class="chk"><input type="checkbox" id="evPen" ${og ? 'disabled' : ''}> Pen</label><label class="chk"><input type="checkbox" id="evOg" ${og ? 'checked' : ''}> Own goal</label>` : ''}<label class="chk"><input type="checkbox" id="evPush" ${A.evType === 'G' || A.evType === 'R' ? 'checked' : ''}> Alert</label><span style="flex:1"></span><button class="lnk" data-qclose="1">Cancel</button><button class="btn sm" data-addev="1">Add</button></div></div>`; }
     const team = k => `<div class="mct">${crest(k, 20)}<span>${nm(k)}</span><span class="mcb">${[['G', 'Goal'], ['Y', 'Yellow'], ['R', 'Red'], ['S', 'Sub']].map(([t, l]) => `<button class="${t}" data-qadd="${k}|${t}" ${L.phase === 'pre' || L.phase === 'FT' ? 'disabled' : ''}>${l}</button>`).join('')}</span></div>`;
     return `<div class="g mc ${live ? 'on' : ''}" data-gi="${i}">
-      <div class="mch"><span class="lbl">${m[1] === TODAY ? 'Tonight' : dayName(m[1]).slice(0, 3)} · ${E(m[5])}</span><span class="lbl ${live ? 'live' : ''}">${{ pre: 'Not started', '1H': 'First half', HT: 'Half time', '2H': 'Second half', FT: 'Full time' }[c.phase]}</span></div>
+      <div class="mch"><span class="lbl">${m[1] === TODAY ? 'Today' : dayName(m[1]).slice(0, 3)} · ${E(m[5])}</span><span class="lbl ${live ? 'live' : ''}">${{ pre: 'Not started', '1H': 'First half', HT: 'Half time', '2H': 'Second half', FT: 'Full time' }[c.phase]}</span></div>
       <div class="mcs">${crest(m[2], 36)}<span class="mcn">${nm(m[2])}</span><span class="mcx"><b>${s[0]}–${s[1]}</b><i class="${live ? 'live' : ''}" data-aclock="${i}">${c.label}</i></span><span class="mcn r">${nm(m[3])}</span>${crest(m[3], 36)}</div>
       <div class="mck">${next ? `<button class="btn sm ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${live ? '<button class="btn2 sm" data-nudge="-1">−1 min</button><button class="btn2 sm" data-nudge="1">+1 min</button>' + jumps(c, ' sm') : ''}</div>
       ${team(m[2])}${team(m[3])}${form}
@@ -436,9 +439,21 @@
   function multiday() {
     const games = A.multi.filter(i => SPL.matches[i]);
     return head('Matchday console', 'Games side by side: each panel is its own console. Tap Goal, a card or Sub on a team to enter it.', '<button class="btn2 sm" data-multi="0">One game</button>') + `
-      <div class="mcpick tabs"><span class="lbl">Games</span>${ROUND.map(j => { const mm = SPL.matches[j], on = games.includes(j); return `<button class="stab ${on ? 'on' : ''}" data-mpick="${j}" ${!on && games.length >= 4 ? 'disabled' : ''}>${mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
+      <div class="mcpick tabs"><span class="lbl">Games</span>${ROUND.map(j => { const mm = SPL.matches[j], on = games.includes(j); return `<button class="stab ${on ? 'on' : ''}" data-mpick="${j}" ${!on && games.length >= 4 ? 'disabled' : ''}>${mm[1] === TODAY ? 'Today' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="mcgrid n${games.length}">${games.map(miniConsole).join('')}</div>
       <p class="note">Each game keeps its own clock and alerts. Open the app in another window to watch them land.</p>`;
+  }
+  // the demo game (Hafiz, 10 Nov): play any fixture now or at a set time (the FAS meeting), whatever its real date.
+  // Only that fixture moves; the app marks it "Demo game" with the real date. Clear it and everything is as scheduled.
+  function demoPanel() {
+    const dm = D.demo, z = n => String(n).padStart(2, '0'), loc = t => { const d = new Date(t); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; };
+    if (dm && SPL.matches[dm.i]) { const m = SPL.matches[dm.i], o = SPLSTORE.demoOf(dm.i) || { date: m[1], status: m[7] };
+      return `<div class="panel demo"><span class="lbl">Demo game</span><span><b>${E(C[m[2]].short)} v ${E(C[m[3]].short)}</b> plays ${E(new Date(dm.at).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. The app marks it as a demo, with the real fixture: ${E(dayName(o.date))} ${E(new Date(o.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))}, ${E(String(o.status).replace(/^\w+ /, ''))}.</span><span style="flex:1"></span><button class="btn2 sm" data-democlear="1">Back to the real date</button></div>`; }
+    const nx = new Date(); nx.setMinutes(0, 0, 0); nx.setHours(nx.getHours() + 1);
+    const fx = SPL.matches.map((m, j) => [m, j]).filter(([m, j]) => !m[4] && m[1] >= TODAY && !String(m[7] || '').startsWith('Postponed') && m[0] <= SPLSTORE.roundOf(TODAY) + 1);
+    return `<div class="panel demo"><span class="lbl">Demo game</span><span class="note" style="margin:0">Play a fixture at any time, say for a presentation:</span>
+      <select class="in" id="demoI" style="width:auto">${fx.map(([m, j]) => `<option value="${j}" ${j === A.live ? 'selected' : ''}>${E(C[m[2]].short)} v ${E(C[m[3]].short)} · ${E(new Date(m[1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</option>`).join('')}</select>
+      <input class="in" type="datetime-local" id="demoAt" value="${loc(nx)}" style="width:auto"><button class="btn sm" data-demoset="1">Set</button></div>`;
   }
   function matchday() {
     if (A.multi && A.multi.length > 1) return multiday();
@@ -451,8 +466,8 @@
     const nowMin = c.phase === 'pre' ? 1 : c.n;
     const evs = (L.ev || []).slice().sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]) || ((a[2] || 0) - (b[2] || 0)));
     return head('Matchday console', 'What a match official enters at the ground goes straight to every phone: score, clock, goals, cards, changes.', `<button class="btn2 sm" data-multi="1">Side by side</button>`) + `
-      ${stale(i) ? `<div class="panel lr"><b>⚠ Left running since ${E(new Date(L.t0).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}</b><span class="note">Fans don't see it: the app ignores a game still running four hours after kick-off. Reset it, or end it with Full time if it was real.</span><span style="display:flex;gap:8px"><button class="btn red sm" data-resetmatch="1">Reset this game</button>${L.phase === '2H' ? '<button class="btn2 sm" data-phase="FT">Full time</button>' : ''}</span></div>` : ''}
-      <div class="tabs">${consoleGames().map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${stale(j) ? '⚠ Left running' : !ROUND.includes(j) ? 'MW' + mm[0] : mm[1] === TODAY ? 'Tonight' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
+      ${demoPanel()}${stale(i) ? `<div class="panel lr"><b>⚠ Left running since ${E(new Date(L.t0).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}</b><span class="note">Fans don't see it: the app ignores a game still running four hours after kick-off. Reset it, or end it with Full time if it was real.</span><span style="display:flex;gap:8px"><button class="btn red sm" data-resetmatch="1">Reset this game</button>${L.phase === '2H' ? '<button class="btn2 sm" data-phase="FT">Full time</button>' : ''}</span></div>` : ''}
+      <div class="tabs">${consoleGames().map(j => { const mm = SPL.matches[j]; return `<button class="stab ${j === i ? 'on' : ''}" data-live="${j}">${stale(j) ? '⚠ Left running' : !ROUND.includes(j) ? 'MW' + mm[0] : mm[1] === TODAY ? 'Today' : dayName(mm[1]).slice(0, 3)} · ${short(mm[2])} v ${short(mm[3])}</button>`; }).join('')}</div>
       <div class="row" style="gap:24px">
         <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="panel" style="display:flex;flex-direction:column;gap:16px">
@@ -566,7 +581,7 @@
           ${A.pushWhen === 'later' ? '<label class="fld"><span>Send at</span><input class="in" type="datetime-local" id="pAt"></label>' : ''}
           <div style="display:flex;gap:10px"><button class="btn" data-sendpush="1">${A.pushWhen === 'later' ? 'Schedule' : 'Send now'}</button></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">On a locked phone</span><div class="lock"><span class="lbl" style="color:#DCDAF0">Friday 20 November</span><span class="tm">19:28</span><div class="nt"><span style="width:30px;height:30px;flex:none;background:url(assets/league/spl-lion.png) center/70% no-repeat #fff;border-radius:4px"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 11px 'Inter',sans-serif;color:#DCDAF0">SPL · now</span><b id="lkT" style="font-size:13px">${E(pre.title) || 'Title'}</b><span id="lkB" style="font-size:12px;color:#DCDAF0">${E(pre.body) || 'Message'}</span></span></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span class="lbl">On a locked phone</span><div class="lock"><span class="lbl" style="color:#DCDAF0">${E(new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }))}</span><span class="tm">19:28</span><div class="nt"><span style="width:30px;height:30px;flex:none;background:url(assets/league/spl-lion.png) center/70% no-repeat #fff;border-radius:4px"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 11px 'Inter',sans-serif;color:#DCDAF0">SPL · now</span><b id="lkT" style="font-size:13px">${E(pre.title) || 'Title'}</b><span id="lkB" style="font-size:12px;color:#DCDAF0">${E(pre.body) || 'Message'}</span></span></div></div></div>
       </div>
       <div class="panel"><h2>Sent and scheduled</h2>${pushTable(D.pushes.slice().reverse())}</div>`;
   }
@@ -789,13 +804,14 @@
     const hits = Object.keys(PAGES).filter(k => PAGES[k][0].toLowerCase().includes(q)).map(k => ['Page', PAGES[k][0], `data-page="${k}"`]);
     D.news.filter(n => (n.title + ' ' + n.dek).toLowerCase().includes(q)).slice(0, 5).forEach(n => hits.push(['Story', n.title, `data-gonews="${E(n.id)}"`]));
     D.pushes.slice().reverse().filter(p => (p.title + ' ' + p.body).toLowerCase().includes(q)).slice(0, 3).forEach(p => hits.push(['Alert', p.title, 'data-page="push"']));
-    ROUND.forEach(i => { const m = SPL.matches[i]; if ((C[m[2]].name + ' ' + C[m[3]].name).toLowerCase().includes(q)) hits.push(['Tonight', `${C[m[2]].short} v ${C[m[3]].short}`, `data-console="${i}"`]); });
+    ROUND.forEach(i => { const m = SPL.matches[i]; if ((C[m[2]].name + ' ' + C[m[3]].name).toLowerCase().includes(q)) hits.push(['This round', `${C[m[2]].short} v ${C[m[3]].short}`, `data-console="${i}"`]); });
     return hits.slice(0, 10);
   }
   const srchDrop = () => { const h = searchHits(A.q || ''); return A.q ? `<div class="sdrop">${h.length ? h.map((x, j) => `<button class="${j === 0 ? 'on' : ''}" ${x[2]}><span class="lbl">${x[0]}</span>${E(x[1])}</button>`).join('') : '<p class="note">Nothing found.</p>'}</div>` : ''; };
   // where the back button goes: out of a month's awards, out of side-by-side, out of a story being edited
   const backTo = () => A.page === 'votes' && A.awm ? 'all months' : A.page === 'matchday' && A.multi ? 'one game' : A.page === 'news' && A.news ? 'all stories' : '';
   function render() {
+    setDay();
     // the page lives in the address bar, so a refresh comes back to it (Hafiz, 9 Nov)
     try { const u = new URL(location.href); if (u.searchParams.get('page') !== A.page) { u.searchParams.set('page', A.page); history.replaceState(null, '', u); } } catch (e) {}
     document.body.dataset.look = A.look;
@@ -803,15 +819,15 @@
     if (CL.on && (A.checking || !A.authed)) { root.innerHTML = A.checking ? '<div class="sibg"><span></span><span></span><span></span><span></span></div><div class="signin"><p class="sinote">Checking your sign-in…</p></div>' : signinPage(); return; }
     const liveNow = ROUND.some(i => { if (stale(i)) return false; const p = (D.live[i] || {}).phase; return p === '1H' || p === '2H' || p === 'HT'; });
     const keep = document.scrollingElement.scrollTop, focusQ = document.activeElement && document.activeElement.id === 'gq', caret = focusQ ? document.activeElement.selectionStart : 0;
-    const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TONIGHT' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
+    const nv = k => `<button class="nv ${A.page === k ? 'on' : ''}" data-page="${k}">${icon(k)}<span>${PAGES[k][0]}</span>${k === 'matchday' ? `<b class="${liveNow ? 'live' : ''}">${liveNow ? 'LIVE' : TONIGHT.length ? 'TODAY' : ''}</b>` : k === 'news' && D.news.some(n => n.status === 'draft') ? `<b class="n">${D.news.filter(n => n.status === 'draft').length} draft</b>` : ''}</button>` +
       (k === 'matchday' ? ROUND.map(i => { const m = SPL.matches[i], ph = (D.live[i] || {}).phase; return `<button class="nv sub ${A.page === 'matchday' && A.live === i ? 'on' : ''}" data-console="${i}"><span><em class="dd">${dayName(m[1]).slice(0, 3)}</em>${short(m[2])} v ${short(m[3])}</span>${['1H', '2H', 'HT'].includes(ph) ? '<i class="ldot"></i>' : ''}</button>`; }).join('') : '');
-    const stamp = `Matchweek ${SPL.matches[ROUND[0]][0]}${TONIGHT.length ? ` · ${TONIGHT.length === 1 ? 'one game' : TONIGHT.length + ' games'} tonight` : ''}`;
+    const stamp = `Matchweek ${SPL.matches[ROUND[0]][0]}${TONIGHT.length ? ` · ${TONIGHT.length === 1 ? 'one game' : TONIGHT.length + ' games'} today` : ` · from ${dayName(SPL.matches[ROUND[0]][1])} ${new Date(SPL.matches[ROUND[0]][1] + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}`;
     root.innerHTML = `<div class="glow" aria-hidden="true"><span></span><span></span><span></span></div>
       <aside class="side g"><div class="brand"><span class="spl-h" role="img" aria-label="Singapore Premier League"></span><small>Admin</small></div>
       <nav>${GROUPS.map(([t, ks]) => `<div class="sec">${t}</div>${ks.map(nv).join('')}`).join('')}</nav>
       <div class="foot">${statusLine()}<a class="lnk" href="index.html" target="_blank" rel="noopener">Open the app ↗</a></div></aside>
       <div class="col"><header class="top g">${backTo() ? `<button class="ib back" data-back="1" aria-label="Back to ${E(backTo())}" title="Back to ${E(backTo())}">${icon('back')}</button>` : ''}<div class="tt"><b>${PAGES[A.page][0]}${A.page === 'votes' && A.awm ? ' · ' + E(mName(A.awm)) : ''}</b><span>${backTo() ? 'Back to ' + E(backTo()) : stamp}</span></div>
-        <div class="clk" title="The demo's day is ${E(dayName(TODAY))} ${E(new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }))}, the first night of Matchweek ${SPL.matches[ROUND[0]][0]}. The time is the real time, and the console's clock runs on it."><span>${E(new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</span><b id="clkT">${clockNow()}</b></div><div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
+        <div class="clk" title="Today, and the time the console's clock runs on"><span>${E(new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</span><b id="clkT">${clockNow()}</b></div><div class="srch">${icon('search')}<input id="gq" placeholder="Search pages, news, alerts…" value="${E(A.q || '')}" autocomplete="off" aria-label="Search"><kbd>⌘K</kbd>${srchDrop()}</div>
         <button class="ib" data-setlook="${A.look === 'light' ? 'dark' : 'light'}" title="${A.look === 'light' ? 'Dark' : 'Light'} mode" aria-label="Switch to ${A.look === 'light' ? 'dark' : 'light'} mode">${icon(A.look === 'light' ? 'moon' : 'sun')}</button>
         <button class="ib" data-page="push" title="Notifications" aria-label="Notifications">${icon('push')}</button>
         <span class="newwrap"><button class="new" data-newmenu="1">+ New</button>${A.newOpen ? `<div class="nmenu"><button data-qnews="1">${icon('news')}Story</button><button data-page="push">${icon('push')}Notification</button><button data-console="${TONIGHT[0]}">${icon('matchday')}Live game</button><button data-page="votes">${icon('votes')}Goal of the Month</button></div>` : ''}</span>
@@ -856,7 +872,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -933,6 +949,9 @@
         if (ph === '2H') { L.phase = '2H'; L.t0 = Date.now(); L.base = 45; }
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
+    if (d.demoset) { const i = +val('demoI'), at = Date.parse(val('demoAt')); if (!SPL.matches[i] || !at) { flash('Pick a game and a time.'); render(); return; }
+      save(d2 => { d2.demo = { i, at }; }, `Demo game set: ${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}, ${new Date(at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}.`); A.live = i; render(); return; }
+    if (d.democlear) { save(d2 => { d2.demo = null; }, 'Back to the real fixture dates.'); render(); return; }
     if (d.jump) { const n = +d.jump; setLive(A.live, L => { L.t0 = Date.now() - (n - L.base - 1) * 60000 - 1000; }); flash(`Clock moved to ${n}'.`); render(); return; }
     if (d.nudge) { setLive(A.live, L => { L.t0 -= (+d.nudge) * 60000; }); return; }
     if (d.resetmatch) { if (!confirm('Clear this game\'s score, clock and timeline?')) return; save(d2 => { delete d2.live[A.live]; }, 'Game reset.'); if (!ROUND.includes(A.live)) { A.live = TONIGHT[0] || ROUND[0]; render(); } return; }

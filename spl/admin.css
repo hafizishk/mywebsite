@@ -389,3 +389,6 @@ body.adm:not([data-look=light]) .frm-box{background:#14163C}
 /* the console's jump buttons (10 Nov, option A) */
 .jumps{display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding-left:10px;border-left:1px solid var(--line)}
 .jumps .lbl{margin-right:2px}
+/* the demo game strip on the Matchday page (10 Nov) */
+.panel.demo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border:1px dashed rgba(245,215,106,.45)}
+.panel.demo>.lbl{color:#F5D76A}.panel.demo .in{height:36px}
