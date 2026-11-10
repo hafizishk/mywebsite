@@ -317,12 +317,12 @@
   const videoCard = (v, w, h) => `<a href="#video" data-story="${VIDEOS.indexOf(v)}" style="${w ? `flex:none;width:${w}px;` : ''}display:flex;flex-direction:column;gap:8px"><span class="th ${v.th}" style="height:${h}px"><span aria-hidden="true" style="position:absolute;right:10px;bottom:8px;background:#0B0F2E;color:#fff;padding:3px 7px;font:600 11px 'Inter',sans-serif">${v.len}</span></span><span class="lbl" style="color:var(--accent,#FF9AA0)">Highlights</span><span style="font-size:13px;font-weight:600;line-height:1.3">${v.title}</span></a>`;
 
   // ---------- moments: last round as stories, after the J.League app ----------
-  const moments = () => `<div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:14px"><span class="d" style="font-size:20px">Moments</span><span style="flex:1;height:1px;background:var(--line)"></span><span class="lbl">Matchweeks 5–6</span></div>
+  const moments = () => `<div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:14px"><span class="d" style="font-size:20px">Highlights</span><span style="flex:1;height:1px;background:var(--line)"></span><span class="lbl">Matchweeks 5–6</span></div>
     <div class="scroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:0 20px">${VIDEOS.map((v, j) => { const m = SPL.matches[v.mi]; return `<button data-story="${j}" class="mo" aria-label="${short(m[2])} ${m[4][0]}–${m[4][1]} ${short(m[3])}"><span class="th ${v.th}" style="position:absolute;inset:0;border:0"></span><span class="mo-b">${crest(m[2], 16)}<span class="d mono" style="font-size:15px">${m[4][0]}–${m[4][1]}</span>${crest(m[3], 16)}</span></button>`; }).join('')}</div></div>`;
   function storyEl() {
     if (!S.story) return '';
     const j = S.story.j, v = VIDEOS[j], m = SPL.matches[v.mi], goals = realGoals(m);
-    return `<div class="story" role="dialog" aria-label="Moments">
+    return `<div class="story" role="dialog" aria-label="Highlights">
       <span class="th ${v.th}" style="position:absolute;inset:0;border:0;background-size:cover"></span>
       <div class="story-top">${VIDEOS.map((x, k) => `<span class="seg"><span style="width:${k < j ? 100 : k === j ? Math.min(100, S.story.p) : 0}%"></span></span>`).join('')}</div>
       <div style="position:absolute;top:calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px)) + 22px);left:14px;right:6px;display:flex;align-items:center;gap:8px;z-index:3"><span style="display:flex;gap:2px">${crest(m[2], 22)}${crest(m[3], 22)}</span><span style="font:600 13px 'Inter',sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.7)">${fmtDate(m[1])} · ${short(m[2])} v ${short(m[3])}</span><span style="flex:1"></span><button class="ic" data-sclose="1" aria-label="Close" style="text-shadow:0 1px 3px rgba(0,0,0,.7)"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M5 5l14 14M19 5L5 19"/></svg></button></div>
@@ -417,10 +417,6 @@
         ${(() => { const L = LEAD_(), list = (L ? [L] : []).concat(NEWS_().filter(n => !L || n.id !== L.id)).slice(0, 6);
           // glowing story tiles (Hafiz, 9 Nov, option C): the photo fills the tile, the text sits on a dark fade, the edge glows
           return `<div class="scroll gtw">${list.map(n => `<button class="gtile" data-article="${E(n.id)}">${imgBlock(n, 320) || '<span class="nimg gt-none"></span>'}<span class="gt-tx"><span class="lbl">${E(n.tag)} · ${ndate(n.date)}</span><b class="d">${E(n.title)}</b><span class="gt-dk">${E(n.dek)}</span></span></button>`).join('')}</div>`; })()}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="d" style="font-size:20px">Highlights</span><button class="rowlink" data-htab="watch" style="color:var(--muted);font:600 12px 'Inter',sans-serif;width:auto">All video →</button></div>
-        <div class="scroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:0 20px">${VIDEOS.map(v => videoCard(v, 220, 124)).join('')}</div>
       </div>`;
   }
 
@@ -872,7 +868,6 @@
         <div class="me-ring"><svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true"><circle cx="52" cy="52" r="${R}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/><circle cx="52" cy="52" r="${R}" fill="none" stroke="#3DD68C" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(L * x.into / LEVEL_XP).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 52 52)"/></svg><span class="me-ini" style="background:${f ? f.c : 'rgba(255,255,255,.12)'};color:${f ? f.cf : '#fff'}">${E(ini)}</span></div>
         <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span class="d" style="font-size:24px;line-height:1">${E(name)}</span><span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">${f ? crest(P.fav, 18) + E(f.name) : 'No club yet'}</span>
           <span class="lbl" style="margin-top:6px;color:#3DD68C">Level ${x.level}</span><span style="font-size:12px;color:var(--muted)">${x.into} of ${LEVEL_XP} XP · ${LEVEL_XP - x.into} to level ${x.level + 1}</span></div></div>
-      <button class="pl card" data-go="settings" style="padding:16px;gap:12px"><span style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08)">${ICON.cog}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:14px;font-weight:600">Settings</span><span style="font-size:11px;color:var(--muted)">Your club, alerts, appearance, language</span></span><span class="lbl">›</span></button>
       ${(() => { // rewards (Hafiz, 9 Nov): the rungs that need no partner yet; partner rungs join once partners agree them
         const R = [[2, 'Gold-rim card and a level badge by your name', 'From the SPL app'], [6, 'Early access to big-game tickets', 'From the SPL app'], [10, 'Pitchside photo with your club', 'From your club'], [15, 'Invite to the season awards night', 'From FAS']];
         const nx = R.find(r => r[0] > x.level), toGo = nx ? (nx[0] - 1) * LEVEL_XP - x.xp : 0;
