@@ -455,6 +455,20 @@
       <select class="in" id="demoI" style="width:auto">${fx.map(([m, j]) => `<option value="${j}" ${j === A.live ? 'selected' : ''}>${E(C[m[2]].short)} v ${E(C[m[3]].short)} · ${E(new Date(m[1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</option>`).join('')}</select>
       <input class="in" type="datetime-local" id="demoAt" value="${loc(nx)}" style="width:auto"><button class="btn sm" data-demoset="1">Set</button></div>`;
   }
+  // clearing test runs (Hafiz, 10 Nov): before the FAS meeting, wipe the games run in the console, the alerts, the stories
+  // added since the start and the example numbers, while the shop, photos, sponsors, awards and the demo game stay
+  function clearPanel() {
+    const seedIds = SPLSTORE.seed().news.map(n => n.id), added = D.news.filter(n => !seedIds.includes(n.id)), games = Object.keys(D.live).length + Object.keys(D.crowd || {}).length;
+    const row = (k, on, t, sub) => `<label class="chk" style="align-items:flex-start"><input type="checkbox" id="clr-${k}" ${on ? 'checked' : ''}><span style="display:flex;flex-direction:column;gap:2px"><b style="font-weight:600">${t}</b><span class="note" style="margin:0">${sub}</span></span></label>`;
+    return `<div class="panel"><h2>Clear test runs</h2><p class="note">Before a demo: clears what testing left behind. The shop, player photos, sponsors, partners, awards and the demo game stay as they are.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0">
+        ${row('games', true, `Games run in the console (${Object.keys(D.live).length})`, 'Scores, timelines, notes, Player of the Match nominees and crowds. The fixtures go back to not started.')}
+        ${row('alerts', true, `Alerts sent (${D.pushes.length})`, 'Every alert in Notifications, match alerts and the ones written by hand.')}
+        ${row('news', true, `Stories added since the start (${added.length})`, 'Match reports, previews, AI drafts, roundups and winners\' stories. The original stories stay.')}
+        ${row('mock', A.mockOn, 'Example numbers', 'The made-up fortnight of app use in Overview and Analytics. Off shows only what phones recorded.')}
+        ${row('stats', true, 'Analytics recorded in this browser', 'Screens and taps logged while testing.')}</div>
+      <button class="btn red" data-cleartest="1">Clear what's ticked</button></div>`;
+  }
   function matchday() {
     if (A.multi && A.multi.length > 1) return multiday();
     const i = A.live, m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i);
@@ -780,6 +794,7 @@
         ${[['[NAME]', 'Marketing', 'Everything'], ['[NAME]', 'Digital content', 'News, notifications, votes'], ['[NAME]', 'Commercial', 'Sponsors, analytics'], ['[NAME]', 'Match officials (one per ground)', 'Matchday console for their game']].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="note">${r[2]}</td></tr>`).join('')}
       </tbody></table><p class="note" style="margin-top:12px">Staff sign in with their FAS email. A new person gets a login in Supabase (Authentication &gt; Users) and a line on the staff list; every save records who made it.</p></div>
       <div class="panel"><h2>Example numbers</h2><p class="note">Fills Overview and Analytics with a made-up fortnight of app use (about 1,280 fans), marked "Example numbers" wherever it shows. Off shows only what phones really recorded.</p><button class="btn2" data-mocknum="1" style="margin-top:10px">${A.mockOn ? 'Show real numbers' : 'Show example numbers'}</button></div>
+      ${clearPanel()}
       <div class="panel"><h2>Demo data</h2><p class="note">Puts news, votes, sponsors and partners back as they started and clears analytics and live games. The app follows.</p><button class="btn2" data-resetall="1" style="margin-top:10px">Reset the demo</button></div>`;
   }
 
@@ -877,7 +892,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -954,6 +969,15 @@
         if (ph === '2H') { L.phase = '2H'; L.t0 = Date.now(); L.base = 45; }
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
+    if (d.cleartest) { const on = k => { const x = document.getElementById('clr-' + k); return !!(x && x.checked); }, pick = ['games', 'alerts', 'news', 'mock', 'stats'].filter(on);
+      if (!pick.length) { flash('Tick what to clear.'); render(); return; }
+      if (!confirm('Clear the ticked test data? Phones follow straight away.')) return;
+      const seed = SPLSTORE.seed(), seedIds = seed.news.map(n => n.id);
+      save(d2 => { if (on('games')) { d2.live = {}; d2.crowd = {}; } if (on('alerts')) d2.pushes = [];
+        if (on('news')) { d2.news = d2.news.filter(n => seedIds.includes(n.id)); if (!d2.news.some(n => n.id === d2.lead)) d2.lead = seed.lead; } });
+      if (on('mock')) { A.mockOn = false; try { localStorage.setItem('spl-admin-mock', 'off'); } catch (x) {} }
+      if (on('stats')) { try { localStorage.removeItem(SPLSTORE.EVK); localStorage.removeItem('spl-evdev'); } catch (x) {} }
+      A.pm = {}; A.news = null; A.potmDraft = null; flash(`Cleared: ${pick.map(k => ({ games: 'console games', alerts: 'alerts', news: 'added stories', mock: 'example numbers', stats: 'analytics' })[k]).join(', ')}.`); render(); return; }
     if (d.demoset) { const i = +val('demoI'), at = Date.parse(val('demoAt')); if (!SPL.matches[i] || !at) { flash('Pick a game and a time.'); render(); return; }
       save(d2 => { d2.demo = { i, at }; }, `Demo game set: ${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}, ${new Date(at).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}.`); A.live = i; render(); return; }
     if (d.democlear) { save(d2 => { d2.demo = null; }, 'Back to the real fixture dates.'); render(); return; }

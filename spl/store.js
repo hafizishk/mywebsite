@@ -224,5 +224,6 @@ var SPLSTORE = (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   // a story photo's focus point (Hafiz, 10 Nov: frame it), '' = the photo's default
   const posOf = (n, j) => (n && Array.isArray(n.pos) && n.pos[j]) || '';
-  return { KEY, EVK, SLOTS, IMG, today, roundOf, demoOf, applyDemo, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  const seed = () => clean({});
+  return { KEY, EVK, SLOTS, IMG, seed, today, roundOf, demoOf, applyDemo, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();
