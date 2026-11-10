@@ -283,7 +283,8 @@
       return null; }).filter(Boolean);
     const sc = (L.ev || []).reduce((a, e) => { if (e[3] === 'G') a[e[4] === m[2] ? 0 : 1]++; return a; }, [0, 0]);
     return { competition: 'AIA Singapore Premier League 2026/27', matchweek: m[0], date: m[1], ground: m[5], home: C[m[2]].name, away: C[m[3]].name, score: `${short(m[2])} ${sc[0]}-${sc[1]} ${short(m[3])}`,
-      events_in_order: ev, officials_notes: (L.notes || []).map(([mi, t]) => `${mi}': ${t}`), from_the_data: gen ? gen.facts : [], storylines: gen ? gen.story.map(x => x.text) : [] };
+      events_in_order: ev, officials_notes: (L.notes || []).map(([mi, t]) => `${mi}': ${t}`), from_the_data: gen ? gen.facts : [], storylines: gen ? gen.story.map(x => x.text) : [],
+      background: SPLNEWS.context ? SPLNEWS.context(D, i, (L.notes || []).map(x => x[1])) : null };
   }
   function writerPanel(i, kind) {
     if (!window.SPLNEWS) return '';
@@ -300,7 +301,7 @@
       ${open.length ? `<p class="note" style="margin:0;color:#F5D76A">To fill before publishing: ${open.map(E).join(' · ')}</p>` : ''}
       ${gen.approx ? '<p class="note" style="margin:0">Minutes for this game come from club reports, so the draft keeps them loose ("in the first half").</p>' : ''}
       ${kind === 'pre' ? `<label class="chk"><input type="checkbox" data-autopre="1" ${D.autoPreview ? 'checked' : ''}> Write every game's preview automatically the evening before, as a draft for approval</label>` : ''}
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${kind === 'post' && D.live[i] && D.live[i].phase === 'FT' ? `<button class="btn sm" data-pmai="${k}" ${A.aiBusy === k ? 'disabled' : ''}>${A.aiBusy === k ? 'Writing… about a minute' : '✦ Write with AI'}</button>` : ''}<button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${kind === 'post' && D.live[i] && D.live[i].phase === 'FT' ? `<button class="btn sm" data-pmai="${k}" ${A.aiBusy === k ? 'disabled' : ''}>${A.aiBusy === k ? 'Writing… about a minute' : '✦ Write with AI'}</button><span class="note" style="margin:0">${A.aiBusy === k ? '' : 'Opens in News as a draft, with places for photos'}</span>` : ''}<button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
         ${done ? `<button class="btn2" data-pmopen="${E(done.id)}">Open in News</button>` : `<button class="btn2" data-pmsend="${k}">Schedule in News</button><button class="btn red" data-pmpub="${k}">Publish ${kind === 'post' ? 'report' : 'preview'}</button>`}</div></div>`;
   }
   // automatic previews: at 6pm the evening before (and for anything today still without one), a draft in News
@@ -338,10 +339,10 @@
   // woodwork, how a goal came); the AI writer uses only these, the console, the table and the storylines
   function notesPanel(i) {
     const L = D.live[i]; if (!L || L.phase === 'pre') return ''; const c = clockOf(i), notes = L.notes || [];
-    const now = c.phase === 'FT' ? '90' : c.phase === 'HT' ? '45' : String(Math.min(c.n, c.cap || 90)) + (c.n > (c.cap || 90) ? '+' + (c.n - c.cap) : '');
+    const now = c.phase === 'FT' || c.phase === 'HT' ? '' : String(Math.min(c.n, c.cap || 90)) + (c.n > (c.cap || 90) ? '+' + (c.n - c.cap) : '');
     return `<div class="panel"><h2>Notes for the report <span class="lbl">One line per moment · chances, saves, woodwork, how a goal came</span></h2>
       ${notes.map(([m, t], j) => `<div style="display:grid;grid-template-columns:64px 1fr 28px;gap:10px;align-items:center;margin-bottom:8px"><span class="in" style="display:flex;align-items:center">${E(m)}'</span><span class="in" style="display:flex;align-items:center">${E(t)}</span><button class="lnk" data-notedel="${i}:${j}" title="Remove">×</button></div>`).join('')}
-      <div style="display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center"><input class="in" id="noteM" value="${E(now)}" inputmode="numeric"><input class="in" id="noteT" maxlength="240" placeholder="e.g. Mustapic tipped Satsukida's shot over the bar"><button class="btn2" data-noteadd="${i}">Add</button></div>
+      <div style="display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center"><input class="in" id="noteM" value="${E(now)}" placeholder="Min" inputmode="numeric"><input class="in" id="noteT" maxlength="240" placeholder="e.g. Mustapic tipped Satsukida's shot over the bar"><button class="btn2" data-noteadd="${i}">Add</button></div>
       <p class="note" style="margin-top:10px">The writer only uses what's here, the console's goals, cards, changes and VAR, the table and the storylines. Nothing else.</p></div>`;
   }
   function potmPanel(i) {
@@ -478,7 +479,7 @@
     if (!window.SPLNEWS) return '';
     const L = SPLNEWS.storylines(D).slice(0, 8), tag = { title: 'Title race', bottom: 'The bottom', scorers: 'Scoring chart', run: 'Form', first: 'First win', milestone: 'Milestone' };
     const mw = SPLNEWS.latestMw(D), has = mw && D.news.some(n => n.tag === 'Roundup' && n.title.includes('Matchweek ' + mw + ':'));
-    return `<div class="panel"><h2 style="margin:0;display:flex;align-items:center;gap:10px">Storylines<span class="lbl">Followed from every result · updates as games finish</span><span style="flex:1"></span>${SPLNEWS.nextMw(D) ? `<button class="btn2 sm" data-mwprev="${SPLNEWS.nextMw(D)}">Draft the Matchweek ${SPLNEWS.nextMw(D)} preview</button>` : ''}${mw ? `<button class="btn2 sm" data-roundup="${mw}">${has ? 'Draft Matchweek ' + mw + ' roundup again' : 'Draft the Matchweek ' + mw + ' roundup'}</button>` : ''}</h2>
+    return `<div class="panel"><h2 style="margin:0;display:flex;align-items:center;gap:10px">Storylines<span class="lbl">Followed from every result · updates as games finish</span><span style="flex:1"></span>${SPLNEWS.nextMw(D) ? `<button class="btn2 sm" data-mwprev="${SPLNEWS.nextMw(D)}">Draft the Matchweek ${SPLNEWS.nextMw(D)} preview</button>` : ''}${mw ? `<button class="btn sm" data-airound="${mw}" ${A.aiBusy === 'ru' + mw ? 'disabled' : ''}>${A.aiBusy === 'ru' + mw ? 'Writing the roundup… a few minutes' : `✦ Write the Matchweek ${mw} roundup with AI`}</button><button class="btn2 sm" data-roundup="${mw}">${has ? 'Template of the Matchweek ' + mw + ' roundup again' : 'Template of the Matchweek ' + mw + ' roundup'}</button>` : ''}</h2>
       <div class="stl">${L.map((s, j) => `<div class="stc"><span class="lbl">${tag[s.kind] || 'Story'} · ${s.clubs.map(k => `<span class="crest cr-${k}" style="width:14px;height:14px;display:inline-block;vertical-align:-2px"></span>`).join('')}</span><b>${E(s.head)}</b><span class="note">${E(s.text)}</span><button class="lnk" data-storydraft="${j}">Draft a story →</button></div>`).join('')}</div></div>`;
   }
   function calendar() {
@@ -836,7 +837,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -935,12 +936,19 @@
     if (d.reloadphone) { const f = document.getElementById('phone'); if (f) f.src = f.src; return; }
     if (d.newnews) { A.nFor = null; A.news = 'new'; render(); return; }
     if (d.editnews) { A.nFor = null; A.news = d.editnews; render(); return; }
-    if (d.noteadd !== undefined) { const i = +d.noteadd, mi = val('noteM').trim().replace(/'/g, ''), t = val('noteT').trim(); if (!t) { flash('Write the moment first.'); render(); return; }
+    if (d.noteadd !== undefined) { const i = +d.noteadd, mi = val('noteM').trim().replace(/'/g, ''), t = val('noteT').trim(); if (!t) { flash('Write the moment first.'); render(); return; } if (!/^\d{1,3}(\+\d{1,2})?$/.test(mi)) { flash('Add the minute it happened, e.g. 23 or 45+2.'); render(); return; }
       save(d2 => { const L = d2.live[i]; L.notes = (L.notes || []).concat([[mi, t]]).slice(0, 40); }, 'Noted for the report.'); return; }
     if (d.notedel) { const [i, j] = d.notedel.split(':').map(Number); save(d2 => { d2.live[i].notes.splice(j, 1); }, 'Note removed.'); return; }
     if (d.pmai) { const k = d.pmai, i = +k.replace(/^\D+/, ''); if (!CL.on) { flash('The AI writer needs the backend on and the Claude key in Supabase.'); render(); return; }
       A.aiBusy = k; render(); const gen = SPLNEWS.postMatch(D, i);
-      CL.writeReport(reportFacts(i, gen)).then(r => { A.aiBusy = null; if (r && r.body) { A.pm[k] = { head: r.head, dek: r.dek, body: r.body }; flash('Written. Read it through before you publish.'); } else flash((r && r.error) || 'The writer did not reply.'); render(); });
+      CL.writeReport(reportFacts(i, gen)).then(r => { A.aiBusy = null; if (!(r && r.body)) { flash((r && r.error) || 'The writer did not reply.'); render(); return; }
+        A.pm[k] = { head: r.head, dek: r.dek, body: r.body };
+        // option C (Hafiz, 10 Nov): it lands in News as a draft, where the photos go in: the cover, then one per [PHOTO]
+        const old = D.news.find(n => n.match === i && n.tag === 'Report'), id = old ? old.id : uid('n'), was = old && SPLSTORE.isOut(old), slots = (r.body.match(/^\[PHOTO\]$/gm) || []).length;
+        save(d2 => { const n = d2.news.find(x => x.id === id); const fields = { title: r.head, dek: r.dek, body: r.body, status: 'draft', at: 0, ai: true };
+          if (n) Object.assign(n, fields); else d2.news.push(Object.assign({ id, tag: 'Report', date: TODAY, img: '', imgs: [], match: i, alert: false }, fields)); },
+          `Written and saved in News as a draft${was ? ' (the published report is back to draft until you publish this one)' : ''}. Add a cover photo${slots ? ` and ${slots} more for the [PHOTO] ${slots > 1 ? 'slots' : 'slot'}` : ''}, read it through, then publish.`);
+        A.page = 'news'; A.news = id; A.nFor = null; A.nWhenT = 'draft'; render(); });
       return; }
     if (d.pmopen) { A.page = 'news'; A.news = d.pmopen; A.nFor = null; render(); return; }
     if (d.pmre) { delete A.pm[d.pmre]; flash('Rewritten from the data.'); render(); return; }
@@ -949,6 +957,16 @@
     if (d.pmsend) { pmSave(d.pmsend, false); return; }
     if (d.mwprev) { const x = SPLNEWS.mwPreview(D, +d.mwprev); if (!x) return; const n = { id: uid('n'), tag: 'Preview', date: TODAY, title: x.head, dek: x.dek, body: x.body, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' };
       save(d2 => { d2.news.push(n); }, `Matchweek ${x.mw} preview drafted in the SPL's format (${x.games} games). Add photos for the [PHOTO] slots, fill the [BRACKETS], publish or schedule.`); A.news = n.id; A.nFor = null; render(); return; }
+    // the AI roundup (Hafiz, 10 Nov, option A): spl.sg's format, written by the same writer, saved in News as a draft
+    if (d.airound) { const mw = +d.airound, k = 'ru' + mw; if (A.aiBusy) return; if (!CL.on) { flash('The AI writer needs the backend on and the Claude key in Supabase.'); render(); return; }
+      const f = SPLNEWS.roundupFacts(D, mw); if (!f) return; A.aiBusy = k; render();
+      CL.writeReport(f, 'roundup').then(r => { A.aiBusy = null; if (!(r && r.body)) { flash((r && r.error) || 'The writer did not reply.'); render(); return; }
+        const id = 'airu' + mw, old = D.news.find(n => n.id === id), was = old && SPLSTORE.isOut(old), slots = (r.body.match(/^\[PHOTO\]$/gm) || []).length;
+        save(d2 => { const fields = { title: `2026/27 Singapore Premier League Matchweek ${mw}: Roundup`, dek: r.dek, body: r.body, status: 'draft', at: 0 }, n = d2.news.find(x => x.id === id);
+          if (n) Object.assign(n, fields); else d2.news.push(Object.assign({ id, tag: 'Roundup', date: TODAY, img: '', imgs: [], match: null, alert: false }, fields)); },
+          `Matchweek ${mw} roundup written and saved in News as a draft${was ? ' (the published one is back to draft until you publish this)' : ''}: ${f.games.length} games${slots ? `, ${slots} [PHOTO] slots` : ''}. Add a cover and the photos, read it through, then publish.`);
+        A.page = 'news'; A.news = id; A.nFor = null; A.nWhenT = 'draft'; render(); });
+      return; }
     if (d.roundup) { const x = SPLNEWS.roundup(D, +d.roundup); if (!x) return; const n = { id: uid('n'), tag: 'Roundup', date: TODAY, title: x.head, dek: x.dek, body: x.body, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' };
       save(d2 => { d2.news.push(n); }, `Matchweek ${x.mw} roundup drafted in the SPL's format (${x.games} games). Fill the [BRACKETS], add photos, publish or schedule.`); A.news = n.id; A.nFor = null; render(); return; }
     if (d.storydraft !== undefined) { const s = SPLNEWS.storylines(D)[+d.storydraft], x = SPLNEWS.storyDraft(D, s), n = { id: uid('n'), tag: 'Review', date: TODAY, title: x.head, dek: x.dek, body: x.body, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' };

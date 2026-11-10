@@ -249,5 +249,52 @@ var SPLNEWS = (function () {
     const body = [s.text, last.length ? `Their last ${word(Math.min(6, last.length))}: ${last.join(', ')}.` : '', '[CONTEXT: QUOTE, NEXT FIXTURE OR HISTORY]'].filter(Boolean).join('\n\n');
     return { head: s.head, dek: s.text, body };
   }
-  return { results, table, scorers, storylines, postMatch, preMatch, roundup, latestMw, mwPreview, nextMw, storyDraft, word, ord };
+  // the background a report writer needs, all worked out after the result (Hafiz, 10 Nov): the table, each side's last
+  // five and runs, the season tally of everyone who scored, earlier meetings, and who the officials' notes are about
+  function context(D, i, notes) {
+    const R = results(D), r = R.find(x => x.i === i); if (!r) return null;
+    const upTo = R.filter(x => x.date < r.date || (x.date === r.date && x.i <= r.i)), before = upTo.filter(x => x !== r);
+    const T = table(upTo), T0 = table(before), sc = scorers(D, upTo);
+    const row = (t, k) => { const x = t.find(y => y.k === k); return { position: x.pos, played: x.p, won: x.w, drawn: x.d, lost: x.l, goals_for: x.gf, goals_against: x.ga, points: x.pts }; };
+    const side = k => { const L = resFor(upTo, k), ru = run(L) || {};
+      return { club: F(k), table_before: row(T0, k), table_after: row(T, k),
+        last_five_including_this: L.slice(-5).map(x => `${x.res} ${x.home ? 'v' : 'at'} ${H(x.opp)} ${x.f}-${x.a} (${x.r.date})`),
+        unbeaten_run: ru.unb || 0, winless_run: ru.winless || 0, clean_sheets_in_a_row: ru.cs || 0, league_games_won_this_season: L.filter(x => x.res === 'W').length }; };
+    const G = goalsOf(r), names = [...new Set(G.filter(g => !g.og).map(g => g.who))];
+    const meetings = before.filter(x => [x.h, x.a].sort().join() === [r.h, r.a].sort().join()).map(x => `${x.date}: ${H(x.h)} ${x.s[0]}-${x.s[1]} ${H(x.a)}`);
+    // names in the officials' notes, matched to the two squads (surname or first name, whole word)
+    const said = (notes || []).join(' ').toLowerCase(), people = [];
+    [r.h, r.a].forEach(k => (SPL.squads[k] || []).forEach(p => { const parts = p[1].toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (parts.some(w => new RegExp(`(^|[^a-z])${w.replace(/[^a-z]/g, '.')}([^a-z]|$)`).test(said))) people.push({ name: p[1], club: F(k), shirt: p[0], position: { GK: 'goalkeeper', DF: 'defender', MF: 'midfielder', FW: 'forward' }[p[2]] }); }));
+    return { table_after_this_game: T.map(x => `${x.pos}. ${F(x.k)} P${x.p} ${x.pts} pts, GD ${x.gf - x.ga > 0 ? '+' : ''}${x.gf - x.ga}`),
+      home_side: side(r.h), away_side: side(r.a),
+      scorers_season_tally_after_this_game: names.map(n => { const x = sc.find(y => y.name === n); const now = G.filter(g => g.who === n && !g.og).length; return x && !x.partial ? { player: n, league_goals_this_season: x.g, of_which_this_game: now, top_of_the_scoring_chart: sc[0].g === x.g } : { player: n, of_which_this_game: now, season_tally: 'not on record (only the top of the scoring chart is stored), so do not say how many he has this season or that it was his first' }; }),
+      top_scorers_after_this_game: sc.slice(0, 5).map(x => `${x.name} (${H(x.club)}) ${x.g}`),
+      earlier_meetings_this_season: meetings, players_named_in_notes: people };
+  }
+  // what the AI writer gets for a matchweek roundup (Hafiz, 10 Nov, option A): each game in date order with the lines
+  // spl.sg's format fixes (score line, scorers, red cards), what happened, the official's notes and the background
+  function roundupFacts(D, mw) {
+    const R = results(D), all = R.filter(r => r.m[0] === mw && !(r.m[7] || '').startsWith('Postponed')); if (!all.length) return null;
+    const last = all[all.length - 1].date, pub = new Date(new Date(last + 'T12:00:00').getTime() + 864e5);
+    const mn = e => e[2] ? `${e[1]}+${e[2]}` : String(e[1]);
+    return { competition: 'AIA Singapore Premier League 2026/27', matchweek: mw, dateline: `SINGAPORE, ${pub.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}`,
+      table_after_the_matchweek: table(R.filter(x => x.m[0] <= mw)).map(x => `${x.pos}. ${F(x.k)} P${x.p} ${x.pts} pts, GD ${x.gf - x.ga > 0 ? '+' : ''}${x.gf - x.ga}`),
+      top_scorers_after_the_matchweek: scorers(D, R.filter(x => x.m[0] <= mw)).slice(0, 5).map(x => `${x.name} (${H(x.club)}) ${x.g}`),
+      games: all.map(r => { const [h, a] = [r.h, r.a], goals = goalsOf(r), by = {};
+        goals.forEach(g => { (by[g.team] = by[g.team] || {}); (by[g.team][g.who] = by[g.team][g.who] || []).push(`${g.og ? 'O.G. ' : g.pen ? 'pen. ' : ''}${g.add ? g.min + '+' + g.add : g.min}’`); });
+        const side = k => Object.entries(by[k] || {}).map(([n, ms]) => `${n} ${ms.join(', ')}`).join(', ');
+        const ev = (r.ev || []).filter(e => ['G', 'D', 'Y', 'R', 'S'].includes(e[3])).map(e => { const k = e[4];
+          if (e[3] === 'G') return `${mn(e)}' ${e[7] === 'og' ? 'own goal by ' + pname(e[8] || k, e[5]) + ' for ' + F(k) : e[7] === 'pen' ? 'penalty scored by ' + pname(k, e[5]) + ' (' + F(k) + ')' : 'goal, ' + pname(k, e[5]) + ' (' + F(k) + ')' + (e[6] ? ', assist ' + pname(k, e[6]) : '')}`;
+          if (e[3] === 'D') return `${mn(e)}' goal by ${pname(k, e[5])} (${F(k)}) ruled out after a VAR review${e[9] ? ' for ' + e[9] : ''}`;
+          if (e[3] === 'S') return `${mn(e)}' substitution, ${F(k)}: ${pname(k, e[5])} on, ${pname(k, e[6])} off`;
+          return `${mn(e)}' ${e[3] === 'Y' ? 'yellow' : 'red'} card, ${pname(k, e[5])} (${F(k)})`; });
+        const reds = (r.ev || []).filter(e => e[3] === 'R').map(e => `Red Card – ${pname(e[4], e[5])} (${H(e[4])}) ${mn(e)}’`);
+        const notes = ((D.live && D.live[r.i] && D.live[r.i].notes) || []).map(([m, t]) => `${m}': ${t}`), ctx = context(D, r.i, notes);
+        return { home: F(h), away: F(a), score: `${H(h)} ${r.s[0]}-${r.s[1]} ${H(a)}`, ground: r.m[5],
+          copy_these_lines_exactly: { score_line: `${H(h)} ${r.s[0]}-${r.s[1]} ${H(a)} | ${VEN(r.m[5])} | ${dayMonth(r.date)}`, scorers_line: [side(h), side(a)].filter(Boolean).join(' | ') || null, facts_lines: reds },
+          events_in_order: r.ev ? ev : goals.map(g => `${g.add ? g.min + '+' + g.add : g.min}' ${g.og ? 'own goal by ' + g.who + ' for ' + F(g.team) : (g.pen ? 'penalty scored by ' : 'goal, ') + g.who + ' (' + F(g.team) + ')'}`),
+          events_complete: !!r.ev, officials_notes: notes, background: ctx }; }) };
+  }
+  return { results, table, scorers, storylines, postMatch, preMatch, roundup, roundupFacts, latestMw, mwPreview, nextMw, storyDraft, context, word, ord };
 })();
