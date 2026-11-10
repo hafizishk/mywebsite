@@ -316,6 +316,22 @@
   const crowdOf = i => D.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null };
   const localGuesses = i => { try { return (JSON.parse(localStorage.getItem('spl-guesses') || '{}')[i]) || []; } catch (e) { return []; } };
   const CROWDN = {};
+  // Fans' Player of the Match (Hafiz, 10 Nov): from 70' the official sees four suggested nominees (at least one per side;
+  // goals, assists, clean-sheet keepers, goals ruled out, captains) and can swap any of them, defenders listed first.
+  // Voting opens to every signed-in fan at 75' (with an alert to the game's followers) and closes at the final whistle.
+  const POTM_FROM = 75;
+  function potmPanel(i) {
+    const L = D.live[i], c = clockOf(i); if (!L || !(L.phase === '2H' && c.n >= 70 || L.phase === 'FT' || L.potmOpen)) return '';
+    const m = SPL.matches[i], noms = A.potmDraft && A.potmDraft.i === i ? A.potmDraft.noms : (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM));
+    const order = { DF: 0, GK: 1, MF: 2, FW: 3 };
+    const opts = (cur) => [m[2], m[3]].map(k => `<optgroup label="${E(C[k].short)}">${SPL.squads[k].slice().sort((a, b) => (order[a[2]] ?? 4) - (order[b[2]] ?? 4) || a[0] - b[0]).map(p => `<option value="${k}|${E(p[1])}" ${cur[0] === p[1] && cur[1] === k ? 'selected' : ''}>${E(p[1])} · ${p[2]} · #${p[0]}</option>`).join('')}</optgroup>`).join('');
+    const state = L.phase === 'FT' ? 'Closed at the final whistle' : L.potmOpen ? 'Open to fans · closes at the final whistle' : `Opens to fans at ${POTM_FROM}'`;
+    const confirmed = L.potm && L.potm.length;
+    return `<div class="panel"><h2>Fans' Player of the Match<span class="lbl">${state}</span></h2>
+      <p class="note" style="margin-bottom:12px">${confirmed ? 'Nominees confirmed.' : `Suggested from the match so far. Swap any of them, then confirm; if you don't, these go out at ${POTM_FROM}'.`} At least one from each side.</p>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[0, 1, 2, 3].map(j => `<select class="in" data-potmnom="${i}:${j}">${opts(noms[j] || [])}</select>`).join('')}</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">${L.phase === 'FT' ? '' : `<button class="btn" data-potmok="${i}">${confirmed ? 'Update nominees' : 'Confirm nominees'}</button>`}<span class="note">One vote per signed-in fan, at the ground or at home. The split stays hidden until full time.</span></div></div>`;
+  }
   function crowdPanel(i) {
     const m = SPL.matches[i], x = crowdOf(i), n = CL.on ? CROWDN[i] : localGuesses(i).length;
     if (CL.on && CROWDN[i] === undefined) { CROWDN[i] = 0; CL.crowdCount(i).then(v => { if (v !== null) { CROWDN[i] = v; if (A.page === 'matchday' && !document.activeElement.matches('input,textarea,select')) render(); } }); }
@@ -400,7 +416,7 @@
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${next ? `<button class="btn ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${c.phase === '1H' || c.phase === '2H' ? '<button class="btn2" data-nudge="-1">Clock −1 min</button><button class="btn2" data-nudge="1">Clock +1 min</button>' : ''}${L.phase !== 'pre' ? '<button class="lnk danger" data-resetmatch="1" style="margin-left:8px">Reset this game</button>' : ''}</div>
           </div>
           ${L.phase === 'FT' ? writerPanel(i, 'post') : L.phase === 'pre' ? writerPanel(i, 'pre') : ''}
-          ${crowdPanel(i)}
+          ${potmPanel(i)}${crowdPanel(i)}
           <div class="panel" style="display:flex;flex-direction:column;gap:14px;${L.phase === 'pre' ? 'opacity:.45;pointer-events:none' : ''}">
             <h2 style="margin:0">Add to the match</h2>
             <div class="tabs" style="gap:24px">${[['G', 'Goal'], ['Y', 'Yellow card'], ['R', 'Red card'], ['S', 'Substitution']].map(([k, l]) => `<button class="stab ${A.evType === k ? 'on' : ''}" data-evtype="${k}">${l}</button>`).join('')}</div>
@@ -790,10 +806,13 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
+    if (d.potmok) { const i = +d.potmok, L = D.live[i], noms = (A.potmDraft && A.potmDraft.i === i ? A.potmDraft.noms : (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM))).filter(Boolean);
+      const m = SPL.matches[i]; if (new Set(noms.map(x => x[0])).size < 4) { flash('Pick four different players.'); return; } if (!noms.some(x => x[1] === m[2]) || !noms.some(x => x[1] === m[3])) { flash('Pick at least one player from each side.'); return; }
+      save(d2 => { d2.live[i].potm = noms; }, L.potmOpen ? 'Nominees updated in the app.' : `Nominees confirmed. Voting opens at ${POTM_FROM}'.`); A.potmDraft = null; render(); return; }
     if (d.awback) { A.awm = null; render(); return; }
     if (d.awall) { A.allGoals = !A.allGoals; render(); return; }
     if (d.awnew) { const ks = D.awards.months.map(m => m.key).sort(), last = ks[ks.length - 1] || '2026-10', y = +last.slice(0, 4), mo = +last.slice(5, 7), key = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`;
@@ -939,6 +958,9 @@
   root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
+  root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
+    const [i, j] = pn.split(':').map(Number), L = D.live[i]; if (!A.potmDraft || A.potmDraft.i !== i) A.potmDraft = { i, noms: (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM)).map(x => x.slice()) };
+    const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; });
   root.addEventListener('change', e => {
     if (e.target.dataset && e.target.dataset.autopre) { save(d2 => { d2.autoPreview = e.target.checked; }, e.target.checked ? 'On: each game\'s preview is drafted the evening before, in News, for you to approve.' : 'Automatic previews off.'); autoPreviews(); render(); return; }
     if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(f => shrink(f))).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }
@@ -965,6 +987,9 @@
   window.addEventListener('storage', e => {
     if (e.key === SPLSTORE.KEY) { const nd = SPLSTORE.read(), j = JSON.stringify(nd); if (j === lastDoc) return; lastDoc = j; D = nd; if (A.page !== 'matchday' && calm()) render(); return; }
     if (e.key === SPLSTORE.EVK && ['analytics', 'overview'].includes(A.page) && !evT) evT = setTimeout(() => { evT = 0; if (calm()) render(); }, 8000); });
+  setInterval(() => { if (CL.on && !A.authed) return; Object.keys(D.live).map(Number).forEach(i => { const L = D.live[i], c = clockOf(i); if (!L || L.phase !== '2H' || c.n < POTM_FROM || L.potmOpen || stale(i)) return;
+    const m = SPL.matches[i]; save(d2 => { const X = d2.live[i]; X.potmOpen = true; if (!X.potm || !X.potm.length) X.potm = SPLSTORE.potmSuggest(i, X.ev, POTM_FROM);
+      livePush(d2, i, `Fans' Player of the Match 🗳️ ${short(m[2])} v ${short(m[3])}`, 'Voting is open until the final whistle. Pick one of four.'); }, "Fans' Player of the Match is open in the app."); }); }, 5000);
   setInterval(() => { document.querySelectorAll('[data-aclock]').forEach(el => { const c = clockOf(+el.dataset.aclock); if (el.textContent !== c.label) el.textContent = c.label; });
     // the event form's minute follows the clock until the official types in it (it was filled once per redraw, so it fell behind)
     document.querySelectorAll('[data-evauto]').forEach(el => { if (el.dataset.typed || el === document.activeElement) return; const c = clockOf(+el.dataset.evauto); if (c.phase !== '1H' && c.phase !== '2H') return;

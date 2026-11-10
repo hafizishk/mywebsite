@@ -116,6 +116,25 @@ var SPLSTORE = (function () {
   const shopLink = webUrl;
   // where a link sells from, for the Buy button: Shopee, adidas or the shop's own name
   const shopWhere = u => { const m = /^https:\/\/([^/]+)/.exec(u || ''); if (!m) return ''; const h = m[1].toLowerCase(); return shopeeUrl(u) ? 'Shopee' : /(^|\.)adidas\./.test(h) ? 'adidas' : ''; };
+  // Fans' Player of the Match (Hafiz, 10 Nov): four nominees, at least one from each side, suggested from what the match
+  // record holds up to a minute: goals (3), assists (2), a clean-sheet goalkeeper (2), a goal VAR ruled out (1), the captain
+  // (0.5). A 0-0 still gives four: both keepers, anyone with a goal ruled out, the captains. ev rows are the console's
+  // [half, minute, added, type, team, shirt, assist, note]; gk optionally names each side's keeper by shirt (from a line-up).
+  function potmSuggest(i, ev, upto, gk) {
+    const m = SPL.matches[i]; if (!m) return []; const sides = [m[2], m[3]], pts = {}, sq = k => SPL.squads[k] || [];
+    const add = (k, n, v) => { if (!n || !sq(k).some(p => p[0] === n)) return; const id = k + ':' + n; pts[id] = (pts[id] || 0) + v; };
+    const conceded = { [m[2]]: 0, [m[3]]: 0 };
+    (ev || []).filter(e => e[0] === 1 || +e[1] <= (upto || 999)).forEach(e => {
+      if (e[3] === 'G') { const other = e[4] === m[2] ? m[3] : m[2]; conceded[other]++; if (e[7] !== 'og') { add(e[4], e[5], 3); add(e[4], e[6], 2); } }
+      else if (e[3] === 'D') add(e[4], e[5], 1); });
+    sides.forEach(k => { const g = (gk && gk[k]) || (sq(k).find(p => p[2] === 'GK') || [])[0]; if (!conceded[k]) add(k, g, 2);
+      const cap = C[k] && C[k].cap, c = sq(k).find(p => p[1] === cap); if (c) add(k, c[0], 0.5); });
+    const ranked = Object.keys(pts).sort((a, b) => pts[b] - pts[a]), pick = [];
+    sides.forEach(k => { const best = ranked.find(id => id.startsWith(k + ':')); if (best) pick.push(best); });
+    ranked.forEach(id => { if (pick.length < 4 && !pick.includes(id)) pick.push(id); });
+    sides.forEach(k => sq(k).forEach(p => { if (pick.length < 4 && !pick.includes(k + ':' + p[0]) && p[2] !== 'GK') pick.push(k + ':' + p[0]); }));
+    return pick.slice(0, 4).sort((a, b) => (pts[b] || 0) - (pts[a] || 0)).map(id => { const [k, n] = id.split(':'); return [sq(k).find(p => p[0] === +n)[1], k]; });
+  }
   const DEF = () => ({ shop: seedShop(), shopUrl: SHOP_URL, news: seedNews(), lead: 'n10', pushes: [], live: {}, gotm: withClips(seedGotm()), sponsors: seedSponsors(), partners: seedPartners(), partnerLook: 'light', staff: [], awards: seedAwards(), potm: seedPotm(), crowd: {} });
 
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
@@ -130,6 +149,7 @@ var SPLSTORE = (function () {
     out.live = {};
     if (isObj(d.live)) Object.keys(d.live).forEach(k => { const L = d.live[k], i = +k; if (!isObj(L) || !SPL.matches[i]) return;
       out.live[i] = { phase: ['pre', '1H', 'HT', '2H', 'FT'].includes(L.phase) ? L.phase : 'pre', t0: +L.t0 || 0, base: +L.base || 0, sheet: !!L.sheet,
+        potm: Array.isArray(L.potm) ? L.potm.filter(x => Array.isArray(x) && typeof x[0] === 'string' && C[x[1]]).slice(0, 5).map(x => [x[0].slice(0, 60), x[1]]) : [], potmOpen: !!L.potmOpen,
         ev: Array.isArray(L.ev) ? L.ev.filter(e => Array.isArray(e) && ['G', 'D', 'Y', 'R', 'S', 'HT', 'FT'].includes(e[3])).slice(0, 80).map(e => { e = e.slice(0, 10); if (e[8] != null && !SPL.clubs[e[8]]) e[8] = null; if (e[9] != null) e[9] = String(e[9]).slice(0, 40); return e; }) : [] }; });
     const g = isObj(d.gotm) ? d.gotm : {};
     out.gotm = { month: str(g.month, def.gotm.month), closes: str(g.closes, def.gotm.closes), open: g.open !== false, winner: str(g.winner, ''),
@@ -181,5 +201,5 @@ var SPLSTORE = (function () {
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
   function events() { try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); return Array.isArray(a) ? a.filter(e => Array.isArray(e) && e.length === 3) : []; } catch (e) { return []; } }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-  return { KEY, EVK, SLOTS, IMG, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();

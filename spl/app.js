@@ -75,7 +75,7 @@
     else if (A.phase === 'HT') { clock = 'HT'; n = 45; } else if (ft) { clock = 'FT'; n = 90; }
     const fired = A.ev.slice().sort(evSort), score = [0, 0];
     fired.forEach(e => { if (e[3] === 'G') score[e[4] === m[2] ? 0 : 1]++; });
-    return { started, ft, clock, played: Math.min(90, n), fired, score, T: 0, admin: true };
+    return { started, ft, clock, played: Math.min(90, n), fired, score, T: 0, admin: true, min: ft ? 99 : n, h2: A.phase === '2H' || ft };
   }
   function liveOf(i) {
     const A = consoleOf(i); if (A) return A;
@@ -83,15 +83,15 @@
     if (!EV[i]) return null;
     const T = S.sim ? S.sim.T : ftT(i) + 1, m = SPL.matches[i], e1 = h1end(i), ft = ftT(i);
     const started = T >= 0, done = T >= ft;
-    let clock = 'Pre-match', played = 0;
-    if (done) { clock = 'FT'; played = 90; }
-    else if (T >= e1 + HTB) { const n = 46 + Math.floor(T - e1 - HTB); clock = n > 90 ? `90+${n - 90}'` : `${n}'`; played = Math.min(90, 45 + (T - e1 - HTB)); }
+    let clock = 'Pre-match', played = 0, min = 0, h2 = false;
+    if (done) { clock = 'FT'; played = 90; min = 99; h2 = true; }
+    else if (T >= e1 + HTB) { const n = 46 + Math.floor(T - e1 - HTB); clock = n > 90 ? `90+${n - 90}'` : `${n}'`; played = Math.min(90, 45 + (T - e1 - HTB)); min = n; h2 = true; }
     else if (T >= e1) { clock = 'HT'; played = 45; }
     else if (started) { const n = Math.floor(T) + 1; clock = n > 45 ? `45+${n - 45}'` : `${n}'`; played = Math.min(45, T); }
     // a goal VAR rules out stands as a goal until the check is done, then is struck through (VARC simulated minutes later)
     const fired = EV[i].filter(e => evT(i, e) <= T).map(e => e[3] === 'D' && evT(i, e) + VARC > T ? Object.assign(e.slice(0, 9), { 3: 'G' }) : e);
     const score = [0, 0]; fired.forEach(e => { if (e[3] === 'G') score[e[4] === m[2] ? 0 : 1]++; });
-    return { started, ft: done, clock, played, fired, score, T };
+    return { started, ft: done, clock, played, fired, score, T, min, h2 };
   }
   // a goal's scorer: an own goal (e[7] 'og') names a player from the other side (e[8]) and is credited to e[4]
   const gname = e => sname(e[8] || e[4], e[5]) + (e[7] === 'og' ? ' (og)' : '');
@@ -305,7 +305,7 @@
       <div class="lbl sp-meta"><span>${on ? scorersLine(r, 0) || posText(r.home) : posText(r.home)}</span><span>${E(r.venue)}</span><span>${on ? scorersLine(r, 1) || posText(r.away) : posText(r.away)}</span></div>
       <div class="sp-form"><span>${formChips(r.home)}</span><span class="lbl">Last 5</span><span>${formChips(r.away)}</span></div>
       <div class="sp-blurb">${on && L.ft ? `${r.hname} ${posText(r.home).split(' · ')[0]}, ${r.aname} ${posText(r.away).split(' · ')[0]} after tonight.` : on ? (last ? `<span class="mono" style="color:var(--muted)">${last[3] === 'HT' ? '' : minLabel(last[1], last[2]) + ' '}</span>${evText(r.id, last)}` : 'Kick-off at ' + r.venue + '.') + '' : blurb}</div>
-      <div class="sp-btns"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Player of the Match' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
+      <div class="sp-btns"><span class="btn">Match centre</span>${on ? `<span class="btn2" data-match="${r.id}" data-to="${L.ft ? 'potm' : 'lineups'}">${L.ft ? 'Fans\' vote' : 'Line-ups'}</span>` : `<span class="btn2" data-tickets="${r.id}">Tickets</span>`}</div>
     </div>
   </button>`; };
   const tableRows = (rs, clickable) => rs.map(r => `<${clickable ? 'button' : 'div'} class="trow mono" ${clickable ? `data-club="${r.code}"` : ''}><span style="color:${r.move > 0 ? '#3DD68C' : r.move < 0 ? '#FF6B71' : 'var(--muted)'}">${r.pos}</span><span style="display:flex;align-items:center;gap:8px;font-weight:500">${crest(r.code, 22)}${r.name}${r.live ? '<span class="dot pulse" style="width:6px;height:6px;background:#E8363D" aria-label="playing now"></span>' : ''}</span><span style="text-align:right;color:var(--muted)">${r.p}</span><span style="text-align:right;color:var(--muted)">${r.gd}</span><span style="text-align:right;font-weight:700">${r.pts}</span><span style="display:flex;gap:3px;justify-content:flex-end">${dots(r.form)}</span></${clickable ? 'button' : 'div'}>`).join('');
@@ -483,11 +483,36 @@
     return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · 7.30PM</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off 7.30PM.</div>'}</div>
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH</span></div>`;
   }
-  function potmTab(i) {
-    const p = POTM[i], mine = P.potm[i], tally = p.base.map((n, j) => n + (mine === j ? 1 : 0)), tot = tally.reduce((a, b) => a + b, 0);
-    return `<div style="display:flex;flex-direction:column;gap:4px"><span class="d" style="font-size:22px;line-height:1">Player of the Match</span>${spLine('potm')}<span style="font-size:12px;color:var(--muted)">${mine === undefined ? 'Fans pick. Voting closes 30 minutes after full time.' : 'Thanks for voting. The winner is announced on the club channels and here.'}</span></div>
-      ${p.nom.map(([n, k], j) => { const pct = Math.round(100 * tally[j] / tot), f = findPlayer(n); return `<button class="card" data-potm="${i}:${j}" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;text-align:left;color:var(--ink);width:100%;border-top:3px solid ${mine === j ? C[k].c : 'transparent'}" ${mine !== undefined ? 'disabled' : ''}><div style="display:flex;align-items:center;gap:12px">${crest(k, 32)}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:16px;line-height:1">${n}</span><span class="lbl">${short(k)} · ${f ? f.p[2] : ''} · #${f ? f.p[0] : ''}</span></span>${mine !== undefined ? `<span class="d mono" style="font-size:24px">${pct}%</span>` : '<span class="lbl" style="color:#fff">Vote</span>'}</div>${mine !== undefined ? `<div style="height:3px;background:rgba(255,255,255,.1)"><div style="height:3px;width:${pct}%;background:#fff"></div></div>` : ''}</button>`; }).join('')}
-      <span style="font-size:11px;color:var(--muted)">${tot.toLocaleString()} votes · one per signed-in fan · counts are placeholders in this demo.</span>`;
+  // Fans' Player of the Match (Hafiz, 10 Nov, option B, F1's Driver of the Day): four nominees, at least one per side;
+  // everyone signed in votes once, from the 75th minute to the final whistle; the split stays hidden until full time.
+  // A console game uses the nominees the official confirmed (store.live[i].potm), else the suggestion at 75'.
+  const VOTE_FROM = 75, NOMS = {};
+  const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'pre';
+  const potmNoms = (i, L) => { if (L && L.admin) { const A = STORE.live[i]; return A.potm && A.potm.length ? A.potm : SPLSTORE.potmSuggest(i, A.ev, VOTE_FROM); }
+    if (!NOMS[i]) { const m = SPL.matches[i], gk = {}; [m[2], m[3]].forEach(k => { if (XI[k]) gk[k] = XI[k].xi[0]; }); NOMS[i] = SPLSTORE.potmSuggest(i, EV[i], VOTE_FROM, gk); } return NOMS[i]; };
+  const potmTally = (i, noms) => { const mine = P.potm[i], base = [640, 520, 410, 300, 220]; return noms.map((x, j) => base[j] + (mine === j ? 1 : 0)); };
+  const nomRole = ([n, k]) => { const p = (SPL.squads[k] || []).find(x => x[1] === n); return `${short(k)}${p ? ' · ' + p[2] + ' · #' + p[0] : ''}`; };
+  function potmWinner(i, L, compact) {
+    const noms = potmNoms(i, L), t = potmTally(i, noms), tot = t.reduce((a, b) => a + b, 0), w = t.indexOf(Math.max(...t)), [n, k] = noms[w] || [];
+    if (!n) return '';
+    return `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid #3DD68C"><span class="lbl" style="color:#7CF2C2">Fans' Player of the Match</span>
+      <div style="display:flex;align-items:center;gap:12px">${crest(k, 44)}<span style="display:flex;flex-direction:column;gap:2px"><b class="d" style="font-size:24px;line-height:1">${E(n)}</b><span style="font-size:12px;color:var(--muted)">${nomRole(noms[w])} · ${Math.round(100 * t[w] / tot)}% of ${tot.toLocaleString()} votes</span></span></div>
+      ${compact ? '' : noms.map(([nm, kk], j) => `<div style="display:grid;grid-template-columns:140px 1fr 40px;gap:10px;align-items:center;font-size:12px"><span>${E(nm)}</span><span style="height:6px;border-radius:3px;background:rgba(255,255,255,.12);position:relative"><i style="position:absolute;top:0;bottom:0;left:0;width:${Math.round(100 * t[j] / tot)}%;border-radius:3px;background:${j === w ? '#3DD68C' : '#A9A6C9'}"></i></span><span class="mono" style="text-align:right">${Math.round(100 * t[j] / tot)}%</span></div>`).join('')}
+      <span style="font-size:11px;color:var(--muted)">Voting closed at the final whistle.${spLine('potm') ? '' : ' Presented by [PARTNER].'} Vote counts are placeholders in this demo.</span>${compact ? `<button class="btn2" data-mtab="potm" style="min-height:40px">See the vote</button>` : ''}</div>`;
+  }
+  // on Overview: the call to vote while it's open, the winner after
+  const potmCard = (i, L) => { const ph = potmPhase(L); if (ph === 'ft') return potmWinner(i, L, true); if (ph !== 'open') return '';
+    const noms = potmNoms(i, L), mine = P.potm[i];
+    return `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-top:3px solid #E8363D"><div style="display:flex;align-items:center;gap:8px"><span class="dot pulse" style="background:#E8363D"></span><b style="font-size:15px">Fans' Player of the Match</b><span style="flex:1"></span><span class="lbl">Until the final whistle</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${noms.map(([n, k]) => `<span style="display:flex;align-items:center;gap:6px;padding:5px 10px 5px 5px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px">${crest(k, 18)}${E(n)}</span>`).join('')}</div>
+      <button class="btn" data-mtab="potm" style="min-height:40px">${mine === undefined ? 'Vote now' : 'Your vote is in · result at full time'}</button></div>`; };
+  function potmTab(i, L) {
+    const ph = potmPhase(L), noms = potmNoms(i, L), mine = P.potm[i];
+    if (ph === 'ft') return potmWinner(i, L, false);
+    return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}
+      <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#FFD1D3"><span class="dot pulse" style="background:#E8363D"></span>Voting open until the final whistle</span>
+      <span style="font-size:12px;color:var(--muted)">${mine === undefined ? 'One vote per signed-in fan, at the ground or at home. The result stays hidden until full time.' : 'Your vote is in. The result comes at full time.'}</span></div>
+      ${noms.map(([n, k], j) => `<button class="card" data-potm="${i}:${j}" style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;color:var(--ink);width:100%;border-top:3px solid ${mine === j ? C[k].c : 'transparent'}" ${mine !== undefined ? 'disabled' : ''}>${crest(k, 32)}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="d" style="font-size:16px;line-height:1">${E(n)}</span><span class="lbl">${nomRole([n, k])}</span></span><span class="lbl" style="color:#fff">${mine === j ? 'Your pick' : mine === undefined ? 'Vote' : ''}</span></button>`).join('')}`;
   }
 
   // scorers in two columns under the score, minutes meeting in the middle (after the J.League match page)
@@ -536,9 +561,9 @@
     return form + `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><span class="d" style="font-size:19px">Head to head</span>${h2h}</div>`;
   }
   function liveMatch(m, r, L) {
-    const tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(L.ft ? [['potm', 'Vote']] : []);
+    const vph = potmPhase(L), tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(vph === 'open' ? [['potm', 'Vote <span class="dot pulse" style="background:#E8363D;margin-left:4px"></span>']] : vph === 'ft' ? [['potm', 'Vote']] : []);
     if (!tabs.some(t => t[0] === S.mtab)) S.mtab = 'overview';
-    const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match) : pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
+    const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
       ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L) })}
       <div class="tabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
@@ -1047,6 +1072,7 @@
     LIVE_IDS.forEach(i => { const m = SPL.matches[i]; if (P.mute && (P.mute[m[2]] || P.mute[m[3]])) return; const fan = P.fav && (m[2] === P.fav || m[3] === P.fav);
       const scoreAt = t => { const sc = [0, 0]; EV[i].forEach(e => { const et = evT(i, e); if ((e[3] === 'G' && et <= t) || (e[3] === 'D' && et <= t && t < et + VARC)) sc[e[4] === m[2] ? 0 : 1]++; }); return sc; };
       if (from < 0 && to >= 0 && st.kickoff) out.push({ t: 0, i, k: m[2], title: `Kick-off! ⏱️ ${short(m[2])} v ${short(m[3])}`, body: `Live from ${m[5]}. Tap to follow every goal.` });
+      { const tv = h1end(i) + HTB + (VOTE_FROM - 46); if (tv > from && tv <= to && st.results) out.push({ t: tv, i, k: m[2], title: `Fans' Player of the Match 🗳️ ${short(m[2])} v ${short(m[3])}`, body: 'Voting is open until the final whistle. Pick one of four.' }); }
       EV[i].forEach(e => { const t = evT(i, e);
         // a goal VAR rules out: the goal alert when it goes in, the "no goal" alert when the check is done
         if (e[3] === 'D') { if (!st.goals) return; const tv = t + VARC;
@@ -1055,7 +1081,7 @@
           return; }
         if (t <= from || t > to) return; const sc = scoreAt(t);
         if (e[3] === 'G' && st.goals) out.push({ t, i, k: e[4], title: `GOAL! ⚽ ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: `${minLabel(e[1], e[2])} ${gname(e)}${e[7] === 'pen' ? ' (pen)' : ''}${fan && e[4] === P.fav ? ', for the ' + short(P.fav) + '! 🙌' : '. Tap to follow it live.'}` });
-        if (e[3] === 'FT' && st.results) out.push({ t, i, k: m[2], title: `Full time 🏁 ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: 'Who was your Player of the Match? Vote now.' }); });
+        if (e[3] === 'FT' && st.results) out.push({ t, i, k: m[2], title: `Full time 🏁 ${short(m[2])} ${sc[0]}–${sc[1]} ${short(m[3])}`, body: 'See who the fans voted Player of the Match.' }); });
     });
     return out.sort((x, y) => x.t - y.t);
   }
