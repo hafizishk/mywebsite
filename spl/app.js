@@ -487,7 +487,7 @@
   // everyone signed in votes once, from the 75th minute to the final whistle; the split stays hidden until full time.
   // A console game uses the nominees the official confirmed (store.live[i].potm), else the suggestion at 75'.
   const VOTE_FROM = 75, NOMS = {};
-  const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'pre';
+  const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'soon';
   const potmNoms = (i, L) => { if (L && L.admin) { const A = STORE.live[i]; return A.potm && A.potm.length ? A.potm : SPLSTORE.potmSuggest(i, A.ev, VOTE_FROM); }
     if (!NOMS[i]) { const m = SPL.matches[i], gk = {}; [m[2], m[3]].forEach(k => { if (XI[k]) gk[k] = XI[k].xi[0]; }); NOMS[i] = SPLSTORE.potmSuggest(i, EV[i], VOTE_FROM, gk); } return NOMS[i]; };
   const potmTally = (i, noms) => { const mine = P.potm[i], base = [640, 520, 410, 300, 220]; return noms.map((x, j) => base[j] + (mine === j ? 1 : 0)); };
@@ -509,6 +509,9 @@
   function potmTab(i, L) {
     const ph = potmPhase(L), noms = potmNoms(i, L), mine = P.potm[i];
     if (ph === 'ft') return potmWinner(i, L, false);
+    if (ph === 'soon') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}</div>
+      <div class="card" style="padding:18px 16px;display:flex;flex-direction:column;gap:8px;align-items:flex-start"><span class="lbl">Voting opens at ${VOTE_FROM}'</span><b style="font-size:16px">Four nominees, at least one from each side, go up at the ${VOTE_FROM}th minute.</b>
+      <span style="font-size:13px;color:var(--muted)">Vote once, at the ground or at home, until the final whistle. The result comes at full time. Turn on this game's alerts and we'll tell you when it opens.</span></div>`;
     return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}
       <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#FFD1D3"><span class="dot pulse" style="background:#E8363D"></span>Voting open until the final whistle</span>
       <span style="font-size:12px;color:var(--muted)">${mine === undefined ? 'One vote per signed-in fan, at the ground or at home. The result stays hidden until full time.' : 'Your vote is in. The result comes at full time.'}</span></div>
@@ -561,7 +564,7 @@
     return form + `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:14px"><span class="d" style="font-size:19px">Head to head</span>${h2h}</div>`;
   }
   function liveMatch(m, r, L) {
-    const vph = potmPhase(L), tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(vph === 'open' ? [['potm', 'Vote <span class="dot pulse" style="background:#E8363D;margin-left:4px"></span>']] : vph === 'ft' ? [['potm', 'Vote']] : []);
+    const vph = potmPhase(L), tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(vph === 'open' ? [['potm', 'Vote <span class="dot pulse" style="background:#E8363D;margin-left:4px"></span>']] : vph === 'ft' || vph === 'soon' ? [['potm', 'Vote']] : []);
     if (!tabs.some(t => t[0] === S.mtab)) S.mtab = 'overview';
     const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
