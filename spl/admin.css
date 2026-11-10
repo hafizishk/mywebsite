@@ -386,3 +386,6 @@ body.adm:not([data-look=light]) .frm-box{background:#14163C}
 .clk span{font:600 10.5px 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .clk b{font:700 17px 'Inter',sans-serif;font-variant-numeric:tabular-nums}
 @media (max-width:900px){.clk{order:1}}
+/* the console's jump buttons (10 Nov, option A) */
+.jumps{display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding-left:10px;border-left:1px solid var(--line)}
+.jumps .lbl{margin-right:2px}
