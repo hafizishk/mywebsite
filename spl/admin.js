@@ -272,6 +272,19 @@
   // FAS edits, fills the [BRACKETS] and publishes it as a story, or sends it to News to schedule
   A.pm = A.pm || {};
   const pmKey = (i, kind) => kind + i;
+  function reportFacts(i, gen) {
+    const m = SPL.matches[i], L = D.live[i] || { ev: [] }, short = k => C[k].short, ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 10 > 3 || [11, 12, 13].includes(n % 100)) ? 0 : n % 10] || 'th');
+    const mn = e => e[2] ? `${e[1]}+${e[2]}` : String(e[1]);
+    const ev = (L.ev || []).filter(e => e[3] !== 'HT' && e[3] !== 'FT').map(e => { const k = e[4];
+      if (e[3] === 'G') return { minute: mn(e), event: e[7] === 'og' ? 'own goal' : e[7] === 'pen' ? 'penalty goal' : 'goal', for: C[k].name, scorer: pname(e[8] || k, e[5]), assist: e[6] ? pname(k, e[6]) : null };
+      if (e[3] === 'D') return { minute: mn(e), event: 'goal ruled out after a VAR review', team: C[k].name, player: pname(k, e[5]), reason: e[9] || null };
+      if (e[3] === 'Y' || e[3] === 'R') return { minute: mn(e), event: e[3] === 'Y' ? 'yellow card' : 'red card', team: C[k].name, player: pname(k, e[5]) };
+      if (e[3] === 'S') return { minute: mn(e), event: 'substitution', team: C[k].name, on: pname(k, e[5]), off: pname(k, e[6]) };
+      return null; }).filter(Boolean);
+    const sc = (L.ev || []).reduce((a, e) => { if (e[3] === 'G') a[e[4] === m[2] ? 0 : 1]++; return a; }, [0, 0]);
+    return { competition: 'AIA Singapore Premier League 2026/27', matchweek: m[0], date: m[1], ground: m[5], home: C[m[2]].name, away: C[m[3]].name, score: `${short(m[2])} ${sc[0]}-${sc[1]} ${short(m[3])}`,
+      events_in_order: ev, officials_notes: (L.notes || []).map(([mi, t]) => `${mi}': ${t}`), from_the_data: gen ? gen.facts : [], storylines: gen ? gen.story.map(x => x.text) : [] };
+  }
   function writerPanel(i, kind) {
     if (!window.SPLNEWS) return '';
     const done = D.news.find(n => n.match === i && n.tag === (kind === 'post' ? 'Report' : 'Preview'));
@@ -287,7 +300,7 @@
       ${open.length ? `<p class="note" style="margin:0;color:#F5D76A">To fill before publishing: ${open.map(E).join(' · ')}</p>` : ''}
       ${gen.approx ? '<p class="note" style="margin:0">Minutes for this game come from club reports, so the draft keeps them loose ("in the first half").</p>' : ''}
       ${kind === 'pre' ? `<label class="chk"><input type="checkbox" data-autopre="1" ${D.autoPreview ? 'checked' : ''}> Write every game's preview automatically the evening before, as a draft for approval</label>` : ''}
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${kind === 'post' && D.live[i] && D.live[i].phase === 'FT' ? `<button class="btn sm" data-pmai="${k}" ${A.aiBusy === k ? 'disabled' : ''}>${A.aiBusy === k ? 'Writing… about a minute' : '✦ Write with AI'}</button>` : ''}<button class="btn2 sm" data-pmre="${k}">↻ Rewrite from the data</button><span style="flex:1"></span>
         ${done ? `<button class="btn2" data-pmopen="${E(done.id)}">Open in News</button>` : `<button class="btn2" data-pmsend="${k}">Schedule in News</button><button class="btn red" data-pmpub="${k}">Publish ${kind === 'post' ? 'report' : 'preview'}</button>`}</div></div>`;
   }
   // automatic previews: at 6pm the evening before (and for anything today still without one), a draft in News
@@ -321,6 +334,16 @@
   // goals, assists, clean-sheet keepers, goals ruled out, captains) and can swap any of them, defenders listed first.
   // Voting opens to every signed-in fan at 75' (with an alert to the game's followers) and closes at the final whistle.
   const POTM_FROM = 75;
+  // notes for the report (Hafiz, 10 Nov, option A): one line per moment the console doesn't record (chances, saves,
+  // woodwork, how a goal came); the AI writer uses only these, the console, the table and the storylines
+  function notesPanel(i) {
+    const L = D.live[i]; if (!L || L.phase === 'pre') return ''; const c = clockOf(i), notes = L.notes || [];
+    const now = c.phase === 'FT' ? '90' : c.phase === 'HT' ? '45' : String(Math.min(c.n, c.cap || 90)) + (c.n > (c.cap || 90) ? '+' + (c.n - c.cap) : '');
+    return `<div class="panel"><h2>Notes for the report <span class="lbl">One line per moment · chances, saves, woodwork, how a goal came</span></h2>
+      ${notes.map(([m, t], j) => `<div style="display:grid;grid-template-columns:64px 1fr 28px;gap:10px;align-items:center;margin-bottom:8px"><span class="in" style="display:flex;align-items:center">${E(m)}'</span><span class="in" style="display:flex;align-items:center">${E(t)}</span><button class="lnk" data-notedel="${i}:${j}" title="Remove">×</button></div>`).join('')}
+      <div style="display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center"><input class="in" id="noteM" value="${E(now)}" inputmode="numeric"><input class="in" id="noteT" maxlength="240" placeholder="e.g. Mustapic tipped Satsukida's shot over the bar"><button class="btn2" data-noteadd="${i}">Add</button></div>
+      <p class="note" style="margin-top:10px">The writer only uses what's here, the console's goals, cards, changes and VAR, the table and the storylines. Nothing else.</p></div>`;
+  }
   function potmPanel(i) {
     const L = D.live[i], c = clockOf(i); if (!L || !(L.phase === '2H' && c.n >= 70 || L.phase === 'FT' || L.potmOpen)) return '';
     const m = SPL.matches[i], noms = A.potmDraft && A.potmDraft.i === i ? A.potmDraft.noms : (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM));
@@ -422,7 +445,7 @@
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${next ? `<button class="btn ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${c.phase === '1H' || c.phase === '2H' ? '<button class="btn2" data-nudge="-1">Clock −1 min</button><button class="btn2" data-nudge="1">Clock +1 min</button>' : ''}${L.phase !== 'pre' ? '<button class="lnk danger" data-resetmatch="1" style="margin-left:8px">Reset this game</button>' : ''}</div>
           </div>
           ${L.phase === 'FT' ? writerPanel(i, 'post') : L.phase === 'pre' ? writerPanel(i, 'pre') : ''}
-          ${potmPanel(i)}${crowdPanel(i)}
+          ${notesPanel(i)}${potmPanel(i)}${crowdPanel(i)}
           <div class="panel" style="display:flex;flex-direction:column;gap:14px;${L.phase === 'pre' ? 'opacity:.45;pointer-events:none' : ''}">
             <h2 style="margin:0">Add to the match</h2>
             <div class="tabs" style="gap:24px">${[['G', 'Goal'], ['Y', 'Yellow card'], ['R', 'Red card'], ['S', 'Substitution']].map(([k, l]) => `<button class="stab ${A.evType === k ? 'on' : ''}" data-evtype="${k}">${l}</button>`).join('')}</div>
@@ -813,7 +836,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -912,6 +935,13 @@
     if (d.reloadphone) { const f = document.getElementById('phone'); if (f) f.src = f.src; return; }
     if (d.newnews) { A.nFor = null; A.news = 'new'; render(); return; }
     if (d.editnews) { A.nFor = null; A.news = d.editnews; render(); return; }
+    if (d.noteadd !== undefined) { const i = +d.noteadd, mi = val('noteM').trim().replace(/'/g, ''), t = val('noteT').trim(); if (!t) { flash('Write the moment first.'); render(); return; }
+      save(d2 => { const L = d2.live[i]; L.notes = (L.notes || []).concat([[mi, t]]).slice(0, 40); }, 'Noted for the report.'); return; }
+    if (d.notedel) { const [i, j] = d.notedel.split(':').map(Number); save(d2 => { d2.live[i].notes.splice(j, 1); }, 'Note removed.'); return; }
+    if (d.pmai) { const k = d.pmai, i = +k.replace(/^\D+/, ''); if (!CL.on) { flash('The AI writer needs the backend on and the Claude key in Supabase.'); render(); return; }
+      A.aiBusy = k; render(); const gen = SPLNEWS.postMatch(D, i);
+      CL.writeReport(reportFacts(i, gen)).then(r => { A.aiBusy = null; if (r && r.body) { A.pm[k] = { head: r.head, dek: r.dek, body: r.body }; flash('Written. Read it through before you publish.'); } else flash((r && r.error) || 'The writer did not reply.'); render(); });
+      return; }
     if (d.pmopen) { A.page = 'news'; A.news = d.pmopen; A.nFor = null; render(); return; }
     if (d.pmre) { delete A.pm[d.pmre]; flash('Rewritten from the data.'); render(); return; }
     if (d.pmadd) { const k = t.closest('[data-pmk]').dataset.pmk, cur = A.pm[k]; const parts = cur.body.split('\n\nHow the match unfolded'); parts[0] = parts[0].replace(/\s*$/, '') + (k.startsWith('pre') ? ' ' : '\n\n') + d.pmadd; cur.body = parts.join('\n\nHow the match unfolded'); render(); return; }

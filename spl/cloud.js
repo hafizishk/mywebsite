@@ -109,6 +109,14 @@ var SPLCLOUD = (function () {
   async function crowdMine(match) { if (!on) return null; const { data: s } = await sb.auth.getSession(); if (!s || !s.session) return null; const { data, error } = await sb.rpc('spl_crowd_mine', { p_match: match }); return error || !data ? null : data[0] || null; }
 
   // push to locked phones (supabase/functions/push): staff only; quietly does nothing until the function is deployed
+  // the AI report writer (supabase/functions/report): staff only; returns { head, dek, body } or { error }
+  async function writeReport(facts) {
+    if (!on || !ST.admin) return { error: 'Sign in with the backend on to use the writer.' };
+    try { const { data, error } = await sb.functions.invoke('report', { body: { facts } });
+      if (error) { let msg = error.message || 'error'; try { const b = await error.context.json(); if (b && b.error) msg = b.error; } catch (x) {} return { error: msg }; }
+      return data || { error: 'No reply.' }; }
+    catch (e) { return { error: e.message }; }
+  }
   async function sendPush(p) {
     if (!on || !ST.admin) return { ok: false };
     try { const { data, error } = await sb.functions.invoke('push', { body: p }); ST.pushError = error ? (error.message || 'error') : ''; return { ok: !error, data }; }
@@ -133,5 +141,5 @@ var SPLCLOUD = (function () {
   async function signOut() { if (on) await sb.auth.signOut(); ST.admin = false; ST.email = ''; emit(); }
 
   if (on) { pull(); subscribe(); checkAdmin(); window.addEventListener('online', pull); document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); }); }
-  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, guess, crowdCount, crowdWinner, crowdMine, sendPush, signIn, signOut, checkAdmin };
+  return { on, state: ST, onChange: f => listeners.push(f), pull, save, log, flush, pullEvents, pullAudit, device, vote, voteCounts, guess, crowdCount, crowdWinner, crowdMine, writeReport, sendPush, signIn, signOut, checkAdmin };
 })();
