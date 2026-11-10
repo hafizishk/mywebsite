@@ -991,11 +991,30 @@
   root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
-  // a player's photo: square-cropped to 400px in the browser, kept against the player for the app and the admin
+  // a player's photo (Hafiz, 10 Nov: frame it in the dashboard): pick an image, then drag it into place and zoom in the
+  // square frame; Save crops it to 400px in the browser and keeps it against the player for the app and the admin
+  function framePhoto(src, done) {
+    const im = new Image(); im.onload = () => {
+      const F = 320, base = Math.max(F / im.width, F / im.height); let z = 1, x = 0, y = 0;
+      const o = document.createElement('div'); o.className = 'frm';
+      o.innerHTML = `<div class="frm-box"><b>Frame the photo</b><span class="note">Drag to move · slide to zoom. The app shows it in a square, face near the top.</span>
+        <div class="frm-v"><img alt=""><i></i></div><input type="range" min="1" max="3" step="0.01" value="1" aria-label="Zoom">
+        <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn2" data-x="0">Cancel</button><button class="btn" data-x="1">Save photo</button></div></div>`;
+      document.body.appendChild(o); const img = o.querySelector('img'), view = o.querySelector('.frm-v'); img.src = src;
+      const lim = () => { const w = im.width * base * z, h = im.height * base * z; x = Math.min(0, Math.max(F - w, x)); y = Math.min(0, Math.max(F - h, y)); };
+      const draw = () => { lim(); img.style.width = im.width * base * z + 'px'; img.style.transform = `translate(${x}px,${y}px)`; };
+      x = (F - im.width * base) / 2; y = 0; draw();
+      let drag = null; view.addEventListener('pointerdown', e => { drag = [e.clientX - x, e.clientY - y]; view.setPointerCapture(e.pointerId); });
+      view.addEventListener('pointermove', e => { if (!drag) return; x = e.clientX - drag[0]; y = e.clientY - drag[1]; draw(); });
+      view.addEventListener('pointerup', () => { drag = null; });
+      o.querySelector('input').addEventListener('input', e => { const nz = +e.target.value, c = F / 2; x = c - (c - x) * nz / z; y = c - (c - y) * nz / z; z = nz; draw(); });
+      o.addEventListener('click', e => { const b = e.target.closest('[data-x]'); if (!b) return; if (b.dataset.x === '1') { const c = document.createElement('canvas'), k = 400 / F, sc = base * z;
+          c.width = c.height = 400; c.getContext('2d').drawImage(im, -x / sc, -y / sc, F / sc, F / sc, 0, 0, 400, 400); done(c.toDataURL('image/jpeg', .85)); } o.remove(); });
+    }; im.src = src;
+  }
   root.addEventListener('change', e => { const pp = e.target.dataset && e.target.dataset.pphoto; if (!pp || !e.target.files[0]) return;
-    const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(im.width, im.height), c = document.createElement('canvas'); c.width = c.height = 400;
-      c.getContext('2d').drawImage(im, (im.width - s) / 2, Math.max(0, (im.height - s) / 4), s, s, 0, 0, 400, 400);
-      save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = c.toDataURL('image/jpeg', .82); }, 'Photo saved. It shows wherever this player appears in the app.'); }; im.src = r.result; }; r.readAsDataURL(e.target.files[0]); });
+    const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
+    r.readAsDataURL(e.target.files[0]); e.target.value = ''; });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
     const [i, j] = pn.split(':').map(Number), L = D.live[i]; if (!A.potmDraft || A.potmDraft.i !== i) A.potmDraft = { i, noms: (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM)).map(x => x.slice()) };
     const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; render(); });

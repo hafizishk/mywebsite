@@ -358,3 +358,11 @@ body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm
 @media (max-width:1100px){.skg.ed{grid-template-columns:minmax(0,1fr)}.skw{position:relative;top:0}}
 /* the write-up's photo: click to add or change (10 Nov) */
 .wuph{display:flex;align-items:center;gap:10px;cursor:pointer;align-self:flex-start}.wuph span:last-child{font:600 12px 'Inter',sans-serif;color:var(--muted)}.wuph:hover span:last-child{color:var(--ink)}
+/* framing a player's photo (10 Nov) */
+.frm{position:fixed;inset:0;z-index:100;background:rgba(5,7,20,.7);display:flex;align-items:center;justify-content:center}
+.frm-box{background:var(--card,#14163C);border:1px solid var(--cardb,rgba(255,255,255,.12));border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:14px;width:364px;box-shadow:0 30px 80px rgba(0,0,0,.5);color:var(--ink)}
+body.adm:not([data-look=light]) .frm-box{background:#14163C}
+.frm-v{position:relative;width:320px;height:320px;overflow:hidden;border-radius:14px;background:#000;cursor:grab;touch-action:none}.frm-v:active{cursor:grabbing}
+.frm-v img{position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.frm-v i{position:absolute;inset:0;border-radius:14px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7);pointer-events:none}
+.frm input[type=range]{width:100%}
