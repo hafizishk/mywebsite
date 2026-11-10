@@ -531,3 +531,5 @@ button:disabled{cursor:default}
 
 /* type (Hafiz, 10 Nov): the small grey labels read as sentences, a little larger, not as tracked-out capitals */
 #app .lbl{text-transform:none!important;letter-spacing:0!important;font-size:12.5px!important;font-weight:500!important}
+/* the match centre's tabs run the full width, the tabs sharing it (Hafiz, 10 Nov) */
+#app .tabs.mtabs{display:flex!important;align-self:stretch!important;width:100%;box-sizing:border-box}#app .tabs.mtabs .stab{flex:1 1 0;text-align:center;padding-left:6px!important;padding-right:6px!important}

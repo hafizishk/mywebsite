@@ -577,7 +577,7 @@
     const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
       ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L), L })}
-      <div class="tabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
+      <div class="tabs mtabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
   // getting there (Hafiz, 4 Nov): nearest MRT, then what FAS sets per match
@@ -601,7 +601,7 @@
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
       ${m[4] ? playHead(m, r, S.match, { ft: true, goals: realGoals(m) }) : preHead(m, r, S.match)}
-      <div class="tabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
+      <div class="tabs mtabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
   // ranks that tie share a number, as the J.League lists do (3, 3, 5)
