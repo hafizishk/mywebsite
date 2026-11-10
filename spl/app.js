@@ -518,7 +518,7 @@
   function potmTab(i, L) {
     const ph = potmPhase(L), noms = potmNoms(i, L), mine = P.potm[i];
     if (ph === 'ft') return potmWinner(i, L, false);
-    if (ph === 'soon') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">${potmTitle()}</span></div>
+    if (ph !== 'open') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">${potmTitle()}</span></div>
       <div class="card" style="padding:16px"><b style="font-size:16px">Voting opens at ${VOTE_FROM}'</b></div>`;
     return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">${potmTitle()}</span>
       <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#FFD1D3"><span class="dot pulse" style="background:#E8363D"></span>Voting open until the final whistle</span>
@@ -597,11 +597,12 @@
     const squad = k => SPL.squads[k].map(p => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:11px"><span class="mono" style="color:var(--muted);width:18px">${p[0]}</span><span style="flex:1">${p[1]}</span><span style="color:var(--muted)">${p[2]}</span></div>`).join('');
     let body = '';
     if (S.mtab === 'overview') body = pmCard(S.match) + crowdCard(S.match) + (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off 7.30PM. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
+    else if (S.mtab === 'potm' && !m[4]) body = potmTab(S.match, null);
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
       ${m[4] ? playHead(m, r, S.match, { ft: true, goals: realGoals(m) }) : preHead(m, r, S.match)}
-      <div class="tabs mtabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
+      <div class="tabs mtabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].concat(m[4] ? [] : [['potm', 'Vote']]).map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
   // ranks that tie share a number, as the J.League lists do (3, 3, 5)
