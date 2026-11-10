@@ -626,7 +626,7 @@
       <div class="panel awvote"><h2 style="margin:0">Vote</h2><label class="fld"><span>Opens</span><input class="in" type="datetime-local" data-awf="opens" value="${E(m.opens)}"></label><label class="fld"><span>Closes</span><input class="in" type="datetime-local" data-awf="closes" value="${E(m.closes)}"></label>
         <span style="display:flex;flex-direction:column;gap:6px"><label class="chk"><input type="checkbox" checked disabled> Alert every fan when it opens</label><label class="chk"><input type="checkbox" checked disabled> Remind fans who haven't voted, 24 hours before close</label></span><span style="flex:1"></span>
         <a class="btn2" href="index.html" target="_blank" rel="noopener">Preview in the app</a>
-        ${m.stage === 'shortlist' ? `<button class="btn red" data-awopen="${m.key}" ${S2[0][2] && m.opens && m.closes ? '' : 'disabled'}>Open the vote</button>` : m.stage === 'voting' ? `<button class="btn red" data-awclose="${m.key}">Close and announce</button>` : '<span class="lbl ok">Announced</span>'}</div>
+        ${m.stage === 'shortlist' ? `<button class="btn red" data-awopen="${m.key}" ${S2[0][2] && m.opens && m.closes ? '' : 'disabled'}>Open the vote</button>` : m.stage === 'voting' ? `<button class="btn red" data-awclose="${m.key}">Close and announce</button>` : `<span class="lbl ok">Announced</span><button class="btn" data-awstory="${m.key}">${D.news.some(n => n.id === 'aw-' + m.key) ? 'Open the winners\' story' : 'Write the winners\' story'}</button>`}</div>
       ${m.stage === 'voting' ? `<div class="panel"><h2>Votes so far</h2><div class="grid2">${['potm', 'gotm'].map(w => { const t = tallyOf(m, w), tot = Object.values(t).reduce((a, b) => a + b, 0) || 1; return `<div>${m[w].picks.slice().sort((a, b) => t[b.id] - t[a.id]).map((x, i) => `<div class="vb"><span><span>${E(x.name || x.player)}</span><b>${Math.round(100 * t[x.id] / tot)}% <span class="note">${t[x.id].toLocaleString()}</span></b></span><i><em style="width:${Math.round(100 * t[x.id] / tot)}%;${i ? '' : 'background:#E8363D'}"></em></i></div>`).join('')}</div>`; }).join('')}</div></div>` : ''}`;
   }
 
@@ -813,7 +813,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mwprev],[data-roundup],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -831,6 +831,32 @@
         if (j >= 0) G.splice(j, 1); else if (G.length < MAXN) { const g = monthData(m.key).goals.find(x => x.id === d.awg); if (g) G.push({ id: g.id, player: g.player, team: g.team, match: g.match, min: g.min, how: '', clip: '', from: '', to: '' }); } }); return; }
     if (d.awopen) { awSave(d2 => { const m = monthOfKey(d2, d.awopen); m.stage = 'voting';
         d2.pushes.push({ id: uid('p'), at: Date.now(), title: `${m.month} Awards 🏆`, body: `Who impressed you this month? Vote for Player and Goal of the Month before ${new Date(m.closes).toLocaleDateString('en-SG', { weekday: 'long' })}.`, aud: 'all', kind: 'manual', match: null }); }, 'The vote is open. Every fan has been told.'); return; }
+    // the winners' story (Hafiz, 10 Nov): drafted from the month's result, in house style, as a News draft to check and publish
+    if (d.awstory) { const key = d.awstory, id = 'aw-' + key;
+      if (!D.news.some(n => n.id === id)) { const m = monthOfKey(D, key), tp = tallyOf(m, 'potm'), tg = tallyOf(m, 'gotm');
+        const share = (t, x) => { const tot = Object.values(t).reduce((a, b) => a + b, 0) || 1; return Math.round(100 * (t[x.id] || 0) / tot); };
+        const wp = m.potm.picks.find(x => x.id === m.potm.winner), wg = m.gotm.picks.find(x => x.id === m.gotm.winner);
+        const sur = n => n.split(' ').slice(-1)[0], pos = x => { const p = (SPL.squads[x.team] || []).find(q => q[1] === x.name); return p ? ({ GK: 'goalkeeper', DF: 'defender', MF: 'midfielder', FW: 'striker' }[p[2]] || 'player') : 'player'; };
+        const list = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0] || '';
+        const body = [], imgs = [];
+        if (wp) { const pp = (D.playerPhotos || {})[wp.team + ':' + wp.n]; if (pp) imgs.push(pp); else if (hasPhoto(wp.team, wp.n)) imgs.push(`pl:${wp.team}:${wp.n}`);
+          body.push(`${wp.name} has been voted the Dongfeng Player of the Month for ${m.month}, taking ${share(tp, wp)}% of the fans' vote${wp.line ? ' after ' + wp.line.toLowerCase() + ' for ' + C[wp.team].name : ''}.`);
+          if (wp.write || wp.how) body.push(wp.write || `His ${m.month} in numbers: ${wp.how}.`);
+          const rest = m.potm.picks.filter(x => x.id !== wp.id).map(x => `${x.name} (${C[x.team].short})`); if (rest.length) body.push(`He beat ${list(rest)} to the award.`); }
+        if (wg) { const gp = (D.playerPhotos || {})[wg.team + ':' + numOf(wg.team, wg.player)]; if (gp && !imgs.includes(gp)) imgs.push(gp); else if (hasPhoto(wg.team, numOf(wg.team, wg.player))) { const k = `pl:${wg.team}:${numOf(wg.team, wg.player)}`; if (!imgs.includes(k)) imgs.push(k); }
+          if (body.length) body.push('[PHOTO]');
+          { const mn = (wg.min || '').replace(/'/g, ''), base = +mn.split('+')[0], ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 10 > 3 || [11, 12, 13].includes(n % 100)) ? 0 : n % 10] || 'th');
+            body.push(`The MSIG Goal of the Month goes to ${wg.player}${mn ? ' for his ' + (/\+/.test(mn) ? 'stoppage-time strike' : ord(base) + '-minute strike') : ''}${wg.match ? ' in ' + wg.match : ''}, with ${share(tg, wg)}% of the vote.`); }
+          if (wg.how) body.push(wg.how);
+          if (wg.clip) body.push('The goal is in the app, under Goal of the Month.'); }
+        { const y = +key.slice(0, 4), mo = +key.slice(5, 7), nk = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; body.push(`Voting for ${mName(nk)}'s awards opens in the app at the start of next month.`); }
+        const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'], house = t => t.replace(/(\d+)\s*[–—]\s*(\d+)/g, '$1-$2').replace(/\b([1-9]) (goals?|assists?|clean sheets?|wins?)\b/g, (x, n, w) => WORDS[+n] + ' ' + w);
+        for (let k = 0; k < body.length; k++) body[k] = house(body[k]);
+        const n = { id, tag: 'Announcement', date: TODAY, title: wp ? `${sur(wp.name)} named ${m.month} Player of the Month` : `${m.month}'s Goal of the Month: ${wg.player}`,
+          dek: house([wp && `${C[wp.team].short} ${pos(wp)} takes the Dongfeng award`, wg && `${wg.player}'s goal${wg.match ? ' in ' + wg.match : ''} wins MSIG Goal of the Month`].filter(Boolean).join('; ')),
+          body: body.join('\n\n'), img: '', imgs, match: null, at: 0, alert: false, status: 'draft' };
+        save(d2 => { d2.news.push(n); }, `The ${m.month} winners' story is drafted in News. Check it, add photos, then publish.`); }
+      A.page = 'news'; A.news = id; A.nFor = null; render(); document.scrollingElement.scrollTop = 0; return; }
     if (d.awclose) { const m0 = monthOfKey(D, d.awclose), tp = tallyOf(m0, 'potm'), tg = tallyOf(m0, 'gotm'), top = (list, t) => list.slice().sort((a, b) => t[b.id] - t[a.id])[0];
       const wp = top(m0.potm.picks, tp), wg = top(m0.gotm.picks, tg); if (!confirm(`Close the vote and announce ${[wp && wp.name, wg && wg.player].filter(Boolean).join(' and ')}? Every fan is told.`)) return;
       awSave(d2 => { const m = monthOfKey(d2, d.awclose); m.stage = 'announced'; m.potm.winner = wp ? wp.id : ''; m.gotm.winner = wg ? wg.id : '';

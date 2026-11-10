@@ -13,8 +13,9 @@ var SPLSTORE = (function () {
   // shop photos (FAS's Shopee Mall listings, 9 Nov 2026), as library keys 'shop:<name>'
   ['ball', 'home', 'away', 'fanjersey', 'asean2004', 'retro94', 'retro94b', 'lions1998', 'asean2012', 'tiger2007', 'tiger2007b', 'teeroar', 'cap', 'capb', 'keychain', 'hgu-home', 'lcs-away', 'lcs-awayb', 'yls-home', 'gey-home', 'lcs-home', 'tam-home'].forEach(k => { IMG['shop:' + k] = 'assets/shop/' + k + '.jpg'; });
   // a story's photos (Hafiz, 9 Nov): up to 6, each a library key or an uploaded picture (a data URL until the backend's storage is on)
-  const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
-  const picUrl = k => IMG[k] || (/^data:image\//.test(k || '') ? k : '');
+  const plPic = k => { const m = /^pl:(LCS|TAM|GEY|JUR):(\d{1,3})$/.exec(k || ''); return m ? `assets/players/${m[1]}/${m[2]}.png` : ''; };
+  const photos = a => Array.isArray(a) ? a.filter(x => typeof x === 'string' && (IMG[x] || plPic(x) || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 700000))).slice(0, 12) : [];
+  const picUrl = k => IMG[k] || plPic(k) || (/^data:image\//.test(k || '') ? k : '');
   // a story is in the app once published, or once its scheduled time has come
   const isOut = (n, now) => n.status === 'live' || (n.status === 'scheduled' && n.at && n.at <= (now || Date.now()));
   const picsOf = n => { const a = (n.imgs || []).filter(picUrl); return a.length ? a : (n.img && picUrl(n.img) ? [n.img] : []); };

@@ -219,8 +219,9 @@
   const IMG = SPLSTORE.IMG;
   // a story's pictures: one, or several that change every 3 seconds with Stories-style bars (Hafiz, 9 Nov)
   const imgBlock = (n, h) => { const all = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl), ps = /\[PHOTO\]/.test(n.body || '') ? all.slice(0, 1) : all; if (!ps.length) return '';
-    if (ps.length === 1) return `<span class="nimg" style="height:${h}px;background-image:url(${ps[0]})"></span>`;
-    return `<span class="nimg ncar" style="height:${h}px" data-n="${ps.length}">${ps.map((u, j) => `<span class="nc-p ${j ? '' : 'on'}" style="background-image:url(${u})"></span>`).join('')}<span class="nc-bars">${ps.map((_, j) => `<i class="${j ? '' : 'on'}"><b></b></i>`).join('')}</span><span class="nc-n">1 / ${ps.length}</span></span>`; };
+    const top = u => /assets\/players\/|^data:image/.test(u) ? ';background-position:50% 12%' : '';
+    if (ps.length === 1) return `<span class="nimg" style="height:${h}px;background-image:url(${ps[0]})${top(ps[0])}"></span>`;
+    return `<span class="nimg ncar" style="height:${h}px" data-n="${ps.length}">${ps.map((u, j) => `<span class="nc-p ${j ? '' : 'on'}" style="background-image:url(${u})${top(u)}"></span>`).join('')}<span class="nc-bars">${ps.map((_, j) => `<i class="${j ? '' : 'on'}"><b></b></i>`).join('')}</span><span class="nc-n">1 / ${ps.length}</span></span>`; };
   // every story with its picture: a wide photo in All news, a thumbnail beside the headline elsewhere
   const newsRow = (n, big) => { const im = SPLSTORE.picUrl(SPLSTORE.picsOf(n)[0]);
     const text = `<span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span>${big ? `<span class="d" style="font-size:19px;line-height:1.05">${E(n.title)}</span><span style="font-size:12px;line-height:1.45;color:var(--muted)">${E(n.dek)}</span>` : `<span style="font-size:14px;font-weight:600;line-height:1.3">${E(n.title)}</span>`}`;
@@ -343,7 +344,7 @@
       ${imgBlock(n, 230) ? `<div style="margin:0 -20px">${imgBlock(n, 230)}</div>` : ''}
       <div style="display:flex;flex-direction:column;gap:10px"><span class="lbl" style="color:var(--accent,#FF9AA0)">${E(n.tag)} · ${ndate(n.date)}</span><span class="d" style="font-size:28px;line-height:1">${E(n.title)}</span><span style="font-size:15px;line-height:1.5;color:#DCDAF0;font-weight:500">${E(n.dek)}</span></div>
       <div style="height:1px;background:var(--line)"></div>
-      <div class="body">${(() => { const ph = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); let k = 0; return E(n.body).split(/\n\s*\n/).map(p => { const t = p.trim(); if (t === '[PHOTO]') { k++; return ph[k] ? `<img class="bimg" src="${ph[k]}" alt="" loading="lazy">` : ''; } if (/ \| /.test(t) && /\d-\d/.test(t)) return `<p class="lbl" style="margin:-6px 0 0;font-size:12px;color:var(--ink)">${t.replace(/ \| /g, ' · ')}</p>`; if (/’/.test(t) && !/[.!?]$/.test(t)) return `<p style="margin:0;font-style:italic;color:var(--muted);font-size:13px">${t}</p>`; if (t.length < 70 && !/[.!?…]$/.test(t) && !/^SINGAPORE/.test(t)) return `<h3 class="d" style="font-size:20px;margin:22px 0 4px;line-height:1.05">${t}</h3>`; return `<p>${p.replace(/\n/g, '<br>')}</p>`; }).join(''); })()}</div>
+      <div class="body">${(() => { const ph = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); let k = 0; return E(n.body).split(/\n\s*\n/).map(p => { const t = p.trim(); if (t === '[PHOTO]') { k++; return ph[k] ? `<img class="bimg" src="${ph[k]}" style="${/assets\/players\/|^data:image/.test(ph[k]) ? 'object-position:50% 12%' : ''}" alt="" loading="lazy">` : ''; } if (/ \| /.test(t) && /\d-\d/.test(t)) return `<p class="lbl" style="margin:-6px 0 0;font-size:12px;color:var(--ink)">${t.replace(/ \| /g, ' · ')}</p>`; if (/’/.test(t) && !/[.!?]$/.test(t)) return `<p style="margin:0;font-style:italic;color:var(--muted);font-size:13px">${t}</p>`; if (t.length < 70 && !/[.!?…]$/.test(t) && !/^SINGAPORE/.test(t)) return `<h3 class="d" style="font-size:20px;margin:22px 0 4px;line-height:1.05">${t}</h3>`; return `<p>${p.replace(/\n/g, '<br>')}</p>`; }).join(''); })()}</div>
       <span class="lbl">Football Association of Singapore</span>
       ${more.length ? `<div style="display:flex;flex-direction:column;gap:8px"><span class="d" style="font-size:18px">More news</span><div class="card" style="padding:0 16px">${more.map(x => newsRow(x, false)).join('')}</div></div>` : ''}`;
   }
@@ -989,11 +990,25 @@
   const AWARD_PARTNER = { pmonth: ['Dongfeng', 'assets/partners/colour/dongfeng.png', 18], gotm: ['MSIG', 'assets/partners/colour/msig.png', 24] };
   const presented = k => { const p = AWARD_PARTNER[k]; return `<span class="awp"><span>Presented by</span><img src="${p[1]}" alt="${p[0]}" style="height:${p[2]}px"></span>`; };
   // one player's month, from SPL.matches: goals in the month, season goals, the club's record and goals
+  // every finished game the app knows (Hafiz, 10 Nov: the vote cards' numbers must follow the results): the season's
+  // results, MW6's Sunday games (kept unplayed in the data for the replay; final from their scripted feed) and any game the
+  // office ran to full time in the matchday console. Own goals don't count to a player's goals.
+  function allResults() {
+    const out = [], seen = new Set();
+    Object.keys(STORE.live || {}).map(Number).forEach(i => { const L = consoleOf(i), m = SPL.matches[i]; if (!L || !L.ft || !m) return; seen.add(i);
+      out.push({ date: m[1], home: m[2], away: m[3], sc: L.score, goals: L.fired.filter(e => e[3] === 'G' && e[7] !== 'og').map(e => [gname(e), e[4]]) }); });
+    LIVE_IDS.forEach(i => { if (seen.has(i) || !EV[i]) return; const m = SPL.matches[i], sc = [0, 0], goals = [];
+      EV[i].forEach(e => { if (e[3] !== 'G') return; sc[e[4] === m[2] ? 0 : 1]++; if (e[7] !== 'og') goals.push([gname(e), e[4]]); }); seen.add(i);
+      out.push({ date: m[1], home: m[2], away: m[3], sc, goals }); });
+    SPL.matches.forEach((m, i) => { if (seen.has(i) || !m[4]) return; out.push({ date: m[1], home: m[2], away: m[3], sc: m[4], goals: (m[6] || []).filter(g => !/\((og|o\.g\.)\)/i.test(g[0])).map(g => [g[0].replace(/ \((pen)\)/, ''), g[2]]) }); });
+    return out;
+  }
   function monthOf(name, k, ym) {
-    const clean = g => g.replace(' (pen)', ''), ms = SPL.matches.filter(m => m[1].startsWith(ym) && m[4]);
-    let g = 0; ms.forEach(m => (m[6] || []).forEach(x => { if (clean(x[0]) === name) g++; }));
-    const r = { p: 0, w: 0, d: 0, l: 0, f: 0, a: 0, cs: 0 }; ms.forEach(m => { if (m[2] !== k && m[3] !== k) return; const h = m[2] === k, f = m[4][h ? 0 : 1], a = m[4][h ? 1 : 0]; r.p++; if (f > a) r.w++; else if (f === a) r.d++; else r.l++; r.f += f; r.a += a; if (!a) r.cs++; });
-    const season = ((SPL.scorers.find(x => x[0] === name) || [])[2]) || 0;
+    const all = allResults(), ms = all.filter(x => x.date.startsWith(ym)), mine = x => x.goals.filter(g => g[0] === name || nice(g[0]) === nice(name)).length;
+    const g = ms.reduce((t, x) => t + mine(x), 0);
+    const r = { p: 0, w: 0, d: 0, l: 0, f: 0, a: 0, cs: 0 }; ms.forEach(x => { if (x.home !== k && x.away !== k) return; const h = x.home === k, f = x.sc[h ? 0 : 1], a = x.sc[h ? 1 : 0]; r.p++; if (f > a) r.w++; else if (f === a) r.d++; else r.l++; r.f += f; r.a += a; if (!a) r.cs++; });
+    // season goals: counted from every result, or spl.sg's scorers list if that says more (it covers goals the data lacks names for)
+    const season = Math.max(all.reduce((t, x) => t + mine(x), 0), ((SPL.scorers.find(x => x[0] === name) || [])[2]) || 0);
     return { g, season, r };
   }
   const surname = n => /^(Yang|Kim|Lee|Park|Song|Cho) /.test(n) ? n.split(' ')[0] : n.split(' ').slice(-1)[0];
