@@ -316,7 +316,7 @@
   const crowdOf = i => D.crowd[i] || { open: false, prize: '', attendance: null, guesses: 0, winner: null };
   const localGuesses = i => { try { return (JSON.parse(localStorage.getItem('spl-guesses') || '{}')[i]) || []; } catch (e) { return []; } };
   const CROWDN = {};
-  // Fans' Player of the Match (Hafiz, 10 Nov): from 70' the official sees four suggested nominees (at least one per side;
+  // Fans' Player of the Match (Hafiz, 10 Nov): from 70' the official sees four suggested nominees (from either side;
   // goals, assists, clean-sheet keepers, goals ruled out, captains) and can swap any of them, defenders listed first.
   // Voting opens to every signed-in fan at 75' (with an alert to the game's followers) and closes at the final whistle.
   const POTM_FROM = 75;
@@ -326,11 +326,16 @@
     const order = { DF: 0, GK: 1, MF: 2, FW: 3 };
     const opts = (cur) => [m[2], m[3]].map(k => `<optgroup label="${E(C[k].short)}">${SPL.squads[k].slice().sort((a, b) => (order[a[2]] ?? 4) - (order[b[2]] ?? 4) || a[0] - b[0]).map(p => `<option value="${k}|${E(p[1])}" ${cur[0] === p[1] && cur[1] === k ? 'selected' : ''}>${E(p[1])} · ${p[2]} · #${p[0]}</option>`).join('')}</optgroup>`).join('');
     const state = L.phase === 'FT' ? 'Closed at the final whistle' : L.potmOpen ? 'Open to fans · closes at the final whistle' : `Opens to fans at ${POTM_FROM}'`;
-    const confirmed = L.potm && L.potm.length;
+    const confirmed = L.potm && L.potm.length, saved = confirmed ? L.potm : null;
+    const draft = A.potmDraft && A.potmDraft.i === i, same = saved && JSON.stringify(noms) === JSON.stringify(saved);
+    const dup = new Set(noms.map(x => x && x[0])).size < 4;
+    const problem = dup ? 'Pick four different players.' : '';
     return `<div class="panel"><h2>Fans' Player of the Match<span class="lbl">${state}</span></h2>
-      <p class="note" style="margin-bottom:12px">${confirmed ? 'Nominees confirmed.' : `Suggested from the match so far. Swap any of them, then confirm; if you don't, these go out at ${POTM_FROM}'.`} At least one from each side.</p>
+      <p class="note" style="margin-bottom:12px">${confirmed ? 'Nominees confirmed.' : `Suggested from the match so far. Swap any of them, then confirm; if you don't, these go out at ${POTM_FROM}'.`}</p>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[0, 1, 2, 3].map(j => `<select class="in" data-potmnom="${i}:${j}">${opts(noms[j] || [])}</select>`).join('')}</div>
-      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">${L.phase === 'FT' ? '' : `<button class="btn" data-potmok="${i}">${confirmed ? 'Update nominees' : 'Confirm nominees'}</button>`}<span class="note">One vote per signed-in fan, at the ground or at home. The split stays hidden until full time.</span></div></div>`;
+      ${saved ? `<p class="note" style="margin-top:10px">In the app now: <b style="color:var(--ink)">${saved.map(x => E(x[0]) + ' (' + E(C[x[1]].short) + ')').join(', ')}</b></p>` : ''}
+      ${problem ? `<p style="margin-top:8px;font:600 13px 'Inter',sans-serif;color:#FF9AA0">Not saved: ${problem}</p>` : draft && !same ? `<p style="margin-top:8px;font:600 13px 'Inter',sans-serif;color:#F5C518">Changed, not saved yet. Press ${confirmed ? 'Update' : 'Confirm'} nominees.</p>` : ''}
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">${L.phase === 'FT' ? '' : `<button class="btn" data-potmok="${i}" ${problem ? 'disabled style="opacity:.45"' : ''}>${confirmed ? 'Update nominees' : 'Confirm nominees'}</button>`}<span class="note">One vote per signed-in fan, at the ground or at home. The split stays hidden until full time.</span></div></div>`;
   }
   function crowdPanel(i) {
     const m = SPL.matches[i], x = crowdOf(i), n = CL.on ? CROWDN[i] : localGuesses(i).length;
@@ -811,7 +816,7 @@
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
     if (d.potmok) { const i = +d.potmok, L = D.live[i], noms = (A.potmDraft && A.potmDraft.i === i ? A.potmDraft.noms : (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM))).filter(Boolean);
-      const m = SPL.matches[i]; if (new Set(noms.map(x => x[0])).size < 4) { flash('Pick four different players.'); return; } if (!noms.some(x => x[1] === m[2]) || !noms.some(x => x[1] === m[3])) { flash('Pick at least one player from each side.'); return; }
+      const m = SPL.matches[i]; if (new Set(noms.map(x => x[0])).size < 4) { flash('Pick four different players.'); return; }
       save(d2 => { d2.live[i].potm = noms; }, L.potmOpen ? 'Nominees updated in the app.' : `Nominees confirmed. Voting opens at ${POTM_FROM}'.`); A.potmDraft = null; render(); return; }
     if (d.awback) { A.awm = null; render(); return; }
     if (d.awall) { A.allGoals = !A.allGoals; render(); return; }
@@ -960,7 +965,7 @@
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
     const [i, j] = pn.split(':').map(Number), L = D.live[i]; if (!A.potmDraft || A.potmDraft.i !== i) A.potmDraft = { i, noms: (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM)).map(x => x.slice()) };
-    const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; });
+    const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; render(); });
   root.addEventListener('change', e => {
     if (e.target.dataset && e.target.dataset.autopre) { save(d2 => { d2.autoPreview = e.target.checked; }, e.target.checked ? 'On: each game\'s preview is drafted the evening before, in News, for you to approve.' : 'Automatic previews off.'); autoPreviews(); render(); return; }
     if (e.target.id === 'nFiles') { keepNews(); const fs = [...e.target.files].slice(0, 12 - (A.nImgs || []).length); Promise.all(fs.map(f => shrink(f))).then(urls => { A.nImgs = (A.nImgs || []).concat(urls.filter(Boolean)).slice(0, 12); render(); }); return; }

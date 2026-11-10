@@ -484,7 +484,7 @@
     return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · 7.30PM</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off 7.30PM.</div>'}</div>
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH</span></div>`;
   }
-  // Fans' Player of the Match (Hafiz, 10 Nov, option B, F1's Driver of the Day): four nominees, at least one per side;
+  // Fans' Player of the Match (Hafiz, 10 Nov, option B, F1's Driver of the Day): four nominees from either side;
   // everyone signed in votes once, from the 75th minute to the final whistle; the split stays hidden until full time.
   // A console game uses the nominees the official confirmed (store.live[i].potm), else the suggestion at 75'.
   const VOTE_FROM = 75, NOMS = {};

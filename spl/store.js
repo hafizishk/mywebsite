@@ -116,7 +116,7 @@ var SPLSTORE = (function () {
   const shopLink = webUrl;
   // where a link sells from, for the Buy button: Shopee, adidas or the shop's own name
   const shopWhere = u => { const m = /^https:\/\/([^/]+)/.exec(u || ''); if (!m) return ''; const h = m[1].toLowerCase(); return shopeeUrl(u) ? 'Shopee' : /(^|\.)adidas\./.test(h) ? 'adidas' : ''; };
-  // Fans' Player of the Match (Hafiz, 10 Nov): four nominees, at least one from each side, suggested from what the match
+  // Fans' Player of the Match (Hafiz, 10 Nov): four nominees, from either side, suggested from what the match
   // record holds up to a minute: goals (3), assists (2), a clean-sheet goalkeeper (2), a goal VAR ruled out (1), the captain
   // (0.5). A 0-0 still gives four: both keepers, anyone with a goal ruled out, the captains. ev rows are the console's
   // [half, minute, added, type, team, shirt, assist, note]; gk optionally names each side's keeper by shirt (from a line-up).
@@ -130,7 +130,6 @@ var SPLSTORE = (function () {
     sides.forEach(k => { const g = (gk && gk[k]) || (sq(k).find(p => p[2] === 'GK') || [])[0]; if (!conceded[k]) add(k, g, 2);
       const cap = C[k] && C[k].cap, c = sq(k).find(p => p[1] === cap); if (c) add(k, c[0], 0.5); });
     const ranked = Object.keys(pts).sort((a, b) => pts[b] - pts[a]), pick = [];
-    sides.forEach(k => { const best = ranked.find(id => id.startsWith(k + ':')); if (best) pick.push(best); });
     ranked.forEach(id => { if (pick.length < 4 && !pick.includes(id)) pick.push(id); });
     sides.forEach(k => sq(k).forEach(p => { if (pick.length < 4 && !pick.includes(k + ':' + p[0]) && p[2] !== 'GK') pick.push(k + ':' + p[0]); }));
     return pick.slice(0, 4).sort((a, b) => (pts[b] || 0) - (pts[a] || 0)).map(id => { const [k, n] = id.split(':'); return [sq(k).find(p => p[0] === +n)[1], k]; });
