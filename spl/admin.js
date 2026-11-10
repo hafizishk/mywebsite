@@ -99,7 +99,7 @@
     if (rows.length > 300) rows.splice(0, rows.length - 300); try { localStorage.setItem(AUK, JSON.stringify(rows)); } catch (e) {}
     AUD = rows.slice().reverse();
   }
-  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Awards', potm: 'Awards', awards: 'Awards', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings', shop: 'Shop', shopUrl: 'Shop' };
+  const SECTION = { news: 'News', lead: 'News', pushes: 'Notifications', live: 'Matchday', gotm: 'Awards', potm: 'Awards', awards: 'Awards', sponsors: 'Sponsors', partners: 'Sponsors', partnerLook: 'Sponsors', staff: 'Settings', shop: 'Shop', shopUrl: 'Shop', playerPhotos: 'Awards' };
   const q_ = s => `‘${E(s || 'Untitled')}’`;
   const fixture = i => SPL.matches[i] ? `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])}` : 'a game';
   const evWords = (i, e) => { const m = SPL.matches[i], k = e[4], who = k ? E(pname(e[8] || k, e[5])) : '';
@@ -150,6 +150,7 @@
       Object.values(bx).forEach(p => out.push([`Removed ${E(p.name)} from the shop`, 'del']));
       if (out.length === n0 && JSON.stringify(b) !== JSON.stringify(a)) out.push(['Reordered the shop', '']); }
     else if (s === 'shopUrl') out.push(['Changed the Shopee store link', '']);
+    else if (s === 'playerPhotos') Object.keys(a || {}).filter(k => (b || {})[k] !== a[k]).forEach(k => { const [c, n] = k.split(':'), p = (SPL.squads[c] || []).find(x => x[0] === +n); out.push([`New photo for ${E(p ? p[1] : k)}`, 'add']); });
     else if (s === 'partners') { const x = b || [], y = a || []; y.forEach((p, j) => { const o = x[j] || {};
       if (o.name !== p.name) out.push([`Partners screen: ${p.name ? E(p.name) : 'empty space'}${o.name ? ` (was ${E(o.name)})` : ''}`, '']);
       else if (o.logo !== p.logo) out.push([`Partners screen: ${p.logo ? 'new logo' : 'removed the logo'} for ${E(p.name || 'space ' + (j + 1))}`, p.logo ? 'add' : 'del']);
@@ -537,7 +538,8 @@
   const mName = key => MONTHS[+key.slice(5, 7) - 1] || key;
   const numOf = (k, nm) => (SPL.squads[k] && SPL.squads[k].find(p => p[1] === nm) || [0])[0];
   const PHOTOS = { LCS: 'all', TAM: [25], GEY: [18], JUR: [7] }, hasPhoto = (k, n) => PHOTOS[k] === 'all' ? SPL.squads.LCS.some(p => p[0] === n) && n !== 27 && n !== 28 : (PHOTOS[k] || []).includes(n);
-  const face = (k, n, px) => hasPhoto(k, n) ? `<span class="face" style="width:${px}px;height:${px}px;background-image:url(assets/players/${k}/${n}.png);background-color:${C[k].c}"></span>` : `<span class="face" style="width:${px}px;height:${px}px">${crest(k, Math.round(px * .62))}</span>`;
+  const upPhoto = (k, n) => (D.playerPhotos || {})[k + ':' + n] || '';
+  const face = (k, n, px) => upPhoto(k, n) || hasPhoto(k, n) ? `<span class="face" style="width:${px}px;height:${px}px;background-image:url(${upPhoto(k, n) || `assets/players/${k}/${n}.png`});background-color:${C[k].c}"></span>` : `<span class="face" style="width:${px}px;height:${px}px">${crest(k, Math.round(px * .62))}</span>`;
   const ytId = u => { const m = String(u || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || String(u || '').match(/^([\w-]{11})$/); return m ? m[1] : ''; };
   const clipTh = u => ytId(u) ? `<span class="clipth" style="background-image:url(https://img.youtube.com/vi/${ytId(u)}/mqdefault.jpg)"><i></i></span>` : '<span class="clipth none">No clip yet</span>';
   const partnerTag = k => `<span class="ptag"><span>Presented by</span><img src="assets/partners/colour/${k === 'potm' ? 'dongfeng' : 'msig'}.png" alt="${k === 'potm' ? 'Dongfeng' : 'MSIG'}"></span>`;
@@ -620,7 +622,7 @@
             ${on ? `<span class="glf">${fld(`g:${j}:clip`, x.clip, 'Paste the clip link (YouTube)')}${fld(`g:${j}:from`, x.from, 'Starts 1:23', 92)}${fld(`g:${j}:to`, x.to, 'Ends 1:41', 92)}</span>${fld(`g:${j}:how`, x.how, 'How it went in, one line for the vote card')}` : ''}</span></div>`; }).join('') : '<p class="note">No goals this month yet.</p>'}
           ${goals.length > shownGoals.length || A.allGoals ? `<button class="lnk" data-awall="1" style="margin-top:10px">${A.allGoals ? 'Show fewer' : `Show all ${goals.length} goals`}</button>` : ''}
           <p class="note" style="margin:10px 0 0">${G.length} picked: 2 to ${MAXN}, or none to skip. The clip plays between the start and end times, in the vote and as a Short in Watch.</p></div></div>
-      ${P.length ? `<div class="panel"><h2>Write-ups <span class="lbl">Drafted from the numbers; edit before the vote opens</span></h2><div class="wus">${P.map((x, j) => `<div class="wu">${face(x.team, x.n, 64)}<b>${E(x.name)}</b><textarea class="in" rows="4" data-awf="p:${j}:write" placeholder="${E(draftLine(m, x, md))}">${E(x.write || '')}</textarea>${fld(`p:${j}:line`, x.line, 'e.g. 4 goals')}</div>`).join('')}</div></div>` : ''}
+      ${P.length ? `<div class="panel"><h2>Write-ups <span class="lbl">Drafted from the numbers; edit before the vote opens</span></h2><div class="wus">${P.map((x, j) => `<div class="wu"><label class="wuph" title="${upPhoto(x.team, x.n) || hasPhoto(x.team, x.n) ? 'Change photo' : 'Add a photo'}">${face(x.team, x.n, 64)}<input type="file" accept="image/*" hidden data-pphoto="${x.team}:${x.n}"><span>${upPhoto(x.team, x.n) || hasPhoto(x.team, x.n) ? 'Change photo' : '+ Add photo'}</span></label><b>${E(x.name)}</b><textarea class="in" rows="4" data-awf="p:${j}:write" placeholder="${E(draftLine(m, x, md))}">${E(x.write || '')}</textarea>${fld(`p:${j}:line`, x.line, 'e.g. 4 goals')}</div>`).join('')}</div></div>` : ''}
       <div class="panel awvote"><h2 style="margin:0">Vote</h2><label class="fld"><span>Opens</span><input class="in" type="datetime-local" data-awf="opens" value="${E(m.opens)}"></label><label class="fld"><span>Closes</span><input class="in" type="datetime-local" data-awf="closes" value="${E(m.closes)}"></label>
         <span style="display:flex;flex-direction:column;gap:6px"><label class="chk"><input type="checkbox" checked disabled> Alert every fan when it opens</label><label class="chk"><input type="checkbox" checked disabled> Remind fans who haven't voted, 24 hours before close</label></span><span style="flex:1"></span>
         <a class="btn2" href="index.html" target="_blank" rel="noopener">Preview in the app</a>
@@ -963,6 +965,11 @@
   root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
+  // a player's photo: square-cropped to 400px in the browser, kept against the player for the app and the admin
+  root.addEventListener('change', e => { const pp = e.target.dataset && e.target.dataset.pphoto; if (!pp || !e.target.files[0]) return;
+    const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { const s = Math.min(im.width, im.height), c = document.createElement('canvas'); c.width = c.height = 400;
+      c.getContext('2d').drawImage(im, (im.width - s) / 2, Math.max(0, (im.height - s) / 4), s, s, 0, 0, 400, 400);
+      save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = c.toDataURL('image/jpeg', .82); }, 'Photo saved. It shows wherever this player appears in the app.'); }; im.src = r.result; }; r.readAsDataURL(e.target.files[0]); });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
     const [i, j] = pn.split(':').map(Number), L = D.live[i]; if (!A.potmDraft || A.potmDraft.i !== i) A.potmDraft = { i, noms: (L.potm && L.potm.length ? L.potm : SPLSTORE.potmSuggest(i, L.ev, POTM_FROM)).map(x => x.slice()) };
     const [k, ...nm] = e.target.value.split('|'); A.potmDraft.noms[j] = [nm.join('|'), k]; render(); });

@@ -168,6 +168,9 @@ var SPLSTORE = (function () {
     const aw = isObj(d.awards) && Array.isArray(d.awards.months) ? d.awards : def.awards;
     // the newsroom writes each game's preview the evening before, for FAS to approve (Hafiz, 9 Nov)
     out.autoPreview = d.autoPreview === true;
+    // player photos the office uploads (Hafiz, 10 Nov), by club and shirt number ('TPU:9'): used wherever that player shows
+    out.playerPhotos = {}; if (isObj(d.playerPhotos)) Object.keys(d.playerPhotos).slice(0, 400).forEach(k => { const v = d.playerPhotos[k];
+      if (/^[A-Z]{3}:\d{1,3}$/.test(k) && C[k.slice(0, 3)] && typeof v === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(v) && v.length < 200000) out.playerPhotos[k] = v; });
     out.awards = { months: aw.months.filter(isObj).slice(-24).map(m => ({ key: str(m.key, ''), month: str(m.month, ''), stage: ['shortlist', 'voting', 'announced'].includes(m.stage) ? m.stage : 'shortlist', opens: str(m.opens, ''), closes: str(m.closes, ''),
       potm: { picks: isObj(m.potm) && Array.isArray(m.potm.picks) ? m.potm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.potm) ? str(m.potm.winner, '') : '' },
       gotm: { picks: isObj(m.gotm) && Array.isArray(m.gotm.picks) ? m.gotm.picks.filter(isObj).slice(0, 8).map(pick) : [], winner: isObj(m.gotm) ? str(m.gotm.winner, '') : '' } })) };

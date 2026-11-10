@@ -356,3 +356,5 @@ body.adm .tabs::-webkit-scrollbar,body.adm .side nav::-webkit-scrollbar,body.adm
 .sktg{display:flex;align-items:center;justify-content:space-between;font:500 14px 'Inter',sans-serif;cursor:pointer}
 .swi{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:var(--soft2,rgba(255,255,255,.18));position:relative;margin:0;cursor:pointer;transition:background .15s}.swi::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}.swi:checked{background:#FF9AA0}.swi:checked::after{left:19px}
 @media (max-width:1100px){.skg.ed{grid-template-columns:minmax(0,1fr)}.skw{position:relative;top:0}}
+/* the write-up's photo: click to add or change (10 Nov) */
+.wuph{display:flex;align-items:center;gap:10px;cursor:pointer;align-self:flex-start}.wuph span:last-child{font:600 12px 'Inter',sans-serif;color:var(--muted)}.wuph:hover span:last-child{color:var(--ink)}

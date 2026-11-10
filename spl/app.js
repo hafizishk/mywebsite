@@ -729,7 +729,7 @@
 
   // the clubs' own player photos, cut out (Sailors so far, from the club's squad cards; supplied by the owner 4 Nov)
   const PHOTOS = { LCS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 29, 30], TAM: [25], GEY: [18], JUR: [7] };
-  const photoOf = (k, n) => PHOTOS[k] && PHOTOS[k].includes(+n) ? `assets/players/${k}/${+n}.png` : '';
+  const photoOf = (k, n) => (STORE.playerPhotos || {})[k + ':' + (+n)] || (PHOTOS[k] && PHOTOS[k].includes(+n) ? `assets/players/${k}/${+n}.png` : '');
   const POSN = { GK: 'Goalkeeper', DF: 'Defender', MF: 'Midfielder', FW: 'Forward' };
   function player() {
     const f = findPlayer(S.player), gl = goalsFor(S.player), as = SPL.assists.find(a => a[0] === S.player);
