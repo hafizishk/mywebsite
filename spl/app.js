@@ -510,8 +510,7 @@
     const ph = potmPhase(L), noms = potmNoms(i, L), mine = P.potm[i];
     if (ph === 'ft') return potmWinner(i, L, false);
     if (ph === 'soon') return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}</div>
-      <div class="card" style="padding:18px 16px;display:flex;flex-direction:column;gap:8px;align-items:flex-start"><span class="lbl">Voting opens at ${VOTE_FROM}'</span><b style="font-size:16px">Four nominees, at least one from each side, go up at the ${VOTE_FROM}th minute.</b>
-      <span style="font-size:13px;color:var(--muted)">Vote once, at the ground or at home, until the final whistle. The result comes at full time. Turn on this game's alerts and we'll tell you when it opens.</span></div>`;
+      <div class="card" style="padding:16px"><b style="font-size:16px">Voting opens at ${VOTE_FROM}'</b></div>`;
     return `<div style="display:flex;flex-direction:column;gap:6px"><span class="d" style="font-size:22px;line-height:1">Fans' Player of the Match</span>${spLine('potm')}
       <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#FFD1D3"><span class="dot pulse" style="background:#E8363D"></span>Voting open until the final whistle</span>
       <span style="font-size:12px;color:var(--muted)">${mine === undefined ? 'One vote per signed-in fan, at the ground or at home. The result stays hidden until full time.' : 'Your vote is in. The result comes at full time.'}</span></div>
