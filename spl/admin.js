@@ -448,12 +448,23 @@
   function demoPanel() {
     const dm = D.demo, z = n => String(n).padStart(2, '0'), loc = t => { const d = new Date(t); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; };
     if (dm && SPL.matches[dm.i]) { const m = SPL.matches[dm.i], o = SPLSTORE.demoOf(dm.i) || { date: m[1], status: m[7] };
-      return `<div class="panel demo"><span class="lbl">Demo game</span><span><b>${E(C[m[2]].short)} v ${E(C[m[3]].short)}</b> plays ${E(new Date(dm.at).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. The app marks it as a demo, with the real fixture: ${E(dayName(o.date))} ${E(new Date(o.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))}, ${E(String(o.status).replace(/^\w+ /, ''))}.</span><span style="flex:1"></span><button class="btn2 sm" data-democlear="1">Back to the real date</button></div>`; }
+      return `<div class="panel demo"><span class="lbl">Demo game</span><span><b>${E(C[m[2]].short)} v ${E(C[m[3]].short)}</b> plays ${E(new Date(dm.at).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}. The app marks it as a demo, with the real fixture: ${E(dayName(o.date))} ${E(new Date(o.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))}, ${E(String(o.status).replace(/^\w+ /, ''))}.</span><span style="flex:1"></span><button class="btn2 sm" data-democlear="1">Back to the real date</button></div>${realPanel()}`; }
     const nx = new Date(); nx.setMinutes(0, 0, 0); nx.setHours(nx.getHours() + 1);
     const fx = SPL.matches.map((m, j) => [m, j]).filter(([m, j]) => !m[4] && m[1] >= TODAY && !String(m[7] || '').startsWith('Postponed') && m[0] <= SPLSTORE.roundOf(TODAY) + 1);
     return `<div class="panel demo"><span class="lbl">Demo game</span><span class="note" style="margin:0">Play a fixture at any time, say for a presentation:</span>
       <select class="in" id="demoI" style="width:auto">${fx.map(([m, j]) => `<option value="${j}" ${j === A.live ? 'selected' : ''}>${E(C[m[2]].short)} v ${E(C[m[3]].short)} · ${E(new Date(m[1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))}</option>`).join('')}</select>
-      <input class="in" type="datetime-local" id="demoAt" value="${loc(nx)}" style="width:auto"><button class="btn sm" data-demoset="1">Set</button></div>`;
+      <input class="in" type="datetime-local" id="demoAt" value="${loc(nx)}" style="width:auto"><button class="btn sm" data-demoset="1">Set</button></div>${realPanel()}`;
+  }
+  // a real finished game for the AI writer (Hafiz, 11 Nov): Matchweek 6's Sunday games, from their sourced timelines
+  // (SPL.feeds) and what the sources add (REALNOTES), loaded as finished in the console without sending any alert
+  const REALNOTES = { 22: [['37', 'Azim Akbar fouled Glenn Kweh for the penalty', ['BKF:2', 'LCS:11']]] };
+  function realPanel() {
+    const ids = Object.keys(SPL.feeds || {}).map(Number).filter(i => SPL.matches[i]);
+    if (!ids.length) return '';
+    const sc = i => SPL.feeds[i].reduce((a, e) => { if (e[3] === 'G') a[e[4] === SPL.matches[i][2] ? 0 : 1]++; return a; }, [0, 0]);
+    return `<div class="panel demo"><span class="lbl">Real game</span><span class="note" style="margin:0">Load a finished game with its real events, then Write with AI:</span>
+      <select class="in" id="realI" style="width:auto">${ids.map(i => { const m = SPL.matches[i], s2 = sc(i); return `<option value="${i}">${E(short(m[2]))} ${s2[0]}–${s2[1]} ${E(short(m[3]))} · MW${m[0]}, ${E(new Date(m[1] + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))}</option>`; }).join('')}</select>
+      <button class="btn2 sm" data-realload="1">Load</button></div>`;
   }
   // clearing test runs (Hafiz, 10 Nov): before the FAS meeting, wipe the games run in the console, the alerts, the stories
   // added since the start and the example numbers, while the shop, photos, sponsors, awards and the demo game stay
@@ -892,7 +903,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -969,6 +980,11 @@
         if (ph === '2H') { L.phase = '2H'; L.t0 = Date.now(); L.base = 45; }
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
+    if (d.realload) { const i = +val('realI'), F = SPL.feeds && SPL.feeds[i]; if (!F) return;
+      if (D.live[i] && D.live[i].phase !== 'pre' && !confirm('This game already has console events. Replace them with the real ones?')) return;
+      save(d2 => { const ev = F.map(e => e.slice()); d2.live[i] = { phase: 'FT', t0: Date.now() - 110 * 60000, base: 46, sheet: true, ev, notes: (REALNOTES[i] || []).map(n => [n[0], n[1], n[2].slice()]), potm: SPLSTORE.potmSuggest(i, ev, POTM_FROM), potmOpen: false }; },
+        `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])} loaded as finished, with its real events. No alerts were sent. Press Write with AI on the post-match panel.`);
+      A.live = i; A.multi = null; render(); return; }
     if (d.cleartest) { const on = k => { const x = document.getElementById('clr-' + k); return !!(x && x.checked); }, pick = ['games', 'alerts', 'news', 'mock', 'stats'].filter(on);
       if (!pick.length) { flash('Tick what to clear.'); render(); return; }
       if (!confirm('Clear the ticked test data? Phones follow straight away.')) return;

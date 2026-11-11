@@ -42,8 +42,9 @@ var SPLNEWS = (function () {
   function scorers(D, R) {
     const o = SPL.scorers.map(x => ({ name: x[0], club: x[1], g: x[2] }));
     const add = (name, club) => { const x = o.find(y => y.name === name); if (x) x.g++; };
-    Object.values(SUNDAY_GOALS).forEach(gs => gs.forEach(g => add(g[0], g[2])));
-    (R || results(D)).filter(r => r.console).forEach(r => (r.ev || []).forEach(e => { if (e[3] === 'G' && e[7] !== 'og') { const n = pname(e[4], e[5]), x = o.find(y => y.name === n); if (x) x.g++; else o.push({ name: n, club: e[4], g: 1, partial: true }); } }));
+    // MW6's Sunday goals, unless that game was loaded in the console (its goals are counted from there)
+    const R0 = R || results(D); Object.keys(SUNDAY_GOALS).forEach(i => { if (R0.some(r => r.i === +i && r.console)) return; SUNDAY_GOALS[i].forEach(g => add(g[0], g[2])); });
+    R0.filter(r => r.console).forEach(r => (r.ev || []).forEach(e => { if (e[3] === 'G' && e[7] !== 'og') { const n = pname(e[4], e[5]), x = o.find(y => y.name === n); if (x) x.g++; else o.push({ name: n, club: e[4], g: 1, partial: true }); } }));
     return o.sort((a, b) => b.g - a.g);
   }
   // a club's current run, newest first

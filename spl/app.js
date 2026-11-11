@@ -43,12 +43,8 @@
     LCS: { f: '4-4-2', xi: [25,  5,  14,  18,  26,  11,  15,  16,  19,  7,  12], bench: [23,  29,  9,  24,  4,  1,  13,  2,  3] }
   };
   // [half, minute, added, type G goal · Y yellow · S sub · HT · FT, team, shirt, assist or player off, note]
-  const EV = {
-    // Tampines 0–0 Geylang: Taniguchi's 36th-minute goal for Geylang ruled out for offside (spl.sg MW6 roundup, 2 Nov)
-    23: [[1,  36,  0,  'D',  'GEY',  10,  0,  null,  null,  'offside'], [1,  45,  2,  'HT'], [2,  51,  0,  'S',  'GEY',  11,  23], [2,  59,  0,  'S',  'TAM',  10,  18], [2,  59,  0,  'S',  'TAM',  9,  33], [2,  63,  0,  'S',  'GEY',  9,  5], [2,  74,  0,  'S',  'TAM',  16,  71], [2,  87,  0,  'S',  'GEY',  32,  2], [2,  90,  4,  'FT']],
-    // Balestier 0–4 Sailors, minutes from the official roundup (spl.sg, 2 Nov): Shawal 31', Mance 37' pen, Phaëton 81', Thy 85'
-    22: [[1,  31,  0,  'G',  'LCS',  7,  19], [1,  37,  0,  'G',  'LCS',  12,  0,  'pen'], [1,  45,  1,  'HT'], [2,  46,  0,  'S',  'LCS',  9,  12], [2,  46,  0,  'S',  'LCS',  4,  26], [2,  66,  0,  'S',  'LCS',  23,  7], [2,  66,  0,  'S',  'LCS',  29,  11], [2,  66,  0,  'S',  'LCS',  24,  16], [2,  71,  0,  'S',  'BKF',  63,  7], [2,  71,  0,  'S',  'BKF',  24,  12], [2,  78,  0,  'S',  'BKF',  19,  17], [2,  78,  0,  'S',  'BKF',  25,  20], [2,  81,  0,  'G',  'LCS',  23,  24], [2,  85,  0,  'G',  'LCS',  9,  23], [2,  90,  0,  'S',  'BKF',  33,  10], [2,  90,  3,  'FT']]
-  };
+  // the two games' timelines live in data.js (SPL.feeds) so the admin can load them for the AI writer
+  const EV = SPL.feeds;
   // full-time figures the stats grow towards: possession, shots, on target, corners, fouls, offsides (reconstructed)
   const POTM = { 23: { nom: [['Syazwan Buhari', 'TAM'], ['Milos Cupic', 'GEY'], ['Kaisei Ogawa', 'GEY']], base: [488, 517, 296] }, 22: { nom: [['Matthias Phaeton', 'LCS'], ['Shawal Anuar', 'LCS'], ['Lennart Thy', 'LCS']], base: [655, 590, 371] } };
   const HTB = 5; // half-time break, in simulated minutes
