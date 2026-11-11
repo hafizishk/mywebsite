@@ -266,30 +266,57 @@
     return { big: `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`, unit: 'hrs · min' }; };
   const BELL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg>';
   const CALI = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
-  // before kick-off: each club's colour glowing behind its crest, the countdown between them, then tickets, alerts, calendar
-  const preHead = (m, r, i) => { const c = countdown(m), today = m[1] === TODAY, on = !!P.reminders[i];
-    return `<div class="card mhead" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${E(r.venue)}</span>
-      <div class="mh-row"><button class="rowlink mh-club" data-club="${m[2]}">${crest(m[2], 66)}<span class="d">${r.hname}</span><span class="lbl">${posText(m[2])}</span></button>
-        <div class="mh-mid">${c ? `<span class="lbl" style="color:#FFD1D3">Kick-off in</span><b class="d mono" data-count="${i}">${c.big}</b><span class="lbl" style="font-size:10px" data-countu="${i}">${c.unit}</span>` : `<b class="d">VS</b>`}</div>
-        <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
+  // the match centre's header (Hafiz, 11 Nov, option B, MLS layout in the Glass look): back, share and alerts; the
+  // competition, date and matchweek; crests with their codes, the scores either side of a status pill, the ground under it;
+  // goals and red cards per side; then the action (tickets and calendar before, meWATCH live, the highlights after)
+  const SHARE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+  const PIN = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>';
+  const longDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^(\w+) /, '$1, ');
+  const mcTop = (m, i) => { const on = !!P.reminders[i];
+    return `<div class="mc-top"><button class="mc-ib" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span style="flex:1"></span><button class="mc-ib" data-share="${i}" aria-label="Share">${SHARE}</button><button class="mc-ib ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}" aria-label="${on ? 'Alerts on' : 'Alerts'}">${BELL}</button></div>
+      <div class="mc-meta"><b>2026/27 Singapore Premier League</b><b>${E(longDate(m[1]))}</b><span>Matchweek ${m[0]}</span></div>`; };
+  // the score row: a crest and code each side, the scores (or nothing before kick-off) and the middle
+  const mcRow = (m, sc, mid) => { const side = k => `<button class="rowlink mc-club" data-club="${k}">${crest(k, 52)}<b>${k}</b></button>`, n = x => `<b class="mc-sc">${x}</b>`;
+    return `<div class="mc-row">${side(m[2])}${sc ? n(sc[0]) : '<span></span>'}<div class="mc-mid">${mid}<span class="mc-ven">${PIN}${E(String(m[5] || '').replace(/ Stadium$/, ''))}</span></div>${sc ? n(sc[1]) : '<span></span>'}${side(m[3])}</div>`; };
+  // goals and red cards, each side's in its column, the ball or the card between
+  const mcEvents = (m, goals, reds) => { const rows = goals.map(g => [g.team, g.name, g.min, BALLW]).concat((reds || []).map(x => [x.team, x.name, x.min, REDW]));
+    if (!rows.length) return '';
+    const by = k => rows.filter(x => x[0] === k), H = by(m[2]), A = by(m[3]), out = [];
+    // a goal row pairs the two sides' goals, then red cards
+    const pair = icon => { const h = H.filter(x => x[3] === icon), a = A.filter(x => x[3] === icon); for (let j = 0; j < Math.max(h.length, a.length); j++) out.push([h[j], icon, a[j]]); };
+    pair(BALLW); pair(REDW);
+    const cell = (x, right) => x ? `<button class="rowlink mc-ev${right ? ' r' : ''}" data-player="${E(x[1].replace(/ \((og|pen)\)/, ''))}">${E(backName(x[1].replace(/ \((og|pen)\)/, '')))}${/\(og\)/.test(x[1]) ? ' (og)' : /\(pen\)/.test(x[1]) ? ' (pen)' : ''} <span>${E(x[2])}</span></button>` : '<span></span>';
+    return `<div class="mc-evs">${out.map(([h, ic, a]) => `${cell(h, true)}<span class="mc-ic">${ic}</span>${cell(a)}`).join('')}</div>`; };
+  const BALLW = '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7l3.8 2.8-1.5 4.4H9.7L8.2 9.8z" fill="#0B0F2E"/></svg>';
+  const REDW = '<span aria-hidden="true" style="display:inline-block;width:10px;height:14px;border-radius:2px;background:#E8363D"></span>';
+  // a goal scored for a side by the other side's player is an own goal
+  const ogMark = (m, g) => { const inSq = (k, n) => (SPL.squads[k] || []).some(p => p[1] === n); const other = g.team === m[2] ? m[3] : m[2];
+    return !/\((og|pen)\)/.test(g.name) && !inSq(g.team, g.name) && inSq(other, g.name) ? Object.assign({}, g, { name: g.name + ' (og)' }) : g; };
+  // before kick-off: the countdown in the middle, then tickets and the calendar
+  const preHead = (m, r, i) => { const c = countdown(m), today = m[1] === TODAY;
+    const mid = c ? `<span class="mc-pill"><small>Kick-off in</small><b data-count="${i}">${c.big}</b><small data-countu="${i}">${c.unit}</small></span>` : '<span class="mc-pill">VS</span>';
+    return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, null, mid)}
       <span class="lbl" style="text-align:center">${today ? 'Today' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>${demoNote(i)}
       <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets${tixFrom(m[2]) ? `<small> from S$${tixFrom(m[2])}</small>` : ''}</button>
-        <button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button>
         <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
-  // live and full time (Hafiz, 9 Nov, option B): the pre-match header's look, with the score in the middle, a bar for the
-  // match clock (red while live, a tick at half time), the scorers, then Watch (meWATCH live; the highlights after) and the bell
-  const playHead = (m, r, i, o) => { const on = !!P.reminders[i], hl = o.ft ? hlFor(i) : null, pct = o.ft ? 100 : Math.max(0, Math.min(100, (o.T || 0) / 90 * 100));
-    const mid = o.ft ? '<span class="lbl">Full time</span>' : o.started ? `<span class="lbl" style="color:#FF6B71"><span class="dot pulse" style="background:#E8363D;margin-right:6px"></span>Live · <span data-clock="${i}">${o.clock}</span></span>` : '<span class="lbl">Team sheets in</span>';
+  // live and full time: the scores either side of Live (with the clock and its bar) or Full time; the highlights after
+  const playHead = (m, r, i, o) => { const hl = o.ft ? hlFor(i) : null, pct = o.ft ? 100 : Math.max(0, Math.min(100, (o.T || 0) / 90 * 100));
+    const sc = o.started || o.ft ? String(r.sc).split(/[–-]/).map(x => x.trim()) : null;
+    const mid = o.ft ? '<span class="mc-pill">Full time</span>' : o.started ? `<span class="mc-pill live"><i class="dot pulse"></i>Live · <span data-clock="${i}">${o.clock}</span></span>` : '<span class="mc-pill">Team sheets in</span>';
+    const reds = o.L && o.L.fired ? o.L.fired.filter(e => e[3] === 'R').map(e => ({ team: e[4], name: gname(e), min: minLabel(e[1], e[2]) })) : [];
     const watch = hl ? `<button class="mh-tix" data-video="${hl.id}">Watch the highlights</button>` : `<a class="mh-tix" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="text-decoration:none;display:flex;align-items:center;justify-content:center">${o.ft ? 'Watch on meWATCH' : 'Watch live on meWATCH'}</a>`;
-    return `<div class="card mhead" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}"><span class="lbl" style="text-align:center">Matchweek ${m[0]} · ${E(r.venue)}</span>
-      <div class="mh-row"><button class="rowlink mh-club" data-club="${m[2]}">${crest(m[2], 66)}<span class="d">${r.hname}</span><span class="lbl">${posText(m[2])}</span></button>
-        <div class="mh-mid">${mid}<b class="d mono" style="font-size:${o.started || o.ft ? 56 : 40}px;line-height:1">${o.started || o.ft ? r.sc : 'VS'}</b></div>
-        <button class="rowlink mh-club" data-club="${m[3]}">${crest(m[3], 66)}<span class="d">${r.aname}</span><span class="lbl">${posText(m[3])}</span></button></div>
-      ${o.started || o.ft ? `<div class="mh-bar"><i data-bar="${o.ft ? '' : i}" style="width:${pct}%;background:${o.ft ? '#A9A6C9' : '#E8363D'}"></i><b></b></div>` : ''}
-      ${o.goals.length ? scorerGrid(m, o.goals) : ''}
-      <span class="lbl" style="text-align:center">${o.ft ? E(r.venue) + ' · meWATCH' : 'Live on meWATCH'}${crowdTag(i)}</span>
+    return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, sc, mid)}
+      ${o.started && !o.ft ? `<div class="mh-bar"><i data-bar="${i}" style="width:${pct}%;background:#E8363D"></i><b></b></div>` : ''}
+      ${mcEvents(m, o.goals.map(g => ogMark(m, g)), reds)}
+      ${crowdTag(i) ? `<span class="lbl" style="text-align:center">${crowdTag(i).replace(/^ · /, '')}</span>` : ''}${demoNote(i)}
       ${o.ft && o.L ? potmLine(i, o.L) : ''}
-      <div class="mh-act">${watch}<button class="mh-ic ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}"><span>${BELL}</span>${on ? 'On' : 'Alerts'}</button></div></div>`; };
+      <div class="mh-act">${watch}</div></div>`; };
+  // the game's stories in a row (report, preview, the matchweek's roundup and preview), newest first
+  const mcNews = i => { const m = SPL.matches[i], ns = NEWS_().filter(n => n.match === i || (n.match == null && /^(Roundup|Preview)$/.test(n.tag) && new RegExp(`Matchweek ${m[0]}\\b`).test(n.title)));
+    if (!ns.length) return '';
+    const pic = n => { const ps = SPLSTORE.picsOf(n).map(SPLSTORE.picUrl); return ps[0] || ''; };
+    return `<section style="display:flex;flex-direction:column;gap:12px"><span class="d" style="font-size:24px;line-height:1">News</span>
+      <div class="scroll" style="display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:0 20px">${ns.slice(0, 6).map(n => `<button class="rowlink mc-news" data-article="${E(n.id)}">${pic(n) ? `<span class="mc-nimg" style="background-image:url(${pic(n)})${SPLSTORE.posOf(n, 0) ? ';background-position:' + SPLSTORE.posOf(n, 0) : ''}"></span>` : ''}<span class="lbl">${E(n.tag === 'Report' ? 'Match report' : n.tag)}</span><b>${E(n.title)}</b></button>`).join('')}</div></section>`; };
   // attendance in the match centre (Hafiz, 9 Nov, option A): once the official publishes it, at the end of the info line
   const crowdTag = i => { const x = STORE.crowd && STORE.crowd[i]; return x && x.attendance !== null ? ` · <b style="color:var(--ink)">Crowd ${x.attendance.toLocaleString()}</b>` : ''; };
   // the newsroom's preview and report for a game, once FAS publishes them (Hafiz, 9 Nov)
@@ -579,9 +606,8 @@
   function liveMatch(m, r, L) {
     const vph = potmPhase(L), tabs = [['overview', 'Overview'], ['lineups', 'Line-ups'], ['form', 'Form']].concat(vph === 'open' ? [['potm', 'Vote <span class="dot pulse" style="background:#E8363D;margin-left:4px"></span>']] : vph === 'soon' ? [['potm', 'Vote']] : []);
     if (!tabs.some(t => t[0] === S.mtab)) S.mtab = 'overview';
-    const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + pmCard(S.match) + (L.ft ? hlCard(S.match) : '') + liveOverview(S.match, L);
-    return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      ${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L), L })}
+    const body = S.mtab === 'lineups' ? lineups(S.match, L) : S.mtab === 'form' ? formTab(m, r) : S.mtab === 'potm' ? potmTab(S.match, L) : potmCard(S.match, L) + (L.ft ? hlCard(S.match) : '') + mcNews(S.match) + liveOverview(S.match, L);
+    return `${playHead(m, r, S.match, { ft: L.ft, started: L.started, clock: L.clock, T: L.T, goals: simGoals(S.match, L), L })}
       <div class="tabs mtabs">${tabs.map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -601,12 +627,11 @@
     const events = (m[6] || []).map(g => { const h = g[2] === m[2]; return `<div style="display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)"><span style="font-size:13px;text-align:right;padding-right:8px;font-weight:${h ? 600 : 400}">${h ? g[0] : ''}</span><span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${g[1]}'</span><span style="font-size:13px;padding-left:8px;font-weight:${h ? 400 : 600}">${h ? '' : g[0]}</span></div>`; });
     const squad = k => SPL.squads[k].map(p => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:11px"><span class="mono" style="color:var(--muted);width:18px">${p[0]}</span><span style="flex:1">${p[1]}</span><span style="color:var(--muted)">${p[2]}</span></div>`).join('');
     let body = '';
-    if (S.mtab === 'overview') body = pmCard(S.match) + crowdCard(S.match) + (m[4] ? hlCard(S.match) : '') + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off ${kt(m)}. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
+    if (S.mtab === 'overview') body = (m[4] ? hlCard(S.match) : '') + crowdCard(S.match) + mcNews(S.match) + `<div class="card" style="padding:6px 16px">${events.length ? events.join('') : `<div style="padding:14px 0;font-size:13px;color:var(--muted)">${m[4] ? 'No goals.' : 'Kick-off ' + kt(m) + '. Live events appear here.'}</div>`}</div><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH · Highlights on club channels after full time</span></div>` + (m[4] ? '' : gettingThere(m[5]));
     else if (S.mtab === 'potm' && !m[4]) body = potmTab(S.match, null);
     else if (S.mtab === 'form') body = formTab(m, r);
     else body = `<div style="font-size:12px;color:var(--muted)">${m[4] ? 'Starting XIs from this match arrive with the match feed. Registered squads for now.' : 'Starting XIs load here when FAS posts the team sheets, about an hour before kick-off. Registered squads for now.'}</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px"><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.hname}</span>${squad(m[2])}</div><div class="card" style="padding:12px"><span class="d" style="font-size:14px">${r.aname}</span>${squad(m[3])}</div></div>`;
-    return `<div style="display:flex;align-items:center;justify-content:space-between"><button class="back" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span class="d" style="font-size:16px">Match centre</span><span style="width:34px"></span></div>
-      ${m[4] ? playHead(m, r, S.match, { ft: true, goals: realGoals(m) }) : preHead(m, r, S.match)}
+    return `${m[4] ? playHead(m, r, S.match, { ft: true, goals: realGoals(m) }) : preHead(m, r, S.match)}
       <div class="tabs mtabs">${[['overview', 'Overview'], ['form', 'Form &amp; H2H'], ['squads', 'Squads']].concat(m[4] ? [] : [['potm', 'Vote']]).map(([k, l]) => `<button class="stab ${S.mtab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>${body}`;
   }
 
@@ -1240,12 +1265,18 @@
   app.addEventListener('input', e => { if (e.target.id === 'crG') S.crIn = Object.assign(S.crIn || {}, { g: e.target.value }); });
   app.addEventListener('change', e => { if (e.target.id === 'crShow') S.crIn = Object.assign(S.crIn || {}, { show: e.target.checked }); });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-remindtest],[data-shopk],[data-shopf],[data-shopp],[data-shopx],[data-ftab],[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
+    const t = e.target.closest('[data-share],[data-remindtest],[data-shopk],[data-shopf],[data-shopp],[data-shopx],[data-ftab],[data-vsim],[data-pvote],[data-short],[data-shclose],[data-shnav],[data-tv],[data-bell],[data-trip],[data-go],[data-match],[data-club],[data-player],[data-mw],[data-htab],[data-mtab],[data-ttab],[data-ctab],[data-follow],[data-gclip],[data-crguess],[data-ob],[data-pick],[data-sq],[data-toggle],[data-lang],[data-signout],[data-vote],[data-remind],[data-cal],[data-sim],[data-toast],[data-potm],[data-tickets],[data-qty],[data-tkstep],[data-tkpay],[data-tkback],[data-wallet],[data-mytk],[data-more],[data-story],[data-snav],[data-sclose],[data-video],[data-pnav],[data-colours],[data-article],[data-auth],[data-appearance]'); if (!t) return;
     if (t === app || e.target.closest('input,label,select,textarea')) return; // #app carries data-club (the theme): never a link
     const d = t.dataset;
     if (!EMBED) { const k = Object.keys(d)[0]; SPLSTORE.track('tap', k + (d[k] && d[k].length < 24 ? ':' + d[k] : '')); }
     if (d.sim) { if (d.sim === 'start') { simStart(); S.view = 'home'; S.htab = 'tonight'; } else if (d.sim === 'pause') S.sim.run = false; else if (d.sim === 'play') S.sim.run = true; else if (d.sim === 'rate') S.sim.rate = { 1: 4, 4: 10, 10: 1 }[S.sim.rate]; else if (d.sim === 'ht') { S.sim.T = 48; S.sim.run = false; } else if (d.sim === 'ft') { const end = Math.max(...LIVE_IDS.map(ftT)); fire(S.sim.T, end, true); S.sim.T = end; S.sim.run = false; } else if (d.sim === 'stop') { S.sim = null; S.toast = null; } reschedule(); S.keepScroll = true; render(); return; }
     if (d.toast) { const k = S.toast && S.toast.k, i = LIVE_IDS.find(id => SPL.matches[id][2] === k || SPL.matches[id][3] === k); S.toast = null; if (i !== undefined) { S.from = S.view === 'match' ? S.from : S.view; S.view = 'match'; S.match = i; S.mtab = 'overview'; } render(); return; }
+    // share a game (11 Nov): the phone's share sheet, else the link is copied
+    if (d.share !== undefined) { const i = +d.share, m = SPL.matches[i], r = mrow(m, i), url = 'https://www.stackformstudios.com/spl/?match=' + i;
+      const text = r.sc !== 'VS' ? `${short(m[2])} ${r.sc} ${short(m[3])} · ${r.status}` : `${short(m[2])} v ${short(m[3])} · ${fmtDate(m[1])}, ${kt(m)}`;
+      if (navigator.share) navigator.share({ title: 'Singapore Premier League', text, url }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(text + ' ' + url).then(() => { t.innerHTML = '✓'; setTimeout(() => { t.innerHTML = SHARE; }, 1500); }, () => {});
+      return; }
     if (d.potm) { const [i, j] = d.potm.split(':').map(Number); P.potm[i] = j; save(); S.keepScroll = true; render(); return; }
     if (d.tickets !== undefined) { e.stopPropagation(); S.tkFrom = S.view; S.tk = { match: +d.tickets, step: 0, q: {}, pay: 'paynow' }; S.wallet = false; S.view = 'tickets'; render(); return; }
     if (d.qty) { const [k, v] = d.qty.split(':'); const n = Object.values(S.tk.q).reduce((a, b) => a + b, 0); const next = Math.max(0, (S.tk.q[k] || 0) + +v); if (+v > 0 && n >= 10) return; S.tk.q[k] = next; S.keepScroll = true; render(); return; }
