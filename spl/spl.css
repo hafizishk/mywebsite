@@ -554,3 +554,4 @@ button:disabled{cursor:default}
 .mc-news{flex:none;width:250px;display:flex!important;flex-direction:column;gap:7px;text-align:left;color:var(--ink)}
 .mc-nimg{display:block;height:140px;border-radius:18px;background:center/cover no-repeat rgba(255,255,255,.06)}.mc-news b{font:700 15px/1.25 'Inter',sans-serif}
 #app[data-look=light] .mc-pill{background:rgba(21,20,42,.07)}
+.mc-club{gap:5px!important}.mc-pos{font:600 10.5px 'Inter',sans-serif;color:var(--muted);white-space:nowrap;letter-spacing:.01em}

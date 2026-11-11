@@ -276,7 +276,7 @@
     return `<div class="mc-top"><button class="mc-ib" data-go="${S.from || 'matches'}" aria-label="Back">${ICON.back}</button><span style="flex:1"></span><button class="mc-ib" data-share="${i}" aria-label="Share">${SHARE}</button><button class="mc-ib ${on ? 'on' : ''}" data-remind="${i}" aria-pressed="${on}" aria-label="${on ? 'Alerts on' : 'Alerts'}">${BELL}</button></div>
       <div class="mc-meta"><b>2026/27 Singapore Premier League</b><b>${E(longDate(m[1]))}</b><span>Matchweek ${m[0]}</span></div>`; };
   // the score row: a crest and code each side, the scores (or nothing before kick-off) and the middle
-  const mcRow = (m, sc, mid) => { const side = k => `<button class="rowlink mc-club" data-club="${k}">${crest(k, 52)}<b>${k}</b></button>`, n = x => `<b class="mc-sc">${x}</b>`;
+  const mcRow = (m, sc, mid) => { const side = k => `<button class="rowlink mc-club" data-club="${k}">${crest(k, 52)}<b>${k}</b><span class="mc-pos">${posText(k)}</span></button>`, n = x => `<b class="mc-sc">${x}</b>`;
     return `<div class="mc-row">${side(m[2])}${sc ? n(sc[0]) : '<span></span>'}<div class="mc-mid">${mid}<span class="mc-ven">${PIN}${E(String(m[5] || '').replace(/ Stadium$/, ''))}</span></div>${sc ? n(sc[1]) : '<span></span>'}${side(m[3])}</div>`; };
   // goals and red cards, each side's in its column, the ball or the card between
   const mcEvents = (m, goals, reds) => { const rows = goals.map(g => [g.team, g.name, g.min, BALLW]).concat((reds || []).map(x => [x.team, x.name, x.min, REDW]));
@@ -287,7 +287,7 @@
     pair(BALLW); pair(REDW);
     const cell = (x, right) => x ? `<button class="rowlink mc-ev${right ? ' r' : ''}" data-player="${E(x[1].replace(/ \((og|pen)\)/, ''))}">${E(backName(x[1].replace(/ \((og|pen)\)/, '')))}${/\(og\)/.test(x[1]) ? ' (og)' : /\(pen\)/.test(x[1]) ? ' (pen)' : ''} <span>${E(x[2])}</span></button>` : '<span></span>';
     return `<div class="mc-evs">${out.map(([h, ic, a]) => `${cell(h, true)}<span class="mc-ic">${ic}</span>${cell(a)}`).join('')}</div>`; };
-  const BALLW = '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7l3.8 2.8-1.5 4.4H9.7L8.2 9.8z" fill="#0B0F2E"/></svg>';
+  const BALLW = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><defs><clipPath id="sball"><circle cx="12" cy="12" r="10"/></clipPath></defs><circle cx="12" cy="12" r="10" fill="#fff"/><g clip-path="url(#sball)" fill="#15142A"><path d="M12.00 8.00 L15.80 10.76 L14.35 15.24 L9.65 15.24 L8.20 10.76Z"/><path d="M16.70 5.53 L15.39 1.50 L18.82 -0.98 L22.24 1.50 L20.93 5.53ZM19.61 14.47 L23.03 11.98 L26.46 14.47 L25.15 18.50 L20.92 18.50ZM12.00 20.00 L15.42 22.49 L14.12 26.51 L9.88 26.51 L8.58 22.49ZM4.39 14.47 L3.08 18.50 L-1.15 18.50 L-2.46 14.47 L0.97 11.98ZM7.30 5.53 L3.07 5.53 L1.76 1.50 L5.18 -0.98 L8.61 1.50Z"/><path d="M12.00 8.00L12.00 2.00M15.80 10.76L21.51 8.91M14.35 15.24L17.88 20.09M9.65 15.24L6.12 20.09M8.20 10.76L2.49 8.91" fill="none" stroke="#15142A" stroke-width="1"/></g><circle cx="12" cy="12" r="10.6" fill="none" stroke="#fff" stroke-width="1.3"/></svg>';
   const REDW = '<span aria-hidden="true" style="display:inline-block;width:10px;height:14px;border-radius:2px;background:#E8363D"></span>';
   // a goal scored for a side by the other side's player is an own goal
   const ogMark = (m, g) => { const inSq = (k, n) => (SPL.squads[k] || []).some(p => p[1] === n); const other = g.team === m[2] ? m[3] : m[2];
