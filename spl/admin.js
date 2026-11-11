@@ -38,7 +38,7 @@
   const hm = ts => new Date(ts).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const ICON = {
-    overview: 'M3 12l9-8 9 8M5 10v10h14V10', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
+    overview: 'M3 12l9-8 9 8M5 10v10h14V10', fixtures: 'M3 5h18v16H3zM3 10h18M8 3v4M16 3v4', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
     push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
     shop: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2', activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', back: 'M15 5l-7 7 7 7', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
   };
@@ -480,6 +480,30 @@
         ${row('stats', true, 'Analytics recorded in this browser', 'Screens and taps logged while testing.')}</div>
       <button class="btn red" data-cleartest="1">Clear what's ticked</button></div>`;
   }
+  // Fixtures (Hafiz, 11 Nov, option B): the whole season by matchweek, results and what's to come. Four rounds at a time
+  // around the round in play (Earlier / This round / Later); a filter or a club shows the whole season.
+  function fixtures() {
+    const R = SPLNEWS.results(D), now = SPLSTORE.roundOf(TODAY), maxMw = Math.max(...SPL.matches.map(m => m[0]));
+    const f = A.fxF || 'all', club = A.fxClub || '', from = A.fxFrom || Math.max(1, now - 2), whole = f !== 'all' || club;
+    const fmtD = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    const state = (m, i) => { const r = R.find(x => x.i === i), L = D.live[i], post = /^Postponed/.test(m[7] || '');
+      if (L && ['1H', 'HT', '2H'].includes(L.phase) && !stale(i)) return ['live', r]; if (r) return [r.console ? 'console' : 'played', r]; return [post ? 'post' : 'up', null]; };
+    const keep = (m, i) => { const [st] = state(m, i); if (club && m[2] !== club && m[3] !== club) return false;
+      return f === 'all' || (f === 'res' && (st === 'played' || st === 'console')) || (f === 'up' && (st === 'up' || st === 'live')) || (f === 'post' && st === 'post'); };
+    const row = (m, i) => { const [st, r] = state(m, i), chip = { played: '<span class="chip">Played</span>', console: '<span class="chip gr">In the console</span>', live: '<span class="chip r">● Live</span>', up: '<span class="chip">Upcoming</span>', post: `<span class="chip y">${E(m[7])}</span>` }[st];
+      const mid = r ? `<b class="fx-sc">${r.s[0]}–${r.s[1]}</b>` : `<span class="fx-ko">${E(String(m[7] || '').replace(/^Postponed.*$/, 'TBC').replace(/^\w+ /, ''))}</span>`;
+      const go = st === 'played' ? `<a class="lnk" href="index.html?embed&match=${i}" target="_blank" rel="noopener">In the app ↗</a>` : `<button class="lnk" data-console="${i}">Console</button>`;
+      return `<div class="fx-row"><span class="note">${E(fmtD(m[1]))}</span><span class="fx-t r">${E(short(m[2]))}${crest(m[2], 22)}</span>${mid}<span class="fx-t">${crest(m[3], 22)}${E(short(m[3]))}</span><span class="note fx-v">${E(m[5])}</span><span class="fx-a">${chip}${go}</span></div>`; };
+    const mws = [...new Set(SPL.matches.map(m => m[0]))].sort((a, b) => a - b).filter(w => whole || (w >= from && w < from + 4));
+    const blocks = mws.map(w => { const ms = SPL.matches.map((m, i) => [m, i]).filter(([m, i]) => m[0] === w && keep(m, i)).sort((a, b) => a[0][1].localeCompare(b[0][1]) || a[1] - b[1]); if (!ms.length) return '';
+      const ds = ms.map(([m]) => m[1]).sort(), d0 = new Date(ds[0] + 'T12:00:00'), d1 = new Date(ds[ds.length - 1] + 'T12:00:00'), dm = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      return `<div class="panel fx-mw ${w === now ? 'now' : ''}"><h2>Matchweek ${w}<span class="lbl">${dm(d0)}${ds[0] !== ds[ds.length - 1] ? ' – ' + dm(d1) : ''}${w === now ? ' · this round' : ''}</span></h2>${ms.map(([m, i]) => row(m, i)).join('')}</div>`; }).join('');
+    return head('Fixtures', `The whole 2026/27 season: ${SPL.matches.length} games, ${R.length} played.`) + `
+      <div class="fx-bar"><div class="tabs">${[['all', 'All'], ['res', 'Results'], ['up', 'Upcoming'], ['post', 'Postponed']].map(([k, l]) => `<button class="stab ${f === k ? 'on' : ''}" data-fxf="${k}">${l}</button>`).join('')}</div>
+        <select class="in" id="fxClub" style="width:auto;height:36px"><option value="">Every club</option>${Object.keys(C).map(k => `<option value="${k}" ${club === k ? 'selected' : ''}>${E(C[k].name)}</option>`).join('')}</select>
+        <span style="flex:1"></span>${whole ? '<span class="note">The whole season</span>' : `<button class="btn2 sm" data-fxmw="-4" ${from <= 1 ? 'disabled' : ''}>‹ Earlier</button><button class="btn2 sm" data-fxmw="0">This round</button><button class="btn2 sm" data-fxmw="4" ${from + 4 > maxMw ? 'disabled' : ''}>Later ›</button>`}</div>
+      <div class="fx-list">${blocks || '<div class="panel"><p class="note">No games match.</p></div>'}</div>`;
+  }
   function matchday() {
     if (A.multi && A.multi.length > 1) return multiday();
     const i = A.live, m = SPL.matches[i], L = D.live[i] || { phase: 'pre', ev: [] }, c = clockOf(i), s = scoreOf(i);
@@ -810,7 +834,7 @@
   }
 
   // ---------- shell ----------
-  const PAGES = { overview: ['Overview', overview], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], shop: ['Shop', shop], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
+  const PAGES = { overview: ['Overview', overview], fixtures: ['Fixtures', fixtures], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], shop: ['Shop', shop], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
   // ---------- staff sign-in (backend.js set): only logins on the FAS staff list get past this ----------
   const CL = window.SPLCLOUD || { on: false, state: { status: 'demo' } };
   A.authed = !CL.on; A.checking = CL.on;
@@ -827,7 +851,7 @@
   const statusLine = () => { const st = CL.state; if (!CL.on) return '<span class="cs demo">Demo · this browser only</span>';
     if (st.status === 'live') return `<span class="cs live">Live · saved${st.updatedAt ? ' ' + new Date(st.updatedAt).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) : ''}</span>`;
     return `<span class="cs off" title="${E(st.error || '')}">${st.status === 'connecting' ? 'Connecting…' : 'Offline · changes wait'}</span>`; };
-  const GROUPS = [['League', ['overview', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'shop', 'analytics']], ['FAS', ['activity', 'settings']]];
+  const GROUPS = [['League', ['overview', 'fixtures', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'shop', 'analytics']], ['FAS', ['activity', 'settings']]];
   try { A.look = localStorage.getItem('spl-admin-look') === 'light' ? 'light' : 'dark'; } catch (e) { A.look = 'dark'; }
   const myName = () => CL.on ? (CL.state.name || (CL.state.email || '').replace(/@.*/, '')) : '[STAFF NAME]';
   function searchHits(q) {
@@ -903,7 +927,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -980,6 +1004,8 @@
         if (ph === '2H') { L.phase = '2H'; L.t0 = Date.now(); L.base = 45; }
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
+    if (d.fxf) { A.fxF = d.fxf; render(); return; }
+    if (d.fxmw !== undefined) { const now = SPLSTORE.roundOf(TODAY), mx = Math.max(...SPL.matches.map(m => m[0])); A.fxFrom = +d.fxmw === 0 ? Math.max(1, now - 2) : Math.min(Math.max(1, (A.fxFrom || Math.max(1, now - 2)) + +d.fxmw), mx); render(); return; }
     if (d.realload) { const i = +val('realI'), F = SPL.feeds && SPL.feeds[i]; if (!F) return;
       if (D.live[i] && D.live[i].phase !== 'pre' && !confirm('This game already has console events. Replace them with the real ones?')) return;
       save(d2 => { const ev = F.map(e => e.slice()); d2.live[i] = { phase: 'FT', t0: Date.now() - 110 * 60000, base: 46, sheet: true, ev, notes: (REALNOTES[i] || []).map(n => [n[0], n[1], n[2].slice()]), potm: SPLSTORE.potmSuggest(i, ev, POTM_FROM), potmOpen: false }; },
@@ -1170,6 +1196,7 @@
   root.addEventListener('change', e => { const pp = e.target.dataset && e.target.dataset.pphoto; if (!pp || !e.target.files[0]) return;
     const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
     r.readAsDataURL(e.target.files[0]); e.target.value = ''; });
+  root.addEventListener('change', e => { if (e.target.id === 'fxClub') { A.fxClub = e.target.value; render(); } });
   root.addEventListener('change', e => { const ns = e.target.dataset && e.target.dataset.ntsel; if (!ns || !e.target.value) return; const [i, j, x] = ns.split(':').map(Number), v = e.target.value; A.ntag = null;
     save(d2 => { const tg = ntOf(d2, i, j); if (v === '-') tg.splice(x, 1); else if (x < 0) { if (!tg.includes(v)) tg.push(v); } else tg[x] = v; d2.live[i].notes[j][2] = tg.filter((t, y) => tg.indexOf(t) === y).slice(0, 8); }, v === '-' ? 'Tag dropped.' : 'Tagged.'); });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;
