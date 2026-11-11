@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#0B0F2E">
 <title>SPL — Singapore Premier League</title>
 <link rel="icon" href="assets/league/spl-lion.png">
-<link rel="stylesheet" href="spl.css?v=472ce87">
+<link rel="stylesheet" href="spl.css?v=defae78">
 <style>
 /* launch: the roar splash, played once on open, then lifted away into the app */
 #launch{position:fixed;inset:0;z-index:50;background:#fff;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;transition:opacity .45s ease,transform .45s ease}
@@ -147,12 +147,12 @@ html,body{background:#fff}
 
 <div id="app"></div>
 <div class="mockbar"></div>
-<script src="data.js?v=472ce87"></script>
-<script src="store.js?v=472ce87"></script>
-<script src="vendor/supabase.js?v=472ce87"></script>
-<script src="backend.js?v=472ce87"></script>
-<script src="cloud.js?v=472ce87"></script>
-<script src="app.js?v=472ce87"></script>
+<script src="data.js?v=defae78"></script>
+<script src="store.js?v=defae78"></script>
+<script src="vendor/supabase.js?v=defae78"></script>
+<script src="backend.js?v=defae78"></script>
+<script src="cloud.js?v=defae78"></script>
+<script src="app.js?v=defae78"></script>
 <script>
 /* Live updates (Hafiz, 9 Nov): the installed app opens this page from the website, so every change reaches phones
    without a new APK. Inside the app (Capacitor's bridge present) it loads the native helpers the site hosts in native/:
@@ -172,7 +172,9 @@ setTimeout(out,4300);el.addEventListener('click',out);})();
 // The roar (Hafiz, 9 Nov, option C): on the first open of the day, as the jaw opens; off in Settings > Splash sound.
 // Not in the admin's phone preview. A browser that blocks sound before a tap simply stays quiet.
 (function(){if(!document.getElementById('launch')||/[?&]embed\b/.test(location.search))return;var P={};try{P=JSON.parse(localStorage.getItem('spl-mock')||'{}');}catch(e){}
-if(P.settings&&P.settings.roar===false)return;var day=new Date().toDateString();try{if(localStorage.getItem('spl-roar-day')===day)return;}catch(e){}
+// the laptop showcase (desktop.html, ?inframe) roars on every tap to open; phones keep once a day
+var show=/[?&]inframe\b/.test(location.search);
+if(P.settings&&P.settings.roar===false&&!show)return;var day=new Date().toDateString();try{if(!show&&localStorage.getItem('spl-roar-day')===day)return;}catch(e){}
 var a=new Audio('assets/audio/roar.mp3');a.volume=0.7;a.preload='auto';setTimeout(function(){var r=a.play();if(r&&r.then)r.then(function(){try{localStorage.setItem('spl-roar-day',day);}catch(e){}}).catch(function(){});},350);})();
 </script>
 </body>
