@@ -255,6 +255,10 @@
   const kickAt = m => { const t = String(m[7] || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); if (!t) return null; const h = +t[1] % 12 + (/PM/i.test(t[3]) ? 12 : 0); return new Date(`${m[1]}T${String(h).padStart(2, '0')}:${t[2]}:00`); };
   const nowDemo = () => new Date();
   const kt = m => String((m && m[7]) || '7.30PM').replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Tonight) /, '');
+  // a game the office moved or postponed (11 Nov): what changed and why, under the header's line
+  const moveNote = i => { const o = SPLSTORE.moveOf(i); if (!o) return '';
+    const r = o.reason ? ' ' + E(o.reason.replace(/\.$/, '')) + '.' : '';
+    return `<span class="lbl" style="text-align:center;color:#F5D76A;text-transform:none;letter-spacing:0">${o.status === 'post' ? 'Postponed · new date to follow.' : `Moved from ${E(fmtDate(o.was))}, ${E(String(o.wasStatus).replace(/^\w+ /, ''))}.`}${r}</span>`; };
   // a demo game says so, with the real fixture
   const demoNote = i => { const o = SPLSTORE.demoOf(i); return o ? `<span class="lbl" style="text-align:center;color:#F5D76A;text-transform:none;letter-spacing:0">Demo game · the real fixture is ${E(fmtDate(o.date))}, ${E(String(o.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, ''))}</span>` : ''; };
   const countdown = m => { const k = kickAt(m); if (!k) return null; const ms = k - nowDemo(); if (ms <= 0) return { big: 'Soon', unit: 'kick-off' };
@@ -289,10 +293,12 @@
   const ogMark = (m, g) => { const inSq = (k, n) => (SPL.squads[k] || []).some(p => p[1] === n); const other = g.team === m[2] ? m[3] : m[2];
     return !/\((og|pen)\)/.test(g.name) && !inSq(g.team, g.name) && inSq(other, g.name) ? Object.assign({}, g, { name: g.name + ' (og)' }) : g; };
   // before kick-off: the countdown in the middle, then tickets and the calendar
-  const preHead = (m, r, i) => { const c = countdown(m), today = m[1] === TODAY;
-    const mid = c ? `<span class="mc-pill"><small>Kick-off in</small><b data-count="${i}">${c.big}</b><small data-countu="${i}">${c.unit}</small></span>` : '<span class="mc-pill">VS</span>';
+  const preHead = (m, r, i) => { const c = countdown(m), today = m[1] === TODAY, mv = SPLSTORE.moveOf(i), post = /^Postponed/.test(m[7] || ''), on = !!P.reminders[i];
+    const mid = post ? '<span class="mc-pill" style="color:#F5D76A">Postponed</span>' : c ? `<span class="mc-pill"><small>Kick-off in</small><b data-count="${i}">${c.big}</b><small data-countu="${i}">${c.unit}</small></span>` : '<span class="mc-pill">VS</span>';
+    if (post) return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, null, mid)}${mv ? moveNote(i) : `<span class="lbl" style="text-align:center;color:#F5D76A">${E(m[7])}</span>`}
+      <div class="mh-act"><button class="mh-tix" data-remind="${i}" style="background:${on ? '#E8363D' : 'rgba(255,255,255,.12)'};color:#fff">${on ? 'Alerts on for the new date' : 'Tell me the new date'}</button></div></div>`;
     return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, null, mid)}
-      <span class="lbl" style="text-align:center">${today ? 'Today' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>${demoNote(i)}
+      <span class="lbl" style="text-align:center">${today ? 'Today' : E(r.when)} · ${String(r.status).replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) /, '')} · Live on meWATCH</span>${moveNote(i)}${demoNote(i)}
       <div class="mh-act"><button class="mh-tix" data-tickets="${i}">Get tickets${tixFrom(m[2]) ? `<small> from S$${tixFrom(m[2])}</small>` : ''}</button>
         <a class="mh-ic ${P.cal[i] ? 'on' : ''}" href="${ics(m)}" download="spl-mw${m[0]}-${m[2]}-${m[3]}.ics" data-cal="${i}"><span>${CALI}</span>${P.cal[i] ? 'Added' : 'Calendar'}</a></div></div>`; };
   // live and full time: the scores either side of Live (with the clock and its bar) or Full time; the highlights after

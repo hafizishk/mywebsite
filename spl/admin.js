@@ -492,8 +492,8 @@
       return f === 'all' || (f === 'res' && (st === 'played' || st === 'console')) || (f === 'up' && (st === 'up' || st === 'live')) || (f === 'post' && st === 'post'); };
     const row = (m, i) => { const [st, r] = state(m, i), chip = { played: '<span class="chip">Played</span>', console: '<span class="chip gr">In the console</span>', live: '<span class="chip r">● Live</span>', up: '<span class="chip">Upcoming</span>', post: `<span class="chip y">${E(m[7])}</span>` }[st];
       const mid = r ? `<b class="fx-sc">${r.s[0]}–${r.s[1]}</b>` : `<span class="fx-ko">${E(String(m[7] || '').replace(/^Postponed.*$/, 'TBC').replace(/^\w+ /, ''))}</span>`;
-      const go = st === 'played' ? `<a class="lnk" href="index.html?embed&match=${i}" target="_blank" rel="noopener">In the app ↗</a>` : `<button class="lnk" data-console="${i}">Console</button>`;
-      return `<div class="fx-row"><span class="note">${E(fmtD(m[1]))}</span><span class="fx-t r">${E(short(m[2]))}${crest(m[2], 22)}</span>${mid}<span class="fx-t">${crest(m[3], 22)}${E(short(m[3]))}</span><span class="note fx-v">${E(m[5])}</span><span class="fx-a">${chip}${go}</span></div>`; };
+      const mv = SPLSTORE.moveOf(i), go = st === 'played' ? `<a class="lnk" href="index.html?embed&match=${i}" target="_blank" rel="noopener">In the app ↗</a>` : `<button class="lnk" data-console="${i}">Console</button>${st === 'console' || st === 'live' ? '' : `<button class="btn2 sm" data-mvopen="${i}">Move</button>`}`;
+      return `<div class="fx-row"><span class="note">${E(fmtD(m[1]))}${mv && mv.status === 'moved' ? `<br><s style="opacity:.7">${E(fmtD(mv.was))}</s>` : ''}</span><span class="fx-t r">${E(short(m[2]))}${crest(m[2], 22)}</span>${mid}<span class="fx-t">${crest(m[3], 22)}${E(short(m[3]))}</span><span class="note fx-v">${E(m[5])}</span><span class="fx-a">${chip}${go}</span></div>`; };
     const mws = [...new Set(SPL.matches.map(m => m[0]))].sort((a, b) => a - b).filter(w => whole || (w >= from && w < from + 4));
     const blocks = mws.map(w => { const ms = SPL.matches.map((m, i) => [m, i]).filter(([m, i]) => m[0] === w && keep(m, i)).sort((a, b) => a[0][1].localeCompare(b[0][1]) || a[1] - b[1]); if (!ms.length) return '';
       const ds = ms.map(([m]) => m[1]).sort(), d0 = new Date(ds[0] + 'T12:00:00'), d1 = new Date(ds[ds.length - 1] + 'T12:00:00'), dm = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -502,7 +502,30 @@
       <div class="fx-bar"><div class="tabs">${[['all', 'All'], ['res', 'Results'], ['up', 'Upcoming'], ['post', 'Postponed']].map(([k, l]) => `<button class="stab ${f === k ? 'on' : ''}" data-fxf="${k}">${l}</button>`).join('')}</div>
         <select class="in" id="fxClub" style="width:auto;height:36px"><option value="">Every club</option>${Object.keys(C).map(k => `<option value="${k}" ${club === k ? 'selected' : ''}>${E(C[k].name)}</option>`).join('')}</select>
         <span style="flex:1"></span>${whole ? '<span class="note">The whole season</span>' : `<button class="btn2 sm" data-fxmw="-4" ${from <= 1 ? 'disabled' : ''}>‹ Earlier</button><button class="btn2 sm" data-fxmw="0">This round</button><button class="btn2 sm" data-fxmw="4" ${from + 4 > maxMw ? 'disabled' : ''}>Later ›</button>`}</div>
-      <div class="fx-list">${blocks || '<div class="panel"><p class="note">No games match.</p></div>'}</div>`;
+      <div class="fx-list">${blocks || '<div class="panel"><p class="note">No games match.</p></div>'}</div>${mvPanel()}`;
+  }
+  // moving a game (Hafiz, 11 Nov, option B): a side panel; postponed (date to follow), moved, or back on as scheduled
+  const time24 = t => { const x = String(t || '').match(/(\d+)\.(\d+)\s*(AM|PM)/i); if (!x) return '19:30'; const h = +x[1] % 12 + (/PM/i.test(x[3]) ? 12 : 0); return `${String(h).padStart(2, '0')}:${x[2]}`; };
+  const time12 = v => { const [h, mi] = String(v || '19:30').split(':').map(Number); return `${h % 12 || 12}.${String(mi || 0).padStart(2, '0')}${h < 12 ? 'AM' : 'PM'}`; };
+  const dLong = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  function mvText(i, x) { const m = SPL.matches[i], o = SPLSTORE.moveOf(i), was = o ? o.was : m[1], wasT = String((o ? o.wasStatus : m[7]) || '').replace(/^\w+ /, ''), g = `${short(m[2])} v ${short(m[3])}`, r = x.reason.trim().replace(/\.$/, '');
+    if (x.status === 'post') return { title: `${g} is postponed ⏸️`, body: `${r ? r + '. ' : ''}New date to follow.` };
+    if (x.status === 'moved') return { title: `${g} moves to ${dLong(x.date)} 📅`, body: `Kick-off ${time12(x.time)} at ${x.venue}.${r ? ' ' + r + '.' : ''}` };
+    return { title: `${g} is back on ✅`, body: `As scheduled: ${dLong(was)}, ${wasT}.` }; }
+  function mvPanel() {
+    const x = A.mv; if (!x || !SPL.matches[x.i]) return ''; const m = SPL.matches[x.i], o = SPLSTORE.moveOf(x.i), t = mvText(x.i, x), venues = [...new Set(SPL.matches.map(y => y[5]).filter(Boolean))].sort();
+    return `<div class="mv-dim" data-mvclose="1"></div><div class="g mv-panel"><div style="display:flex;align-items:center"><b style="font-size:18px">Move a game</b><span style="flex:1"></span><button class="lnk" data-mvclose="1">Close</button></div>
+      <div class="mv-game">${crest(m[2], 28)}<b>${E(short(m[2]))} v ${E(short(m[3]))}</b>${crest(m[3], 28)}<span style="flex:1"></span><span class="note" style="margin:0;text-align:right">${o ? `Scheduled ${E(dLong(o.was))}, ${E(String(o.wasStatus).replace(/^\w+ /, ''))}` : `${E(dLong(m[1]))} · ${E(String(m[7] || '').replace(/^\w+ /, ''))}`}</span></div>
+      <label class="fld"><span>Status</span><select class="in" id="mvS"><option value="post" ${x.status === 'post' ? 'selected' : ''}>Postponed, new date to follow</option><option value="moved" ${x.status === 'moved' ? 'selected' : ''}>Moved to a new date</option>${o ? `<option value="none" ${x.status === 'none' ? 'selected' : ''}>Back on as scheduled</option>` : ''}</select></label>
+      <label class="fld"><span>New date</span><input class="in" type="date" id="mvD" value="${E(x.date)}" ${x.status === 'moved' ? '' : 'disabled'}></label>
+      <label class="fld"><span>Kick-off</span><input class="in" type="time" id="mvT" value="${E(x.time)}" ${x.status === 'moved' ? '' : 'disabled'}></label>
+      <label class="fld"><span>Ground</span><select class="in" id="mvV" ${x.status === 'none' ? 'disabled' : ''}>${venues.map(v => `<option ${v === x.venue ? 'selected' : ''}>${E(v)}</option>`).join('')}</select></label>
+      <label class="fld"><span>Reason fans read · optional</span><input class="in" id="mvR" maxlength="140" value="${E(x.reason)}" placeholder="e.g. what FAS has announced" ${x.status === 'none' ? 'disabled' : ''}></label>
+      <label class="chk"><input type="checkbox" id="mvA" ${x.alert ? 'checked' : ''}> Alert both clubs' followers</label>
+      <label class="chk"><input type="checkbox" id="mvN" ${x.story ? 'checked' : ''}> Draft a Fixture update story in News</label>
+      <div class="mv-see"><span class="lbl">What fans see</span><span>${x.alert ? `<b>Alert:</b> ${E(t.title)} ${E(t.body)}` : '<b>No alert.</b>'}</span>
+        <span><b>In the app:</b> ${x.status === 'post' ? 'the game shows Postponed, with the reason, in Season, the club pages and the match centre.' : x.status === 'moved' ? `the game moves to ${E(x.date ? dLong(x.date) : '[DATE]')} everywhere, with "was ${E(dLong(o ? o.was : m[1]))}" beside it; the countdown and kick-off reminders follow.` : 'the game goes back to its scheduled date and kick-off.'}</span></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:auto"><button class="btn2" data-mvclose="1">Cancel</button><button class="btn red" data-mvsave="1">${x.alert ? 'Save and tell fans' : 'Save'}</button></div></div>`;
   }
   function matchday() {
     if (A.multi && A.multi.length > 1) return multiday();
@@ -927,7 +950,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mvopen],[data-mvclose],[data-mvsave],[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -1004,6 +1027,22 @@
         if (ph === '2H') { L.phase = '2H'; L.t0 = Date.now(); L.base = 45; }
         if (ph === 'FT') { L.phase = 'FT'; L.ev.push([2, 90, Math.max(0, c.n - 90), 'FT']); livePush(D2, i, `Full time 🏁 ${short(m[2])} ${s[0]}–${s[1]} ${short(m[3])}`, 'Who was your Player of the Match? Vote now.'); } });
       flash({ '1H': 'Kicked off. The app is live.', HT: 'Half time sent.', '2H': 'Second half under way.', FT: 'Full time. The vote opens in the app.' }[ph]); render(); return; }
+    if (d.mvopen !== undefined) { const i = +d.mvopen, m = SPL.matches[i], o = SPLSTORE.moveOf(i);
+      A.mv = { i, status: o ? o.status : 'post', date: o && o.date ? o.date : '', time: o && o.time ? time24(o.time) : time24(o ? o.wasStatus : m[7]), venue: m[5], reason: o ? o.reason : '', alert: true, story: !o }; render(); return; }
+    if (d.mvclose) { A.mv = null; render(); return; }
+    if (d.mvsave) { const x = A.mv, i = x.i, m = SPL.matches[i];
+      if (x.status === 'moved' && (!x.date || !x.time)) { flash('Pick the new date and kick-off.'); render(); return; }
+      const t2 = mvText(i, x), o = SPLSTORE.moveOf(i), was = o ? o.was : m[1], wasVenue = o ? o.wasVenue : m[5];
+      save(d2 => { d2.moves = d2.moves || {};
+        if (x.status === 'none') delete d2.moves[i]; else d2.moves[i] = { status: x.status, date: x.status === 'moved' ? x.date : '', time: x.status === 'moved' ? time12(x.time) : '', venue: x.venue !== wasVenue ? x.venue : '', reason: x.reason.trim(), at: Date.now() };
+        if (x.alert) d2.pushes.push({ id: uid('p'), at: Date.now(), title: t2.title, body: t2.body, aud: 'all', kind: 'live', match: i });
+        if (x.story) { const H = C[m[2]].name, Aw = C[m[3]].name, r = x.reason.trim().replace(/\.$/, '');
+          const body = x.status === 'post' ? [`The Singapore Premier League match between ${H} and ${Aw}, scheduled for ${dLong(was)} at ${wasVenue}, has been postponed.`, r ? r + '.' : '[THE REASON, AS FAS ANNOUNCES IT]', 'A new date will be announced.']
+            : x.status === 'moved' ? [`The Singapore Premier League match between ${H} and ${Aw}, scheduled for ${dLong(was)}, will now be played on ${dLong(x.date)} at ${x.venue}, kick-off ${time12(x.time)}.`, r ? r + '.' : '[THE REASON, AS FAS ANNOUNCES IT]']
+            : [`The Singapore Premier League match between ${H} and ${Aw} goes ahead as scheduled on ${dLong(was)} at ${wasVenue}.`];
+          d2.news.push({ id: uid('n'), tag: 'Fixtures', date: TODAY, title: `Fixture update: ${H} v ${Aw}`, dek: t2.body, body: body.join('\n\n'), img: '', imgs: [], match: i, at: 0, alert: false, status: 'draft' }); } },
+        `${short(m[2])} v ${short(m[3])}: ${x.status === 'post' ? 'postponed' : x.status === 'moved' ? 'moved to ' + dLong(x.date) : 'back on as scheduled'}.${x.alert ? ' Fans told.' : ''}${x.story ? ' A Fixture update story is in News as a draft.' : ''}`);
+      A.mv = null; render(); return; }
     if (d.fxf) { A.fxF = d.fxf; render(); return; }
     if (d.fxmw !== undefined) { const now = SPLSTORE.roundOf(TODAY), mx = Math.max(...SPL.matches.map(m => m[0])); A.fxFrom = +d.fxmw === 0 ? Math.max(1, now - 2) : Math.min(Math.max(1, (A.fxFrom || Math.max(1, now - 2)) + +d.fxmw), mx); render(); return; }
     if (d.realload) { const i = +val('realI'), F = SPL.feeds && SPL.feeds[i]; if (!F) return;
@@ -1197,6 +1236,12 @@
     const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
     r.readAsDataURL(e.target.files[0]); e.target.value = ''; });
   root.addEventListener('change', e => { if (e.target.id === 'fxClub') { A.fxClub = e.target.value; render(); } });
+  // the move panel keeps what's typed; a change of status, date, time, ground or the ticks redraws the preview
+  const MVF = { mvS: 'status', mvD: 'date', mvT: 'time', mvV: 'venue', mvR: 'reason', mvA: 'alert', mvN: 'story' };
+  root.addEventListener('input', e => { const k = MVF[e.target.id]; if (k && A.mv && ['reason', 'date', 'time'].includes(k)) A.mv[k] = e.target.value; });
+  root.addEventListener('change', e => { const k = MVF[e.target.id]; if (!k || !A.mv) return; A.mv[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    // typed fields keep their value without a redraw, so a click on Save straight after typing isn't lost
+    if (['status', 'venue', 'alert', 'story'].includes(k)) render(); });
   root.addEventListener('change', e => { const ns = e.target.dataset && e.target.dataset.ntsel; if (!ns || !e.target.value) return; const [i, j, x] = ns.split(':').map(Number), v = e.target.value; A.ntag = null;
     save(d2 => { const tg = ntOf(d2, i, j); if (v === '-') tg.splice(x, 1); else if (x < 0) { if (!tg.includes(v)) tg.push(v); } else tg[x] = v; d2.live[i].notes[j][2] = tg.filter((t, y) => tg.indexOf(t) === y).slice(0, 8); }, v === '-' ? 'Tag dropped.' : 'Tagged.'); });
   root.addEventListener('change', e => { const pn = e.target.dataset && e.target.dataset.potmnom; if (!pn) return;

@@ -402,3 +402,9 @@ body.adm:not([data-look=light]) .frm-box{background:#14163C}
 .fx-sc{font:800 17px 'Inter',sans-serif;text-align:center;font-variant-numeric:tabular-nums}.fx-ko{text-align:center;font-size:12px;color:var(--muted)}
 .fx-v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fx-a{display:flex;align-items:center;justify-content:flex-end;gap:10px}
 @media (max-width:1100px){.fx-row{grid-template-columns:90px minmax(0,1fr) 56px minmax(0,1fr) 150px}.fx-v{display:none}}
+/* the move panel (11 Nov, option B) */
+.mv-dim{position:fixed;inset:0;background:rgba(5,6,20,.55);z-index:40}
+.mv-panel{position:fixed;top:14px;right:14px;bottom:14px;width:min(470px,calc(100vw - 28px));z-index:41;padding:22px;display:flex;flex-direction:column;gap:14px;overflow:auto;background:var(--panel2,#151a42)}
+[data-look=light] .mv-panel{background:#fff}
+.mv-game{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:rgba(127,127,160,.1)}
+.mv-see{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:rgba(127,127,160,.08);font-size:13px}

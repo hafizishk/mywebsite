@@ -184,6 +184,11 @@ var SPLSTORE = (function () {
     out.potm = { month: str(pm.month, def.potm.month), mkey: str(pm.mkey, def.potm.mkey), closes: str(pm.closes, ''), open: pm.open !== false, winner: str(pm.winner, ''),
       list: Array.isArray(pm.list) ? pm.list.filter(isObj).slice(0, 8).map(x => ({ id: str(x.id, ''), name: str(x.name, ''), team: C[x.team] ? x.team : 'TAM', n: +x.n || 0, line: str(x.line, ''), how: str(x.how, '') })) : def.potm.list, base: isObj(pm.base) ? pm.base : {} };
     const shopImg = x => typeof x === 'string' && (IMG[x] || (/^data:image\/(jpeg|png|webp);base64,/.test(x) && x.length < 500000));
+    // moved and postponed games (Hafiz, 11 Nov, option B): { i: { status: 'post'|'moved', date, time, venue, reason, from } }
+    out.moves = {}; if (isObj(d.moves)) Object.keys(d.moves).forEach(k => { const x = d.moves[k], i = +k; if (!isObj(x) || !SPL.matches[i] || !['post', 'moved'].includes(x.status)) return;
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(x.date) ? x.date : '', time = /^\d{1,2}\.\d{2}(AM|PM)$/.test(x.time) ? x.time : '';
+      if (x.status === 'moved' && (!date || !time)) return;
+      out.moves[i] = { status: x.status, date, time, venue: str(x.venue, '').slice(0, 60), reason: str(x.reason, '').slice(0, 140), at: +x.at || 0 }; });
     out.demo = isObj(d.demo) && Number.isInteger(d.demo.i) && SPL.matches[d.demo.i] && Number.isFinite(+d.demo.at) && +d.demo.at > 0 ? { i: d.demo.i, at: +d.demo.at } : null;
     out.shop = Array.isArray(d.shop) ? d.shop.filter(isObj).slice(0, 60).map((x, j) => ({ id: str(x.id, 'p' + j).slice(0, 40), name: str(x.name, '').slice(0, 120),
       tab: ['league', 'lions', 'clubs'].includes(x.tab) ? x.tab : 'lions', club: x.tab === 'clubs' && C[x.club] ? x.club : '', kind: ['jersey', 'retro', 'gear'].includes(x.kind) ? x.kind : 'gear',
@@ -197,26 +202,33 @@ var SPLSTORE = (function () {
     out.shopUrl = shopeeUrl(d.shopUrl) || SHOP_URL;
     return out;
   }
-  function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} const o = clean(isObj(d) ? d : {}); applyDemo(o.demo); return o; }
+  function read() { let d = {}; try { d = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {} const o = clean(isObj(d) ? d : {}); applyDemo(o.demo, o.moves); return o; }
   // the real date (Hafiz, 10 Nov): the app and the admin run on today. A demo game (set in the console) plays one fixture
   // at a chosen time, say the FAS meeting: its date and kick-off move there in memory, everything else keeps its date,
   // and the app says what the real fixture is (demoOf).
   const z2 = n => String(n).padStart(2, '0'), isoOf = t => { const d = new Date(t); return `${d.getFullYear()}-${z2(d.getMonth() + 1)}-${z2(d.getDate())}`; };
   const today = () => isoOf(Date.now());
-  const ORIG = SPL.matches.map(m => [m[1], m[7]]);
-  let DEMO = null;
-  function applyDemo(dm) {
-    if (DEMO && SPL.matches[DEMO.i]) { SPL.matches[DEMO.i][1] = ORIG[DEMO.i][0]; SPL.matches[DEMO.i][7] = ORIG[DEMO.i][1]; }
+  const ORIG = SPL.matches.map(m => [m[1], m[7], m[5]]);
+  let DEMO = null, MOVES = {};
+  const dayW = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short' });
+  function applyDemo(dm, mv) {
+    // every fixture back to its schedule, then the office's moves, then the demo game on top
+    SPL.matches.forEach((m, i) => { m[1] = ORIG[i][0]; m[7] = ORIG[i][1]; m[5] = ORIG[i][2]; });
+    MOVES = mv || {};
+    Object.keys(MOVES).forEach(k => { const x = MOVES[k], m = SPL.matches[+k]; if (!m || m[4]) return;
+      if (x.status === 'post') m[7] = 'Postponed · TBC'; else { m[1] = x.date; m[7] = `${dayW(x.date)} ${x.time}`; } if (x.venue) m[5] = x.venue; });
     DEMO = dm && SPL.matches[dm.i] && !SPL.matches[dm.i][4] ? dm : null; if (!DEMO) return;
     const d = new Date(DEMO.at), h = d.getHours();
     SPL.matches[DEMO.i][1] = isoOf(DEMO.at); SPL.matches[DEMO.i][7] = `${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${h % 12 || 12}.${z2(d.getMinutes())}${h < 12 ? 'AM' : 'PM'}`;
   }
   const demoOf = i => DEMO && DEMO.i === i ? { date: ORIG[i][0], status: ORIG[i][1] } : null;
+  // a moved or postponed game: what changed, with its original date and kick-off
+  const moveOf = i => MOVES[i] ? Object.assign({ was: ORIG[i][0], wasStatus: ORIG[i][1], wasVenue: ORIG[i][2] }, MOVES[i]) : null;
   // the round in play: the earliest matchweek with a fixture still to come today or later (postponed games aside)
   const roundOf = day => { if (DEMO && SPL.matches[DEMO.i][1] >= day) return SPL.matches[DEMO.i][0]; const up = SPL.matches.filter(m => !m[4] && m[1] >= day && !String(m[7] || '').startsWith('Postponed')); return up.length ? Math.min(...up.map(m => m[0])) : Math.max(...SPL.matches.map(m => m[0])); };
   // saved here, and to the backend when FAS staff are signed in (cloud.js; a no-op in demo mode or for fans)
   function write(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {} if (window.SPLCLOUD) SPLCLOUD.save(d); }
-  function update(fn) { const d = read(); fn(d); write(d); applyDemo(d.demo); return d; }
+  function update(fn) { const d = read(); fn(d); write(d); applyDemo(d.demo, d.moves); return d; }
   function reset() { try { localStorage.removeItem(KEY); localStorage.removeItem(EVK); } catch (e) {} }
   // analytics: the app records each screen it shows, each tap and each sponsor slot seen; the admin counts them
   function track(kind, name) { if (window.SPLCLOUD) SPLCLOUD.log(kind, name); try { const a = JSON.parse(localStorage.getItem(EVK) || '[]'); a.push([Date.now(), String(kind).slice(0, 20), String(name).slice(0, 60)]); if (a.length > 4000) a.splice(0, a.length - 4000); localStorage.setItem(EVK, JSON.stringify(a)); } catch (e) {} }
@@ -225,5 +237,5 @@ var SPLSTORE = (function () {
   // a story photo's focus point (Hafiz, 10 Nov: frame it), '' = the photo's default
   const posOf = (n, j) => (n && Array.isArray(n.pos) && n.pos[j]) || '';
   const seed = () => clean({});
-  return { KEY, EVK, SLOTS, IMG, seed, today, roundOf, demoOf, applyDemo, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
+  return { KEY, EVK, SLOTS, IMG, seed, today, roundOf, demoOf, moveOf, applyDemo, posOf, potmSuggest, shopeeUrl, shopLink, shopWhere, picUrl, isOut, picsOf, read, write, update, reset, track, events, esc };
 })();
