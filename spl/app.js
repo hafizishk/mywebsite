@@ -369,8 +369,10 @@
         <div style="display:flex;gap:10px;padding-top:4px"><button class="btn" style="flex:1" data-match="${v.mi}" data-sclosego="1">Match centre</button>${hlFor(v.mi) ? `<button class="btn2" style="flex:1" data-video="${hlFor(v.mi).id}">Highlights · ${v.len}</button>` : `<button class="btn2" style="flex:1" data-sclose="1" data-gowatch="1">Highlights · ${v.len}</button>`}</div>
       </div></div>`;
   }
+  // the admin's phone shows a story before it goes out (Hafiz, 12 Nov): ?embed&article=…&draft=1, never for fans
+  const DRAFTOK = /[?&]embed\b/.test(location.search) && /[?&]draft=1\b/.test(location.search);
   function article() {
-    const n = STORE.news.find(x => x.id === S.article && SPLSTORE.isOut(x));
+    const n = STORE.news.find(x => x.id === S.article && (SPLSTORE.isOut(x) || DRAFTOK));
     if (!n) return `<button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span style="font-size:13px;color:var(--muted)">This story has been taken down.</span>`;
     const more = NEWS_().filter(x => x.id !== n.id).slice(0, 3);
     return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="${S.from === 'search' ? 'search' : 'home'}" aria-label="Back">${ICON.back}</button><span class="lbl">News</span></div>
