@@ -39,7 +39,7 @@
   const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const ICON = {
     overview: 'M3 12l9-8 9 8M5 10v10h14V10', fixtures: 'M3 5h18v16H3zM3 10h18M8 3v4M16 3v4', matchday: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7l4 3-1.5 4.5h-5L8 10z', news: 'M4 5h16v14H4zM8 9h8M8 13h8M8 17h5',
-    push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
+    push: 'M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0', votes: 'M4 12l5 5L20 6', sponsors: 'M3 7h18v10H3zM7 7v10M17 7v10', analytics: 'M4 20V10M10 20V4M16 20v-7M22 20H2', media: 'M4 5h13v14H6a2 2 0 01-2-2zM17 9h3v8a2 2 0 01-2 2M8 9h5M8 13h5', settings: 'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2',
     shop: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2', activity: 'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2', back: 'M15 5l-7 7 7 7', search: 'M11 4a7 7 0 100 14 7 7 0 000-14zM20 20l-4-4', sun: 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5', moon: 'M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z', phone: 'M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2'
   };
   const icon = k => `<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="${ICON[k]}"/></svg>`;
@@ -599,7 +599,7 @@
     const rng = `${new Date(days[0] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${new Date(days[6] + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     return `<div class="panel cal"><div class="cal-h"><h2 style="margin:0">Content calendar<span class="lbl">${rng}</span></h2><span style="flex:1"></span><button class="btn2 sm" data-calwk="-1">‹</button><button class="btn2 sm" data-calwk="0">This week</button><button class="btn2 sm" data-calwk="1">›</button></div>
       <div class="cal-w">${days.map(k => `<div class="cal-d ${k === TODAY ? 'today' : ''}" data-dropday="${k}"><span class="cal-dh">${new Date(k + 'T12:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' })}</span>${(items[k] || []).sort((x, y) => x[0] - y[0]).map(x => x[1]).join('')}</div>`).join('')}</div>
-      <div class="cal-k"><span style="--c:#4A86FF">Scheduled</span><span style="--c:#3DD68C">Published</span><span style="--c:#A9A6C9">Draft</span><span style="--c:#E8363D">Alert</span><span style="--c:rgba(255,255,255,.3)">Match</span><span style="flex:1"></span><span class="note">Drag a story to another day · click to edit</span></div></div>`;
+      <div class="cal-k"><span style="--c:#4A86FF">Scheduled</span><span style="--c:#3DD68C">Published</span><span style="--c:#A9A6C9">Draft</span><span style="--c:#E8363D">Alert</span><span style="--c:rgba(255,255,255,.3)">Match</span><span style="flex:1"></span><span class="note">Drag a story to another day, or hold it on ‹ › for another week · click to edit</span></div></div>`;
   }
   function news() {
     const list = D.news.slice().sort((a, b) => nWhen(b) - nWhen(a));
@@ -609,12 +609,15 @@
     const nv = n ? Object.assign({}, n, { title: pick('title', n.title), dek: pick('dek', n.dek), body: pick('body', n.body), tag: pick('tag', n.tag), alert: pick('alert', n.alert) }) : null;
     const when = A.nWhenT || 'now', at = n && n.at ? new Date(n.at) : new Date(new Date(TODAY + 'T09:00:00').getTime() + 864e5);
     const dv = (A.nDraft && A.nDraft.day) || dayKey(at), tv = (A.nDraft && A.nDraft.time) || `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
-    const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)});background-position:${(A.nPos || [])[j] || '50% 50%'}">${j ? '' : '<b>Cover</b>'}<button class="pt-f" data-picframe="${j}" title="Choose what stays in view">Frame</button><span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
+    // which [PHOTO] each picture fills (Hafiz, 12 Nov): photo 2 fills the first slot, and so on, named by the section it sits in
+    const slots = (() => { const ps = String((nv && nv.body) || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean), out = []; let sec = '';
+      ps.forEach((x, j) => { if (x === '[PHOTO]') out.push(sec || (ps[j - 1] || '').split(' ').slice(0, 5).join(' ') + '…'); else if (x.length < 70 && !/[.:!?”]$/.test(x) && !/^\[/.test(x) && !/\|/.test(x)) sec = x; }); return out; })();
+    const pics = (A.nImgs || []).map((k, j, all) => `<div class="pt" style="background-image:url(${SPLSTORE.picUrl(k)});background-position:${(A.nPos || [])[j] || '50% 50%'}">${j ? (slots[j - 1] ? `<b class="pt-s" title="${E(slots[j - 1])}">${j} · ${E(slots[j - 1])}</b>` : slots.length ? '<b class="pt-s">No slot · cover</b>' : '') : '<b>Cover</b>'}<button class="pt-f" data-picframe="${j}" title="Choose what stays in view">Frame</button><span class="pt-a">${j ? `<button data-picmv="${j}:-1" title="Move left">‹</button>` : ''}${j < all.length - 1 ? `<button data-picmv="${j}:1" title="Move right">›</button>` : ''}<button data-picdel="${j}" title="Remove">×</button></span></div>`).join('');
     return head('News', 'Plan the week, then write: stories in the app\'s News tab, the lead story on Home, and search.', '<button class="btn" data-newnews="1">New story</button>') + storyPanel() + calendar() + `
       <div class="row" style="gap:24px">
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
           ${n ? `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">${n.id ? 'Edit story' : 'New story'}${n.id ? `<span class="lbl" style="color:${nState(n)[1]}">${nState(n)[0]}${n.status === 'scheduled' && !SPLSTORE.isOut(n) ? ' · ' + new Date(n.at).toLocaleString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : ''}</span>` : ''}</h2>
-            <div class="fld"><span>Photos · up to 12 · the first is the cover · the rest go where [PHOTO] sits in the story, in order (or, with no [PHOTO], they change every 3 seconds on the cover)</span><div class="pics">${pics}${(A.nImgs || []).length < 12 ? `<label class="padd"><input type="file" id="nFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>from this computer</small></label>` : ''}</div>
+            <div class="fld"><span>Photos · up to 12 · the first is the cover · the rest go where [PHOTO] sits in the story, in order (or, with no [PHOTO], they change every 3 seconds on the cover)${slots.length ? ` · <b style="color:var(--ink)">${slots.length} [PHOTO] ${slots.length === 1 ? 'slot' : 'slots'}, ${Math.max(0, slots.length - Math.max(0, (A.nImgs || []).length - 1)) || 'none'} still empty${Math.max(0, (A.nImgs || []).length - 1) < slots.length ? ': next is ' + E(slots[Math.max(0, (A.nImgs || []).length - 1)]) : ''}</b>` : ''}</span><div class="pics">${pics}${(A.nImgs || []).length < 12 ? `<label class="padd"><input type="file" id="nFiles" accept="image/*" multiple hidden><b>+</b>Add photos<small>from this computer</small></label>` : ''}</div>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><select class="in" id="nLib" style="max-width:320px"><option value="">Or add one from the league's library…</option>${IMGS.filter(([k]) => k).map(([k, l]) => `<option value="${k}">${E(l)}</option>`).join('')}</select></div></div>
             <div class="grid3"><label class="fld"><span>Kind</span><select class="in" id="nTag">${TAGS.map(t => `<option ${t === nv.tag ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
             <label class="fld"><span>Headline</span><input class="in" id="nTitle" value="${E(nv.title)}" maxlength="120"></label>
@@ -857,7 +860,66 @@
   }
 
   // ---------- shell ----------
-  const PAGES = { overview: ['Overview', overview], fixtures: ['Fixtures', fixtures], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], shop: ['Shop', shop], analytics: ['Analytics', analytics], activity: ['Activity', activity], settings: ['Settings', settings] };
+
+  // Media monitoring (Hafiz, 8 Nov, option A with C's partner report and B's watch list as tabs; built 12 Nov). Phase 1 is the
+  // 8am brief from the press, Reddit, HardwareZone and YouTube; X, Threads, alerts, share of voice and the partner report are
+  // Phase 2. Until the reader runs, the page shows the brief for Matchweek 6's weekend: real headlines, example counts.
+  const MEDIA = {
+    brief: 'Monday 2 November', covers: '30 Oct – 1 Nov',
+    stories: [
+      ['m1', 'pos', '2026/27 Singapore Premier League Matchweek 6: Roundup', 'spl.sg', 'The league', 'https://spl.sg/news/2026-27-singapore-premier-league-matchweek-6-roundup/'],
+      ['m2', 'neu', 'SPL table: Geylang lead into the break after a goalless Eastern Derby', 'littlebigreddot.com', 'Press', ''],
+      ['m3', 'pos', 'Sailors showcase squad depth to make it six wins on the trot', 'lioncitysailorsfc.sg', 'Club', ''],
+      ['m4', 'pos', 'Balestier 0–4 Sailors: highlights', 'YouTube · Lion City Sailors', 'YouTube', ''],
+      ['m5', 'neu', '[THREAD] on HardwareZone: where to watch the SPL', 'HardwareZone · [REPLIES] replies', 'Forum', ''],
+      ['m6', 'neg', '[THREAD] on r/singaporefootball: [TOPIC]', 'Reddit · [COMMENTS] comments', 'Reddit', '']],
+    topics: [['Geylang top', 38, '#3DD68C'], ['Sailors six in a row', 31, '#3DD68C'], ['Eastern Derby 0–0', 24, '#A9A6C9'], ['Young Lions’ first win', 17, '#3DD68C'], ['[TOPIC]', 12, '#E8363D']],
+    sov: [['EPL in Singapore', 58], ['The Lions', 21], ['SPL', 14], ['SEA Games', 7]],
+    partners: [['AIA', 41], ['Singapore Pools', 12], ['adidas', 9], ['Trip.com', 7], ['Dongfeng', 4], ['MSIG', 3]],
+    watch: [['Press', '“Singapore Premier League”, “SPL”, the eight club names', 1], ['Reddit', 'r/singaporefootball, r/singapore', 1], ['HardwareZone', 'EDMW and the football forum', 1], ['YouTube', 'The SPL channel and the clubs’ channels', 1],
+      ['X', '[FAN ACCOUNT], [JOURNALIST]', 2], ['Threads', '[FAN ACCOUNT]', 2], ['Instagram and TikTok', 'The clubs’ own accounts', 2]]
+  };
+  const MA = (() => { try { return JSON.parse(localStorage.getItem('spl-media') || '{}'); } catch (e) { return {}; } })();
+  const mSave = () => { try { localStorage.setItem('spl-media', JSON.stringify(MA)); } catch (e) {} };
+  const TONE = { pos: ['Positive', '#3DD68C'], neu: ['Neutral', '#A9A6C9'], neg: ['Negative', '#E8363D'] };
+  function media() {
+    const tab = A.mtab || 'today', tone = x => (MA.tone || {})[x[0]] || x[1], st = MEDIA.stories, n = { pos: 0, neu: 0, neg: 0 }; st.forEach(x => n[tone(x)]++);
+    const bars = (rows, max, pct) => rows.map(([k, v, c]) => `<div class="mbar"><span>${E(k)}</span><i><b style="width:${Math.round(v / max * 100)}%;background:${c || (k === 'SPL' ? '#E8363D' : '#A9A6C9')}"></b></i><span>${v}${pct ? '%' : ''}</span></div>`).join('');
+    const tabs = `<div class="tabs">${[['today', 'Today'], ['partners', 'Partner report'], ['watch', 'Watch list'], ['how', 'How it works']].map(([k, l]) => `<button class="stab ${tab === k ? 'on' : ''}" data-mtab="${k}">${l}</button>`).join('')}</div>`;
+    const chips = `<div class="chips"><span class="chip">Sample: the brief for ${MEDIA.brief}, covering ${MEDIA.covers}</span><span class="chip gr">● Phase 1 reads 4 sources</span><span class="chip y">Example numbers</span></div>`;
+    let body = '';
+    if (tab === 'today') {
+      const items = st.map(x => { const t = tone(x); return `<div class="mit"><span class="mdot" style="background:${TONE[t][1]}"></span><div><div class="mhl">${E(x[2])}</div><div class="note">${E(x[3])} · <button class="lnk" data-mtone="${x[0]}" title="Tap to correct the tone">${TONE[t][0]} ▾</button></div></div>
+        <div class="mact">${x[5] ? `<a class="btn2 sm" href="${E(x[5])}" target="_blank" rel="noopener">Open</a>` : ''}${t === 'neg' ? `<button class="btn2 sm" data-mstate="${x[0]}">Draft a reply</button>` : `<button class="btn sm" data-mshare="${x[0]}">Share in the app</button>`}</div></div>`; }).join('');
+      body = `<div class="mrow"><div class="panel"><h2>This morning’s brief <span class="lbl">Sent 8.00am by email and WhatsApp to [3 PEOPLE]</span></h2>
+        <p class="mbrief"><b>214 mentions</b> over the weekend, <b>mostly positive</b>. The big story: <b>Geylang top at the break</b> after the 0–0 Eastern Derby with Tampines (spl.sg, littlebigreddot). The Sailors’ six in a row, with 4–0 at Balestier, is the other. Young Lions won for the first time this season, against Hougang. <b>Watch:</b> [TOPIC], turning negative on Reddit.</p>
+        <div class="chips"><span class="chip gr">${Math.round(n.pos * 100 / st.length)}% positive</span><span class="chip">${Math.round(n.neu * 100 / st.length)}% neutral</span><span class="chip r">${Math.round(n.neg * 100 / st.length)}% negative</span><span class="chip" style="margin-left:auto">FAS’s angle, “[FAS MESSAGE]”: in 4 of 18 press stories</span></div></div>
+        <div class="panel"><h2>Needs you</h2>${MA.muted ? '<p class="note">Nothing needs you. [TOPIC] is muted until it changes.</p>' : `<div class="mal"><b>Rising: [TOPIC]</b>Negative posts up on Reddit since Saturday. Not in the press yet.<div class="mact" style="margin-top:10px"><button class="btn sm" data-mstate="m6">Draft a statement</button><button class="btn2 sm" data-mmute="1">Mute</button></div></div><p class="note">Phase 1 shows it in the brief; Phase 2 alerts the moment it turns.</p>`}</div></div>
+        <div class="mrow"><div class="panel"><h2>Top stories <span class="lbl">By reach; tap a tone to correct it</span></h2>${items}</div>
+        <div class="panel"><h2>What fans are talking about</h2>${bars(MEDIA.topics, 38)}<h2 style="margin-top:14px">Share of voice <span class="lbl">Phase 2 · Singapore football talk this month</span></h2>${bars(MEDIA.sov, 58, 1)}<p class="note">SPL up from 11% last month.</p></div></div>`;
+    } else if (tab === 'partners') {
+      body = `<div class="panel" id="mpr"><h2>Partner report <span class="lbl">Phase 2 · November so far</span></h2><table class="tbl"><thead><tr><th>Partner</th><th style="text-align:right">Mentions</th><th style="text-align:right">Reach</th><th>Where</th></tr></thead><tbody>
+        ${MEDIA.partners.map(([k, v]) => `<tr><td><b>${E(k)}</b></td><td style="text-align:right" class="big">${v}</td><td style="text-align:right" class="note">[REACH]</td><td class="note">Press, YouTube</td></tr>`).join('')}</tbody></table>
+        <p class="note">Mentions and reach only, never a dollar “media value”: the industry’s Barcelona Principles rejected that in 2010.</p><div class="mact"><button class="btn" data-mpdf="1">Download for partners (PDF)</button></div></div>`;
+    } else if (tab === 'watch') {
+      const extra = MA.watch || [];
+      body = `<div class="panel"><h2>Watch list <span class="lbl">What the reader looks at every hour</span></h2><table class="tbl"><tbody>
+        ${MEDIA.watch.map(([k, v, ph]) => `<tr><td><b>${E(k)}</b></td><td>${E(v)}</td><td>${ph === 1 ? '<span class="lbl ok">Phase 1</span>' : '<span class="lbl">Phase 2</span>'}</td><td></td></tr>`).join('')}
+        ${extra.map((v, j) => `<tr><td><b>Added</b></td><td>${E(v)}</td><td><span class="lbl ok">Phase 1</span></td><td><button class="lnk danger" data-mwdel="${j}">Remove</button></td></tr>`).join('')}</tbody></table>
+        <div class="mact"><input class="in" id="mwIn" placeholder="A name, a club, a journalist or a phrase" style="max-width:420px"><button class="btn" data-mwadd="1">Add</button></div></div>`;
+    } else {
+      const step = (k, h, t, ph) => `<div class="mstep"><span class="mnum">${k}</span><b>${h}</b><p class="note">${t}</p>${ph ? `<span class="lbl ${ph === 1 ? 'ok' : ''}">Phase ${ph}</span>` : ''}</div>`;
+      body = `<div class="panel"><h2>How it works</h2><div class="msteps">
+        ${step(1, 'Reads every hour', 'The press, Reddit, HardwareZone and YouTube for the watch list’s names. Phase 2 adds X, Threads and fan accounts.', 1)}
+        ${step(2, 'Groups and reads tone', 'Claude groups the mentions into stories and topics and marks each positive, neutral or negative.', 1)}
+        ${step(3, 'A person checks', 'One tap corrects a tone. Football talk fools machines: “killer finish” is praise.', 1)}
+        ${step(4, 'The brief at 8am', 'By email and WhatsApp: the big stories, the mood, what to watch. No one has to open the dashboard.', 1)}
+        ${step(5, 'Alerts and reports', 'An alert the moment a topic turns, share of voice, and a monthly report for partners.', 2)}</div>
+        <p class="note" style="margin-top:14px">Articles are summarised and linked, never republished. Fans’ public posts are counted as trends, never kept on named people (PDPA). Meltwater and Brandwatch charge about US$25,000–50,000 a year for this.</p></div>`;
+    }
+    return head('Media', 'What the press and fans are saying about the SPL, in one brief every morning.', '') + tabs + chips + body;
+  }
+  const PAGES = { overview: ['Overview', overview], fixtures: ['Fixtures', fixtures], matchday: ['Matchday', matchday], news: ['News', news], push: ['Notifications', push], votes: ['Awards', votes], sponsors: ['Sponsors', sponsors], shop: ['Shop', shop], analytics: ['Analytics', analytics], media: ['Media', media], activity: ['Activity', activity], settings: ['Settings', settings] };
   // ---------- staff sign-in (backend.js set): only logins on the FAS staff list get past this ----------
   const CL = window.SPLCLOUD || { on: false, state: { status: 'demo' } };
   A.authed = !CL.on; A.checking = CL.on;
@@ -874,7 +936,7 @@
   const statusLine = () => { const st = CL.state; if (!CL.on) return '<span class="cs demo">Demo · this browser only</span>';
     if (st.status === 'live') return `<span class="cs live">Live · saved${st.updatedAt ? ' ' + new Date(st.updatedAt).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' }) : ''}</span>`;
     return `<span class="cs off" title="${E(st.error || '')}">${st.status === 'connecting' ? 'Connecting…' : 'Offline · changes wait'}</span>`; };
-  const GROUPS = [['League', ['overview', 'fixtures', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'shop', 'analytics']], ['FAS', ['activity', 'settings']]];
+  const GROUPS = [['League', ['overview', 'fixtures', 'matchday', 'news']], ['Fans', ['push', 'votes']], ['Commercial', ['sponsors', 'shop', 'analytics', 'media']], ['FAS', ['activity', 'settings']]];
   try { A.look = localStorage.getItem('spl-admin-look') === 'light' ? 'light' : 'dark'; } catch (e) { A.look = 'dark'; }
   const myName = () => CL.on ? (CL.state.name || (CL.state.email || '').replace(/@.*/, '')) : '[STAFF NAME]';
   function searchHits(q) {
@@ -950,7 +1012,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mvopen],[data-mvclose],[data-mvsave],[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-mtab],[data-mtone],[data-mshare],[data-mstate],[data-mmute],[data-mwadd],[data-mwdel],[data-mpdf],[data-mvopen],[data-mvclose],[data-mvsave],[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -1050,6 +1112,16 @@
       save(d2 => { const ev = F.map(e => e.slice()); d2.live[i] = { phase: 'FT', t0: Date.now() - 110 * 60000, base: 46, sheet: true, ev, notes: (REALNOTES[i] || []).map(n => [n[0], n[1], n[2].slice()]), potm: SPLSTORE.potmSuggest(i, ev, POTM_FROM), potmOpen: false }; },
         `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])} loaded as finished, with its real events. No alerts were sent. Press Write with AI on the post-match panel.`);
       A.live = i; A.multi = null; render(); return; }
+    if (d.mtab) { A.mtab = d.mtab; render(); return; }
+    if (d.mtone) { const x = MEDIA.stories.find(y => y[0] === d.mtone), o = ['pos', 'neu', 'neg'], cur = (MA.tone || {})[x[0]] || x[1]; MA.tone = Object.assign({}, MA.tone, { [x[0]]: o[(o.indexOf(cur) + 1) % 3] }); mSave(); flash('Tone corrected.'); render(); return; }
+    if (d.mmute) { MA.muted = 1; mSave(); flash('Muted until it changes.'); render(); return; }
+    if (d.mwadd) { const v = (document.getElementById('mwIn') || {}).value || ''; if (!v.trim()) return; MA.watch = (MA.watch || []).concat(v.trim().slice(0, 80)); mSave(); flash('Added to the watch list.'); render(); return; }
+    if (d.mwdel !== undefined) { (MA.watch || []).splice(+d.mwdel, 1); mSave(); render(); return; }
+    if (d.mpdf) { const w = window.open('', '_blank'); if (!w) return; w.document.write(`<title>SPL partner report</title><style>body{font:14px Inter,Arial;padding:40px;color:#15142A}table{border-collapse:collapse;width:100%}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}button,.mact{display:none}.lbl{color:#888;font-size:12px;margin-left:8px}</style>` + document.getElementById('mpr').innerHTML); w.document.close(); w.print(); return; }
+    if (d.mshare || d.mstate) { const x = MEDIA.stories.find(y => y[0] === (d.mshare || d.mstate)), nw = d.mshare
+        ? { id: uid('n'), tag: 'News', date: TODAY, title: x[2], dek: `From ${x[3]}.`, body: `[ONE-LINE SUMMARY]\n\nRead it on ${x[3]}${x[5] ? ': ' + x[5] : '.'}`, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' }
+        : { id: uid('n'), tag: 'Announcement', date: TODAY, title: '[STATEMENT HEADLINE]', dek: '[ONE LINE]', body: `[FAS STATEMENT ON ${x[2]}]`, img: '', imgs: [], match: null, at: 0, alert: false, status: 'draft' };
+      save(d2 => { d2.news.push(nw); }, d.mshare ? 'Drafted in News with the link. Add a line and publish.' : 'Statement drafted in News.'); A.page = 'news'; A.news = nw.id; A.nFor = null; render(); return; }
     if (d.cleartest) { const on = k => { const x = document.getElementById('clr-' + k); return !!(x && x.checked); }, pick = ['games', 'alerts', 'news', 'mock', 'stats'].filter(on);
       if (!pick.length) { flash('Tick what to clear.'); render(); return; }
       if (!confirm('Clear the ticked test data? Phones follow straight away.')) return;
@@ -1188,9 +1260,16 @@
   root.addEventListener('input', e => { if (e.target.id === 'sUrl') { const o = document.getElementById('sUrlOk'), st = linkState(e.target.value.trim()); if (o) { o.textContent = st[0]; o.style.color = st[1]; } } });
   root.addEventListener('input', e => { const f = e.target.dataset && e.target.dataset.pmf; if (!f) return; const k = e.target.closest('[data-pmk]').dataset.pmk; if (A.pm[k]) A.pm[k][f] = e.target.value; });
   root.addEventListener('dragstart', e => { const t = e.target.closest && e.target.closest('[data-dragnews]'); if (t) { e.dataTransfer.setData('text/plain', t.dataset.dragnews); e.dataTransfer.effectAllowed = 'move'; } });
-  root.addEventListener('dragover', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
-  root.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) d.classList.remove('over'); });
-  root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'), n = D.news.find(x => x.id === id); if (!n) return;
+  // a story dragged onto ‹ or › and held there turns the calendar a week (Hafiz, 12 Nov), so it can be dropped on a later week
+  let calFlip = null, dragId = '';
+  root.addEventListener('dragstart', e => { const t = e.target.closest && e.target.closest('[data-dragnews]'); dragId = t ? t.dataset.dragnews : ''; });
+  root.addEventListener('dragover', e => { const w = e.target.closest && e.target.closest('[data-calwk]');
+    if (w && dragId && +w.dataset.calwk) { e.preventDefault(); w.classList.add('over'); if (!calFlip) calFlip = setTimeout(() => { calFlip = null; A.calWk = (A.calWk || 0) + +w.dataset.calwk; render(); }, 600); return; }
+    if (calFlip && !w) { clearTimeout(calFlip); calFlip = null; }
+    const d = e.target.closest && e.target.closest('[data-dropday]'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+  root.addEventListener('dragend', () => { clearTimeout(calFlip); calFlip = null; dragId = ''; });
+  root.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-dropday],[data-calwk]'); if (d) d.classList.remove('over'); });
+  root.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-dropday]'); if (!d) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain') || dragId, n = D.news.find(x => x.id === id); if (!n) return;
     const t = new Date(nWhen(n)), nd = new Date(`${d.dataset.dropday}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:00`).getTime();
     save(d2 => { const x = d2.news.find(y => y.id === id); x.at = nd; x.date = d.dataset.dropday; d2.pushes.forEach(p => { if (p.story === id && p.at > Date.now()) p.at = nd; }); }, `Moved to ${new Date(nd).toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'short' })}.`); });
   // a story photo's focus (Hafiz, 10 Nov): the same photo shows tall on Home's tiles, wide as the cover and 3:2 in the

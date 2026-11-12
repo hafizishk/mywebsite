@@ -116,6 +116,8 @@ var SPL = {
   // getting to each ground: nearest MRT (station codes from LTA; walks are approximate, see data/notes.md). Gates, bags, parking are FAS's to set.
   // earlier meetings, before this season, for the match centre's head to head (sources in data/notes.md). Key: the two codes
   // in alphabetical order. Rows: [date, home, home goals, away, away goals, competition]. Jurong played as Albirex Niigata (S).
+  // red cards from the official match reports, for games the console didn't run (data/notes.md): [date, home, away, club, player, minute]
+  reds: [['2026-10-30', 'TPU', 'JUR', 'JUR', 'Shunsuke Ono', '81']],
   h2hPast: {
     'BKF|JUR': [['2026-04-13', 'BKF', 2, 'JUR', 1, 'SPL'], ['2026-01-25', 'BKF', 0, 'JUR', 4, 'SPL'], ['2025-08-23', 'JUR', 2, 'BKF', 2, 'SPL']]
   },

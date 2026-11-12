@@ -234,7 +234,17 @@ var SPLNEWS = (function () {
     const blocks = G.map(g => { const pm = preMatch(D, g.i), sent = pm.body.split(/(?<=\.)\s+/);
       const paras = sent.length > 2 ? [sent.slice(0, 2).join(' '), '[PHOTO]', sent.slice(2).join(' ')] : [sent.join(' '), '[PHOTO]'];
       const when = new Date(g.m[1] + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^(\w+) /, '$1, ');
-      return [g.head, ...paras, '[A LINE ON FORM, A KEY PLAYER OR A SUSPENSION]', `${F(g.m[2])} vs ${F(g.m[3])} | ${when} | ${kick(g.m)} | ${g.m[5]} | Watch on YouTube or meWATCH`].join('\n\n'); });
+      // the form and suspension line (Hafiz, 12 Nov): wins in the last five for both, and anyone sent off in his club's last game
+      const [h, a] = [g.m[2], g.m[3]], last5 = k => resFor(R, k).slice(-5), wins = k => last5(k).filter(x => x.res === 'W').length;
+      const wn = n => n === 0 ? 'no wins' : n === 1 ? 'one win' : word(n) + ' wins';
+      const formL = last5(h).length && last5(a).length ? `${cap(S(h))} have ${wn(wins(h))} in their last ${word(last5(h).length)}; ${S(a)} ${wins(a) === wins(h) ? 'the same' : 'have ' + wn(wins(a)).replace(/ wins?$/, '')}.` : '';
+      const banned = [h, a].map(k => { const lg = resFor(R, k).slice(-1)[0]; if (!lg) return null; const r = lg.r;
+        const ev = (r.ev || []).filter(e => e[3] === 'R' && e[4] === k).map(e => pname(e[4], e[5]));
+        const dr = (SPL.reds || []).filter(x => x[0] === r.date && x[1] === r.h && x[2] === r.a && x[3] === k).map(x => x[4]);
+        const who = [...new Set(ev.concat(dr))]; if (!who.length) return null; const opp = r.h === k ? r.a : r.h;
+        return `${who.join(' and ')} ${who.length > 1 ? 'are' : 'is'} set to miss out for ${S(k)} after ${who.length > 1 ? 'their red cards' : 'his red card'} against ${S(opp)}.`; }).filter(Boolean);
+      const extra = [formL, ...banned].filter(Boolean).join(' ');
+      return [g.head, ...paras, extra || '[A LINE ON FORM, A KEY PLAYER OR A SUSPENSION]', `${F(g.m[2])} vs ${F(g.m[3])} | ${when} | ${kick(g.m)} | ${g.m[5]} | Watch on YouTube or meWATCH`].join('\n\n'); });
     const [a, b] = [big.m[2], big.m[3]], others = G.filter(g => g !== big);
     const lead = pos(a).pos < pos(b).pos ? a : b, gap = Math.abs(pos(a).pts - pos(b).pts);
     const intro = (big.derby ? `A clash between Eastern rivals ${F(a)} and ${F(b)} headlines Matchweek ${mw} of the 2026/27 Singapore Premier League (SPL)` : `${F(a)}, ${posW(pos(a).pos)}, host ${F(b)}, ${posW(pos(b).pos)}, in the game that headlines Matchweek ${mw} of the 2026/27 Singapore Premier League (SPL)`) + `, with ${gap ? (gap === 1 ? 'a point' : word(gap) + ' points') + ' between them' : 'the two level on points'}${pos(lead).pos === 1 ? ' and top spot on the line' : ''}.` +
