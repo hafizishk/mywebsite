@@ -371,8 +371,10 @@
   }
   // the admin's phone shows a story before it goes out (Hafiz, 12 Nov): ?embed&article=…&draft=1, never for fans
   const DRAFTOK = /[?&]embed\b/.test(location.search) && /[?&]draft=1\b/.test(location.search);
+  if (DRAFTOK) window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'spl-preview' && S.view === 'article') { const sc = app.querySelector('.screen'), y = sc ? sc.scrollTop : 0; render(); const s2 = app.querySelector('.screen'); if (s2) s2.scrollTop = y; } });
   function article() {
-    const n = STORE.news.find(x => x.id === S.article && (SPLSTORE.isOut(x) || DRAFTOK));
+    let pv = null; if (DRAFTOK) { try { const o = JSON.parse(localStorage.getItem('spl-preview') || 'null'); if (o && o.id === S.article && typeof o.title === 'string') pv = { id: o.id, tag: String(o.tag || ''), title: o.title, dek: String(o.dek || ''), body: String(o.body || ''), date: String(o.date || ''), img: String(o.img || ''), imgs: Array.isArray(o.imgs) ? o.imgs.map(String) : [], pos: Array.isArray(o.pos) ? o.pos.map(x => /^\d{1,3}% \d{1,3}%$/.test(x) ? x : '') : [] }; } catch (e) {} }
+    const n = pv || STORE.news.find(x => x.id === S.article && (SPLSTORE.isOut(x) || DRAFTOK));
     if (!n) return `<button class="back" data-go="home" aria-label="Back">${ICON.back}</button><span style="font-size:13px;color:var(--muted)">This story has been taken down.</span>`;
     const more = NEWS_().filter(x => x.id !== n.id).slice(0, 3);
     return `<div style="display:flex;align-items:center;gap:6px"><button class="back" data-go="${S.from === 'search' ? 'search' : 'home'}" aria-label="Back">${ICON.back}</button><span class="lbl">News</span></div>

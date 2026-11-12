@@ -629,7 +629,7 @@
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-savenews="${when}">${when === 'now' ? (n.status === 'live' && n.id ? 'Save' : 'Publish now') : when === 'schedule' ? 'Schedule' : 'Save draft'}</button>${n.id && SPLSTORE.isOut(n) ? `<button class="btn2" data-lead="${E(n.id)}" ${D.lead === n.id ? 'disabled' : ''}>${D.lead === n.id ? 'Lead story on Home' : 'Make it the lead story'}</button><button class="btn2" data-notifynews="${E(n.id)}">Send as an alert</button>` : ''}${n.id ? `<span style="flex:1"></span><button class="lnk" style="color:#FF9AA0" data-delnews="${E(n.id)}">Delete</button>` : ''}</div></div>` : ''}
           <div class="panel"><table class="tbl"><thead><tr><th style="width:150px">Status</th><th>Story</th><th style="width:110px">When</th><th style="width:60px"></th></tr></thead><tbody>${list.map(x => { const [lbl, col] = nState(x), t = nWhen(x); return `<tr class="click ${n && n.id === x.id ? 'sel' : ''}" data-editnews="${E(x.id)}"><td class="lbl" style="color:${col}">${lbl}${(x.imgs || []).length > 1 ? ` · ${x.imgs.length} photos` : ''}</td><td><div style="display:flex;flex-direction:column;gap:2px"><span class="lbl">${E(x.tag)}${D.lead === x.id ? ' · lead story' : ''}</span><span>${E(x.title)}</span></div></td><td class="note">${new Date(t).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}${x.status === 'scheduled' ? '<br>' + hmS(t) : ''}</td><td><button class="lnk">Edit</button></td></tr>`; }).join('')}</tbody></table></div>
         </div>
-        <div><div class="phone-cap"><span class="lbl">${n && n.id ? (SPLSTORE.isOut(n) ? 'This story in the app' : 'Preview: not in the app yet') : 'News in the app'}</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed${n && n.id ? '&article=' + encodeURIComponent(n.id) + (SPLSTORE.isOut(n) ? '' : '&draft=1') : ''}" title="App preview"></iframe></div></div>
+        <div><div class="phone-cap"><span class="lbl">${n ? (n.id && SPLSTORE.isOut(n) ? 'This story in the app, with your changes' : 'Preview: not in the app yet') : 'News in the app'}</span><button class="lnk" data-reloadphone="1">Reload</button></div><div class="phone"><iframe id="phone" src="index.html?embed${n ? '&article=' + encodeURIComponent(n.id || '__new') + '&draft=1' : ''}" title="App preview"></iframe></div></div>
       </div>`;
   }
   // the editor redraws when photos or the When switch change; keep what's been typed
@@ -950,8 +950,17 @@
   const srchDrop = () => { const h = searchHits(A.q || ''); return A.q ? `<div class="sdrop">${h.length ? h.map((x, j) => `<button class="${j === 0 ? 'on' : ''}" ${x[2]}><span class="lbl">${x[0]}</span>${E(x[1])}</button>`).join('') : '<p class="note">Nothing found.</p>'}</div>` : ''; };
   // where the back button goes: out of a month's awards, out of side-by-side, out of a story being edited
   const backTo = () => A.page === 'votes' && A.awm ? 'all months' : A.page === 'matchday' && A.multi ? 'one game' : A.page === 'news' && A.news ? 'all stories' : '';
+  // the phone beside the story editor follows the editor as it is (Hafiz, 12 Nov): photos and text before Save, through
+  // 'spl-preview' in this browser's storage, which only the embedded app with &draft=1 reads
+  function writePreview() {
+    if (A.page !== 'news' || !A.news) return; const n = A.news === 'new' ? {} : D.news.find(x => x.id === A.news) || {}, f = (id, v) => document.getElementById(id) ? val(id) : v;
+    const imgs = (A.nImgs || []).slice(0, 12), pv = { id: A.news === 'new' ? '__new' : A.news, tag: f('nTag', n.tag || 'Announcement'), title: f('nTitle', n.title || '') || '[HEADLINE]', dek: f('nDek', n.dek || ''), body: f('nBody', n.body || ''),
+      date: n.date || TODAY, img: imgs[0] || '', imgs, pos: imgs.map((_, j) => (A.nPos || [])[j] || ''), status: 'draft', at: 0 };
+    try { localStorage.setItem('spl-preview', JSON.stringify(pv)); } catch (e) {} }
+  let pvT = 0;
+  document.addEventListener('input', e => { if (!/^n(Title|Dek|Body|Tag)$/.test(e.target.id || '')) return; clearTimeout(pvT); pvT = setTimeout(() => { writePreview(); const fr = document.getElementById('phone'); if (fr && fr.contentWindow) fr.contentWindow.postMessage('spl-preview', location.origin); }, 500); });
   function render() {
-    setDay();
+    setDay(); writePreview();
     // the page lives in the address bar, so a refresh comes back to it (Hafiz, 9 Nov)
     try { const u = new URL(location.href); if (u.searchParams.get('page') !== A.page) { u.searchParams.set('page', A.page); history.replaceState(null, '', u); } } catch (e) {}
     document.body.dataset.look = A.look;
