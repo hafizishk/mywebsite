@@ -3,6 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      The web build's own page template (app.json web.output is "single", so expo-router's app/+html.tsx is
+      not used; Expo reads public/index.html instead). viewport-fit=cover: the Android test app loads this
+      site directly, and the old APK build used to add it. With it, env(safe-area-inset-*) reports the
+      gesture bar and the cutout, react-native-safe-area-context reads those on web, and pinned buttons and
+      the tab bar keep clear of them.
+    -->
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>Helpr</title>
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
@@ -26,12 +33,10 @@
   <link rel="icon" href="/helpr/favicon.ico"/></head>
 
   <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
     <noscript>
       You need to enable JavaScript to run this app.
     </noscript>
-    <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/helpr/_expo/static/js/web/entry-27c48cd6f1add25af39326dcc1b54934.js" defer></script>
+  <script src="/helpr/_expo/static/js/web/entry-1dd2ab94aa9c5a04d19819169382734d.js" defer></script>
 </body>
 </html>
