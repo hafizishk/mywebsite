@@ -14,6 +14,10 @@
   if (EMBED) { S.view = 'home'; const l = document.getElementById('launch'); if (l) l.remove();
     const q = new URLSearchParams(location.search), mi = q.get('match'), ar = q.get('article'), sp = q.get('shop');
     if (sp) { S.view = 'shop'; S.shopF = sp; } else if (mi !== null && SPL.matches[+mi]) { S.view = 'match'; S.match = +mi; S.from = 'home'; } else if (ar) { S.view = 'article'; S.article = ar; } }
+  // a shared link (?match=…, ?article=…) opens that game or story on any phone or laptop, not only in the admin's preview
+  // (Hafiz, 14 Nov): the Share button's links used to land on Home
+  else { const q = new URLSearchParams(location.search), mi = q.get('match'), ar = q.get('article');
+    if (mi !== null && mi !== '' && SPL.matches[+mi]) { S.view = 'match'; S.match = +mi; S.from = 'home'; } else if (ar) { S.view = 'article'; S.article = ar; } }
   // the club the app is dressed in
   const favC = () => P.fav ? C[P.fav] : null;
   const app = document.getElementById('app');
@@ -473,17 +477,19 @@
   const CARD = '<span aria-hidden="true" style="display:inline-block;width:7px;height:10px;background:#F5C518;border-radius:1px"></span>';
   const SUBI = (on) => `<svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${on ? '#3DD68C' : '#FF6B71'}" stroke-width="3"><path d="${on ? 'M12 20V5M6 11l6-6 6 6' : 'M12 4v15M6 13l6 6 6-6'}"/></svg>`;
   // line-ups as a list, both teams side by side: the team sheet, no formation (Hafiz, 4 Nov)
+  // The team sheets in XI are Matchweek 6's, so they show for the replay's two games only. Any other game says the
+  // line-up is to follow (Hafiz, 14 Nov, option B) until the official's own entry exists; it used to fail on a club with no sheet.
   function lineups(i, L) {
-    const m = SPL.matches[i];
+    const m = SPL.matches[i], sheet = k => LIVE_IDS.includes(i) && XI[k];
     const row = (k, no, sub) => { const p = shirt(k, no), ev = L.fired.filter(e => e[4] === k);
       const g = ev.filter(e => e[3] === 'G' && e[5] === no).length, yel = ev.some(e => e[3] === 'Y' && e[5] === no), red = ev.some(e => e[3] === 'R' && e[5] === no), off = ev.find(e => e[3] === 'S' && e[6] === no), on = ev.find(e => e[3] === 'S' && e[5] === no);
       const ch = sub ? on : off, quiet = sub && !on;
       return `<button class="pl" data-player="${p[1]}" style="padding:7px 0;gap:8px;min-width:0"><span class="d mono" style="width:22px;flex:none;font-size:12px;color:var(--muted);text-align:left">${no}</span><span style="flex:1;min-width:0;font-size:13px;font-weight:${quiet ? 400 : 600};text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${quiet ? 'color:var(--muted)' : ''}">${p[1]}</span>${g ? BALL.repeat(g) : ''}${yel ? CARD : ''}${red ? RCARD : ''}${ch ? SUBI(!!sub) : ''}</button>`; };
     return `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[m[2], m[3]].map(k => `<div class="card" style="padding:4px 12px 12px 12px;min-width:0"><div style="display:flex;align-items:center;gap:8px;padding:12px 0 6px 0">${crest(k, 18)}<span class="lbl" style="color:var(--ink)">${C[k].short}</span></div>
-      ${XI[k].xi.map(no => row(k, no, false)).join('')}
-      <div class="lbl" style="padding:14px 0 2px 0">Substitutes</div>${XI[k].bench.map(no => row(k, no, true)).join('')}
+      ${sheet(k) ? `${XI[k].xi.map(no => row(k, no, false)).join('')}
+      <div class="lbl" style="padding:14px 0 2px 0">Substitutes</div>${XI[k].bench.map(no => row(k, no, true)).join('')}` : '<div style="font-size:13px;color:var(--muted);padding:8px 0 2px 0">Line-up to follow</div>'}
       <div class="lbl" style="padding-top:12px">Coach</div><div style="font-size:12px;padding-top:2px">${C[k].coach}</div></div>`).join('')}</div>
-      <span style="font-size:11px;color:var(--muted)">Replay: team sheets, goals and changes from the official spl.sg Matchweek 6 roundup; match stats are reconstructed until FAS's feed supplies them.</span>`;
+      ${LIVE_IDS.includes(i) ? `<span style="font-size:11px;color:var(--muted)">Replay: team sheets, goals and changes from the official spl.sg Matchweek 6 roundup; match stats are reconstructed until FAS's feed supplies them.</span>` : ''}`;
   }
   // Guess the crowd (Hafiz, 7 Nov): guess tonight's attendance before half time; the official publishes the turnstile count,
   // the closest guess wins and the stadium screen shows the winner (by name only if they agreed). Also shows the attendance.
