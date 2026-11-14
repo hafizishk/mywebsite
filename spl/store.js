@@ -146,9 +146,14 @@ var SPLSTORE = (function () {
     { const nw = def.news.find(x => x.id === 'n10'), o = out.news.find(x => x.id === 'n10'); if (nw && o && !/\[PHOTO\]/.test(o.body)) Object.assign(o, { title: nw.title, dek: nw.dek, body: nw.body, img: nw.img, imgs: nw.imgs.slice() }); }
     out.lead = str(d.lead, def.lead);
     out.pushes = Array.isArray(d.pushes) ? d.pushes.filter(isObj).slice(-200).map(p => ({ id: str(p.id, ''), at: +p.at || 0, title: str(p.title, ''), body: str(p.body, ''), aud: str(p.aud, 'all'), kind: str(p.kind, 'manual'), story: str(p.story, ''), match: Number.isInteger(p.match) ? p.match : null })) : [];
+    // a game's line-ups, entered by the official from the team sheets (Hafiz, 14 Nov): per club, the starters and the bench,
+    // each a squad shirt number, or [number, name] for a player who isn't in the app's squad list yet
+    const lineEnt = x => Number.isInteger(x) && x > 0 && x < 1000 ? x : Array.isArray(x) && typeof x[1] === 'string' && x[1].trim() ? [Number.isInteger(x[0]) && x[0] > 0 && x[0] < 1000 ? x[0] : 0, x[1].trim().slice(0, 40)] : null;
+    const sheetOf = (X, m) => { const o = {}; if (isObj(X)) [m[2], m[3]].forEach(k => { const t = X[k]; if (!isObj(t) || !Array.isArray(t.xi)) return;
+      const xi = t.xi.map(lineEnt).filter(x => x !== null).slice(0, 11), bench = (Array.isArray(t.bench) ? t.bench : []).map(lineEnt).filter(x => x !== null).slice(0, 14); if (xi.length) o[k] = { xi, bench }; }); return o; };
     out.live = {};
     if (isObj(d.live)) Object.keys(d.live).forEach(k => { const L = d.live[k], i = +k; if (!isObj(L) || !SPL.matches[i]) return;
-      out.live[i] = { phase: ['pre', '1H', 'HT', '2H', 'FT'].includes(L.phase) ? L.phase : 'pre', t0: +L.t0 || 0, base: +L.base || 0, sheet: !!L.sheet,
+      out.live[i] = { phase: ['pre', '1H', 'HT', '2H', 'FT'].includes(L.phase) ? L.phase : 'pre', t0: +L.t0 || 0, base: +L.base || 0, sheet: !!L.sheet, xi: sheetOf(L.xi, SPL.matches[i]),
         notes: Array.isArray(L.notes) ? L.notes.filter(x => Array.isArray(x) && typeof x[1] === 'string').slice(0, 40).map(x => [String(x[0] || '').slice(0, 8), x[1].slice(0, 240)].concat(Array.isArray(x[2]) ? [x[2].filter(t => typeof t === 'string' && /^(\?[a-z'-]{1,30}(\|[A-Z]{3}:\d{1,3}){2,4}|[A-Z]{3}:\d{1,3})$/.test(t)).slice(0, 8)] : [])) : [],
         potm: Array.isArray(L.potm) ? L.potm.filter(x => Array.isArray(x) && typeof x[0] === 'string' && C[x[1]]).slice(0, 5).map(x => [x[0].slice(0, 60), x[1]]) : [], potmOpen: !!L.potmOpen,
         ev: Array.isArray(L.ev) ? L.ev.filter(e => Array.isArray(e) && ['G', 'D', 'Y', 'R', 'S', 'HT', 'FT'].includes(e[3])).slice(0, 80).map(e => { e = e.slice(0, 10); if (e[8] != null && !SPL.clubs[e[8]]) e[8] = null; if (e[9] != null) e[9] = String(e[9]).slice(0, 40); return e; }) : [] }; });

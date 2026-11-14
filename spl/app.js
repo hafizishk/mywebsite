@@ -308,7 +308,7 @@
   // live and full time: the scores either side of Live (with the clock and its bar) or Full time; the highlights after
   const playHead = (m, r, i, o) => { const hl = o.ft ? hlFor(i) : null, pct = o.ft ? 100 : Math.max(0, Math.min(100, (o.T || 0) / 90 * 100));
     const sc = o.started || o.ft ? String(r.sc).split(/[–-]/).map(x => x.trim()) : null;
-    const mid = o.ft ? '<span class="mc-pill">Full time</span>' : o.started ? `<span class="mc-pill live"><i class="dot pulse"></i>Live · <span data-clock="${i}">${o.clock}</span></span>` : '<span class="mc-pill">Team sheets in</span>';
+    const mid = o.ft ? '<span class="mc-pill">Full time</span>' : o.started ? `<span class="mc-pill live"><i class="dot pulse"></i>Live · <span data-clock="${i}">${o.clock}</span></span>` : `<span class="mc-pill">${(STORE.live || {})[i] && !Object.keys(STORE.live[i].xi || {}).length ? 'Kick-off ' + kt(m) : 'Team sheets in'}</span>`;
     const reds = o.L && o.L.fired ? o.L.fired.filter(e => e[3] === 'R').map(e => ({ team: e[4], name: gname(e), min: minLabel(e[1], e[2]) })) : [];
     const watch = hl ? `<button class="mh-tix" data-video="${hl.id}">Watch the highlights</button>` : `<a class="mh-tix" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="text-decoration:none;display:flex;align-items:center;justify-content:center">${o.ft ? 'Watch on meWATCH' : 'Watch live on meWATCH'}</a>`;
     return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, sc, mid)}
@@ -480,16 +480,17 @@
   // The team sheets in XI are Matchweek 6's, so they show for the replay's two games only. Any other game says the
   // line-up is to follow (Hafiz, 14 Nov, option B) until the official's own entry exists; it used to fail on a club with no sheet.
   function lineups(i, L) {
-    const m = SPL.matches[i], sheet = k => LIVE_IDS.includes(i) && XI[k];
-    const row = (k, no, sub) => { const p = shirt(k, no), ev = L.fired.filter(e => e[4] === k);
+    const m = SPL.matches[i], own = ((STORE.live || {})[i] || {}).xi || {}, sheet = k => own[k] || (LIVE_IDS.includes(i) && XI[k]) || null;
+    // a row is a squad shirt number, or [number, name] when the official entered a player the squad list doesn't have
+    const row = (k, e0, sub) => { const no = Array.isArray(e0) ? e0[0] : e0, known = !Array.isArray(e0) && SPL.squads[k].some(q => q[0] === no), p = known ? shirt(k, no) : [no, Array.isArray(e0) ? E(e0[1]) : '#' + no, '', ''], ev = L.fired.filter(e => e[4] === k);
       const g = ev.filter(e => e[3] === 'G' && e[5] === no).length, yel = ev.some(e => e[3] === 'Y' && e[5] === no), red = ev.some(e => e[3] === 'R' && e[5] === no), off = ev.find(e => e[3] === 'S' && e[6] === no), on = ev.find(e => e[3] === 'S' && e[5] === no);
       const ch = sub ? on : off, quiet = sub && !on;
-      return `<button class="pl" data-player="${p[1]}" style="padding:7px 0;gap:8px;min-width:0"><span class="d mono" style="width:22px;flex:none;font-size:12px;color:var(--muted);text-align:left">${no}</span><span style="flex:1;min-width:0;font-size:13px;font-weight:${quiet ? 400 : 600};text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${quiet ? 'color:var(--muted)' : ''}">${p[1]}</span>${g ? BALL.repeat(g) : ''}${yel ? CARD : ''}${red ? RCARD : ''}${ch ? SUBI(!!sub) : ''}</button>`; };
+      return `<button class="pl" ${known ? `data-player="${p[1]}"` : ''} style="padding:7px 0;gap:8px;min-width:0"><span class="d mono" style="width:22px;flex:none;font-size:12px;color:var(--muted);text-align:left">${no || ''}</span><span style="flex:1;min-width:0;font-size:13px;font-weight:${quiet ? 400 : 600};text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${quiet ? 'color:var(--muted)' : ''}">${p[1]}</span>${g ? BALL.repeat(g) : ''}${yel ? CARD : ''}${red ? RCARD : ''}${ch ? SUBI(!!sub) : ''}</button>`; };
     return `<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${[m[2], m[3]].map(k => `<div class="card" style="padding:4px 12px 12px 12px;min-width:0"><div style="display:flex;align-items:center;gap:8px;padding:12px 0 6px 0">${crest(k, 18)}<span class="lbl" style="color:var(--ink)">${C[k].short}</span></div>
-      ${sheet(k) ? `${XI[k].xi.map(no => row(k, no, false)).join('')}
-      <div class="lbl" style="padding:14px 0 2px 0">Substitutes</div>${XI[k].bench.map(no => row(k, no, true)).join('')}` : '<div style="font-size:13px;color:var(--muted);padding:8px 0 2px 0">Line-up to follow</div>'}
+      ${sheet(k) ? `${sheet(k).xi.map(no => row(k, no, false)).join('')}
+      ${sheet(k).bench.length ? `<div class="lbl" style="padding:14px 0 2px 0">Substitutes</div>${sheet(k).bench.map(no => row(k, no, true)).join('')}` : ''}` : '<div style="font-size:13px;color:var(--muted);padding:8px 0 2px 0">Line-up to follow</div>'}
       <div class="lbl" style="padding-top:12px">Coach</div><div style="font-size:12px;padding-top:2px">${C[k].coach}</div></div>`).join('')}</div>
-      ${LIVE_IDS.includes(i) ? `<span style="font-size:11px;color:var(--muted)">Replay: team sheets, goals and changes from the official spl.sg Matchweek 6 roundup; match stats are reconstructed until FAS's feed supplies them.</span>` : ''}`;
+      ${LIVE_IDS.includes(i) && !own[m[2]] && !own[m[3]] ? `<span style="font-size:11px;color:var(--muted)">Replay: team sheets, goals and changes from the official spl.sg Matchweek 6 roundup; match stats are reconstructed until FAS's feed supplies them.</span>` : ''}`;
   }
   // Guess the crowd (Hafiz, 7 Nov): guess tonight's attendance before half time; the official publishes the turnstile count,
   // the closest guess wins and the stadium screen shows the winner (by name only if they agreed). Also shows the attendance.
@@ -542,7 +543,7 @@
   const potmStrip = () => { const pp = potmPartner(); return `<div style="margin:4px -16px -16px;padding:12px 16px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font:600 12px 'Inter',sans-serif;color:#1B2A6B">Official partner of the SPL</span>${pp.logo ? `<img src="${pp.logo}" alt="${E(pp.name)}" style="height:34px;max-width:140px;object-fit:contain">` : `<b style="color:#1B2A6B">${E(pp.name)}</b>`}</div>`; };
   const potmPhase = L => !L || !L.started ? 'pre' : L.ft ? 'ft' : L.h2 && L.min >= VOTE_FROM ? 'open' : 'soon';
   const potmNoms = (i, L) => { if (L && L.admin) { const A = STORE.live[i]; return A.potm && A.potm.length ? A.potm : SPLSTORE.potmSuggest(i, A.ev, VOTE_FROM); }
-    if (!NOMS[i]) { const m = SPL.matches[i], gk = {}; [m[2], m[3]].forEach(k => { if (XI[k]) gk[k] = XI[k].xi[0]; }); NOMS[i] = SPLSTORE.potmSuggest(i, EV[i], VOTE_FROM, gk); } return NOMS[i]; };
+    if (!NOMS[i]) { const m = SPL.matches[i], gk = {}; [m[2], m[3]].forEach(k => { const o = (((STORE.live || {})[i] || {}).xi || {})[k]; if (o && Number.isInteger(o.xi[0])) gk[k] = o.xi[0]; else if (LIVE_IDS.includes(i) && XI[k]) gk[k] = XI[k].xi[0]; }); NOMS[i] = SPLSTORE.potmSuggest(i, EV[i], VOTE_FROM, gk); } return NOMS[i]; };
   const potmTally = (i, noms) => { const mine = P.potm[i], base = [640, 520, 410, 300, 220]; return noms.map((x, j) => base[j] + (mine === j ? 1 : 0)); };
   const nomRole = ([n, k]) => { const p = (SPL.squads[k] || []).find(x => x[1] === n); return `${short(k)}${p ? ' · ' + p[2] + ' · #' + p[0] : ''}`; };
   function potmWinner(i, L, compact) {

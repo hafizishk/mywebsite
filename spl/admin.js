@@ -343,6 +343,70 @@
   const POTM_FROM = 75;
   // notes for the report (Hafiz, 10 Nov, option A): one line per moment the console doesn't record (chances, saves,
   // woodwork, how a goal came); the AI writer uses only these, the console, the table and the storylines
+  // Line-ups (Hafiz, 14 Nov, option C): the official photographs each side's team sheet, the `lineup` function reads it,
+  // and the result lands in two boxes to check against the paper and correct by hand. Typing the shirt numbers works
+  // with no photo at all. Published to store.live[i].xi; the app shows them in the match centre's Line-ups tab.
+  const luFold = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const luSame = (a, b) => { const x = luFold(a), y = luFold(b); return !!x && (x === y || x.split(' ').some(t => t.length > 2 && y.split(' ').includes(t))); };
+  const luText = a => (a || []).map(e => Array.isArray(e) ? `${e[0] || ''} ${e[1]}`.trim() : e).join(', ');
+  function luDraft(i) {
+    if (!A.lu || A.lu.i !== i) A.lu = { i, alert: true, c: {} };
+    const m = SPL.matches[i], saved = (D.live[i] || {}).xi || {};
+    [m[2], m[3]].forEach(k => { if (!A.lu.c[k]) A.lu.c[k] = { xi: saved[k] ? luText(saved[k].xi) : '', bench: saved[k] ? luText(saved[k].bench) : '', busy: false, err: '', note: '', read: false, unsure: {} }; });
+    return A.lu;
+  }
+  // "1 4 5 14" or "1, 4, 5" are squad numbers; "77 Ali Abu" is a player the squad list doesn't have yet
+  function luParse(k, text) {
+    const sq = SPL.squads[k], out = [];
+    String(text || '').split(/[,;\n]+/).forEach(ch => { ch = ch.trim(); if (!ch) return; const mm = ch.match(/^(\d{1,3})\s+(\D.*)$/);
+      if (mm) { const no = +mm[1], q = sq.find(x => x[0] === no), nm = mm[2].trim().slice(0, 40); out.push(q && luSame(q[1], nm) ? { no, name: q[1], kind: 'squad' } : { no, name: nm, kind: 'own', was: q ? q[1] : '' }); }
+      else if (/^[\d\s]+$/.test(ch)) ch.split(/\s+/).forEach(t => { const no = +t, q = sq.find(x => x[0] === no); out.push(q ? { no, name: q[1], kind: 'squad' } : { no, name: '', kind: 'unknown' }); });
+      else out.push({ no: 0, name: ch.slice(0, 40), kind: 'own', was: '' }); });
+    return out;
+  }
+  function luCheck(i, k) {
+    const c = luDraft(i).c[k], xi = luParse(k, c.xi), bench = luParse(k, c.bench), seen = {}, key = e => e.no ? 'n' + e.no : 'x' + luFold(e.name);
+    xi.concat(bench).forEach(e => { seen[key(e)] = (seen[key(e)] || 0) + 1; }); xi.concat(bench).forEach(e => { e.dup = seen[key(e)] > 1; });
+    const all = xi.concat(bench), unknown = all.find(e => e.kind === 'unknown'), dup = all.find(e => e.dup);
+    const problem = !all.length ? '' : unknown ? `${unknown.no} isn't in the squad. Type the name after the number, like "${unknown.no} Ali Abu".` : dup ? `${dup.no || dup.name} is listed twice.` : xi.length !== 11 ? `${xi.length} of 11 starters.` : '';
+    return { xi, bench, any: all.length > 0, problem };
+  }
+  function luState(i) {
+    const m = SPL.matches[i], a = luCheck(i, m[2]), b = luCheck(i, m[3]);
+    if (a.problem) return { ok: false, msg: `${C[m[2]].short}: ${a.problem}` }; if (b.problem) return { ok: false, msg: `${C[m[3]].short}: ${b.problem}` };
+    if (!a.any && !b.any) return { ok: false, msg: 'Add a photo of each team sheet, or type the shirt numbers.' };
+    return { ok: true, msg: !a.any ? `${C[m[2]].short}'s line-up can follow later.` : !b.any ? `${C[m[3]].short}'s line-up can follow later.` : '' };
+  }
+  const luCount = ch => `<span class="lbl ${ch.xi.length === 11 ? 'ok' : ch.any ? 'warn' : ''}">${ch.xi.length} of 11 starters</span><span class="lbl">${ch.bench.length} ${ch.bench.length === 1 ? 'substitute' : 'substitutes'}</span>`;
+  const luChips = (list, st, c) => list.map(e => { const bad = e.kind === 'unknown' || e.dup, unsure = c.unsure[e.no ? 'n' + e.no : 'x' + luFold(e.name)], warn = !bad && (unsure || e.kind === 'own');
+    const tip = e.kind === 'unknown' ? 'Not in the squad: type the name after the number' : e.dup ? 'Listed twice' : e.kind === 'own' ? (e.was ? `Not as the squad list has it: ${e.was} wears ${e.no}` : 'Not in the squad list: shown as typed') : unsure ? 'The reader was not sure: check against the paper' : '';
+    return `<span class="luc ${st}${bad ? ' bad' : warn ? ' warn' : ''}" title="${E(tip)}"><b>${e.no || '–'}</b>${E(e.name || 'Not in the squad')}${warn ? '<i>check</i>' : ''}</span>`; }).join('');
+  // what the reader returned, turned into the text the boxes hold; anything it doubted, or that doesn't fit the squad list, is flagged
+  function luFromRead(k, list, c) {
+    const sq = SPL.squads[k];
+    return (list || []).map(r => { const byNo = r.number ? sq.find(q => q[0] === r.number) : null, byName = r.name ? sq.find(q => luSame(q[1], r.name)) : null;
+      if (byNo && (!r.name || luSame(byNo[1], r.name))) { if (!r.sure || !r.name) c.unsure['n' + byNo[0]] = 1; return String(byNo[0]); }
+      if (byName && !byNo) { c.unsure['n' + byName[0]] = 1; return String(byName[0]); }
+      if (!r.sure) c.unsure[r.number ? 'n' + r.number : 'x' + luFold(r.name)] = 1;
+      return `${r.number || ''} ${r.name || ''}`.trim(); }).filter(Boolean).join(', ');
+  }
+  function lineupPanel(i) {
+    const m = SPL.matches[i], lu = luDraft(i), pub = (D.live[i] || {}).xi || {}, any = Object.keys(pub).length > 0, st = luState(i);
+    const sent = D.pushes.some(p => p.kind === 'live' && p.match === i && /^Line-ups are in/.test(p.title || ''));
+    const col = k => { const c = lu.c[k], ch = luCheck(i, k);
+      return `<div class="lu-col"><div class="lu-h">${crest(k, 22)}<b>${E(C[k].short)}</b><span data-lucount="${k}" style="display:contents">${luCount(ch)}</span></div>
+        <div class="lu-ph"><label class="btn2 sm"${c.busy ? ' style="opacity:.6;pointer-events:none"' : ''}><input type="file" accept="image/*" hidden data-lusheet="${k}">${c.busy ? 'Reading the photo…' : 'Photo of the team sheet'}</label>
+          <span class="note">${c.busy ? 'About 20 seconds.' : c.err ? `<span style="color:#FF8A8F">${E(c.err)}</span>` : c.read ? `Read from the photo. Check every name against the paper.${c.note ? ' ' + E(c.note) : ''}` : 'Or type the shirt numbers below.'}</span></div>
+        <label class="fld"><span>Starters · shirt numbers</span><textarea class="in" rows="2" data-luf="${k}:xi" placeholder="1 4 5 14 …">${E(c.xi)}</textarea></label>
+        <div class="lu-chips" data-luchips="${k}:xi">${luChips(ch.xi, 'xi', c)}</div>
+        <label class="fld"><span>Substitutes</span><textarea class="in" rows="2" data-luf="${k}:bench" placeholder="18 2 20 …">${E(c.bench)}</textarea></label>
+        <div class="lu-chips" data-luchips="${k}:bench">${luChips(ch.bench, 'sub', c)}</div></div>`; };
+    return `<div class="panel lu"><h2>Line-ups <span class="lbl">${any ? 'Published · fans see them in the match centre' : 'From the team sheets · fans see them in the match centre'}</span></h2>
+      <div class="lu-cols">${col(m[2])}${col(m[3])}</div>
+      <div class="lu-foot"><button class="btn red" data-lupub="${i}" ${st.ok ? '' : 'disabled'}>${any ? 'Publish the changes' : 'Publish the line-ups'}</button>
+        <label class="chk"><input type="checkbox" id="luAlert" ${sent ? 'disabled' : lu.alert ? 'checked' : ''}><span>${sent ? 'Followers were told when the line-ups went in' : 'Tell followers of both clubs: “Line-ups are in”'}</span></label>
+        <span class="note" data-lumsg="1" style="margin:0">${E(st.msg)}</span><span style="flex:1"></span>${any ? `<button class="lnk danger" data-luclear="${i}">Take the line-ups down</button>` : ''}</div></div>`;
+  }
   function notesPanel(i) {
     const L = D.live[i]; if (!L || L.phase === 'pre') return ''; const c = clockOf(i), notes = L.notes || [];
     const now = c.phase === 'FT' || c.phase === 'HT' ? '' : String(Math.min(c.n, c.cap || 90)) + (c.n > (c.cap || 90) ? '+' + (c.n - c.cap) : '');
@@ -548,7 +612,7 @@
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">${next ? `<button class="btn ${L.phase === 'pre' ? 'red' : ''}" data-phase="${next[1]}">${next[0]}</button>` : ''}${c.phase === '1H' || c.phase === '2H' ? '<button class="btn2" data-nudge="-1">Clock −1 min</button><button class="btn2" data-nudge="1">Clock +1 min</button>' + jumps(c, '') : ''}${L.phase !== 'pre' ? '<button class="lnk danger" data-resetmatch="1" style="margin-left:8px">Reset this game</button>' : ''}</div>
           </div>
           ${L.phase === 'FT' ? writerPanel(i, 'post') : L.phase === 'pre' ? writerPanel(i, 'pre') : ''}
-          ${notesPanel(i)}${potmPanel(i)}${crowdPanel(i)}
+          ${lineupPanel(i)}${notesPanel(i)}${potmPanel(i)}${crowdPanel(i)}
           <div class="panel" style="display:flex;flex-direction:column;gap:14px;${L.phase === 'pre' ? 'opacity:.45;pointer-events:none' : ''}">
             <h2 style="margin:0">Add to the match</h2>
             <div class="tabs" style="gap:24px">${[['G', 'Goal'], ['Y', 'Yellow card'], ['R', 'Red card'], ['S', 'Substitution']].map(([k, l]) => `<button class="stab ${A.evType === k ? 'on' : ''}" data-evtype="${k}">${l}</button>`).join('')}</div>
@@ -1021,7 +1085,7 @@
       A.varEv = null; flash('Goal ruled out. The score is corrected and fans are told.'); render(); return; } }
     if (e.target.closest('[data-signout]')) { CL.signOut().then(() => { A.authed = false; render(); }); return; }
 
-    const t = e.target.closest('[data-mtab],[data-mtone],[data-mshare],[data-mstate],[data-mmute],[data-mwadd],[data-mwdel],[data-mpdf],[data-mvopen],[data-mvclose],[data-mvsave],[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
+    const t = e.target.closest('[data-lupub],[data-luclear],[data-mtab],[data-mtone],[data-mshare],[data-mstate],[data-mmute],[data-mwadd],[data-mwdel],[data-mpdf],[data-mvopen],[data-mvclose],[data-mvsave],[data-fxf],[data-fxmw],[data-realload],[data-cleartest],[data-demoset],[data-democlear],[data-jump],[data-ntedit],[data-ntdel],[data-ntpick],[data-mwprev],[data-roundup],[data-airound],[data-pmai],[data-noteadd],[data-notedel],[data-pmopen],[data-pmre],[data-pmadd],[data-pmpub],[data-pmsend],[data-storydraft],[data-nwhen],[data-calwk],[data-picdel],[data-picmv],[data-picframe],[data-page],[data-console],[data-live],[data-phase],[data-nudge],[data-resetmatch],[data-evtype],[data-evteam],[data-addev],[data-delev],[data-reloadphone],[data-newnews],[data-editnews],[data-savenews],[data-lead],[data-delnews],[data-notifynews],[data-sendpush],[data-gotm],[data-savegotm],[data-addgoal],[data-delgoal],[data-savesp],[data-savept],[data-ptclear],[data-clearstats],[data-resetall],[data-ptlook],[data-audwho],[data-audsec],[data-audreload],[data-undo],[data-setlook],[data-back],[data-crowdpub],[data-crowdedit],[data-mocknum],[data-multi],[data-mpick],[data-qadd],[data-qclose],[data-newmenu],[data-qnews],[data-dial],[data-gonews],[data-awm],[data-awback],[data-awall],[data-awnew],[data-awdel],[data-awp],[data-awg],[data-awopen],[data-awclose],[data-awstory],[data-potmok],[data-shopnew],[data-shopedit],[data-shopfil],[data-shopmore],[data-shopstoreopen],[data-shopsave],[data-shopclose],[data-shopdel],[data-shopmv],[data-spicdel],[data-spicmv],[data-shopstore]');
     if (!t && A.newOpen && !e.target.closest('.nmenu')) { A.newOpen = false; render(); return; }
     if (!t) return; const d = t.dataset;
     if (d.awm) { A.awm = d.awm; A.allGoals = false; render(); document.scrollingElement.scrollTop = 0; return; }
@@ -1122,6 +1186,14 @@
         `${short(SPL.matches[i][2])} v ${short(SPL.matches[i][3])} loaded as finished, with its real events. No alerts were sent. Press Write with AI on the post-match panel.`);
       A.live = i; A.multi = null; render(); return; }
     if (d.mtab) { A.mtab = d.mtab; render(); return; }
+    if (d.lupub !== undefined) { const i = +d.lupub; if (!luState(i).ok) return; const m = SPL.matches[i], lu = luDraft(i), al = !!(document.getElementById('luAlert') || {}).checked;
+      const ent = x => x.kind === 'squad' ? x.no : [x.no, x.name], sent = D.pushes.some(p => p.kind === 'live' && p.match === i && /^Line-ups are in/.test(p.title || ''));
+      const sheets = {}; [m[2], m[3]].forEach(k => { const ch = luCheck(i, k); if (ch.xi.length) sheets[k] = { xi: ch.xi.map(ent), bench: ch.bench.map(ent) }; });
+      setLive(i, (L, d2) => { L.xi = sheets; if (al && !sent) livePush(d2, i, `Line-ups are in 📋 ${short(m[2])} v ${short(m[3])}`, `See who starts at ${m[5]}.`); });
+      [m[2], m[3]].forEach(k => { lu.c[k].unsure = {}; lu.c[k].read = false; lu.c[k].note = ''; lu.c[k].err = ''; });
+      flash(al && !sent ? 'Line-ups published. Followers of both clubs have been told.' : 'Line-ups published.'); render(); return; }
+    if (d.luclear !== undefined) { if (!confirm('Take the line-ups down? Fans will see "Line-up to follow" again.')) return;
+      setLive(+d.luclear, L => { L.xi = {}; }); A.lu = null; flash('Line-ups taken down.'); render(); return; }
     if (d.mtone) { const x = MEDIA.stories.find(y => y[0] === d.mtone), o = ['pos', 'neu', 'neg'], cur = (MA.tone || {})[x[0]] || x[1]; MA.tone = Object.assign({}, MA.tone, { [x[0]]: o[(o.indexOf(cur) + 1) % 3] }); mSave(); flash('Tone corrected.'); render(); return; }
     if (d.mmute) { MA.muted = 1; mSave(); flash('Muted until it changes.'); render(); return; }
     if (d.mwadd) { const v = (document.getElementById('mwIn') || {}).value || ''; if (!v.trim()) return; MA.watch = (MA.watch || []).concat(v.trim().slice(0, 80)); mSave(); flash('Added to the watch list.'); render(); return; }
@@ -1324,6 +1396,20 @@
     const r = new FileReader(); r.onload = () => framePhoto(r.result, url => save(d2 => { d2.playerPhotos = d2.playerPhotos || {}; d2.playerPhotos[pp] = url; }, 'Photo saved. It shows wherever this player appears in the app.'));
     r.readAsDataURL(e.target.files[0]); e.target.value = ''; });
   root.addEventListener('change', e => { if (e.target.id === 'fxClub') { A.fxClub = e.target.value; render(); } });
+  root.addEventListener('input', e => { const f = e.target.dataset && e.target.dataset.luf; if (!f || !A.lu) return; const [k, w] = f.split(':'), i = A.lu.i, c = A.lu.c[k]; if (!c) return;
+    c[w] = e.target.value; const ch = luCheck(i, k), q = x => root.querySelector(x), set = (el, h) => { if (el) el.innerHTML = h; };
+    set(q(`[data-luchips="${k}:xi"]`), luChips(ch.xi, 'xi', c)); set(q(`[data-luchips="${k}:bench"]`), luChips(ch.bench, 'sub', c)); set(q(`[data-lucount="${k}"]`), luCount(ch));
+    const st = luState(i), b = q('[data-lupub]'), msg = q('[data-lumsg]'); if (b) b.disabled = !st.ok; if (msg) msg.textContent = st.msg; });
+  root.addEventListener('change', e => { if (e.target.id === 'luAlert' && A.lu) A.lu.alert = e.target.checked; });
+  root.addEventListener('change', async e => { const k = e.target.dataset && e.target.dataset.lusheet, file = k && e.target.files && e.target.files[0]; if (!file) return;
+    const i = A.live, lu = luDraft(i), c = lu.c[k]; c.busy = true; c.err = ''; c.note = ''; render();
+    const url = await shrink(file, 2000), b64 = (url || '').split(',')[1] || '';
+    const r = b64 ? await CL.readSheet({ club: C[k].name, squad: SPL.squads[k].map(p => [p[0], p[1], p[2]]), image: b64, media: 'image/jpeg' }) : { error: 'That file could not be opened as a photo.' };
+    c.busy = false;
+    if (!r || r.error) c.err = (r && r.error) || 'No reply.';
+    else if (!r.readable || !(r.starters || []).length) c.err = r.note || 'The photo could not be read as a team sheet. Type the numbers in instead.';
+    else { c.unsure = {}; c.xi = luFromRead(k, r.starters, c); c.bench = luFromRead(k, r.substitutes, c); c.note = r.note || ''; c.read = true; }
+    if (A.lu === lu && A.page === 'matchday' && A.live === i) render(); });
   // the move panel keeps what's typed; a change of status, date, time, ground or the ticks redraws the preview
   const MVF = { mvS: 'status', mvD: 'date', mvT: 'time', mvV: 'venue', mvR: 'reason', mvA: 'alert', mvN: 'story' };
   root.addEventListener('input', e => { const k = MVF[e.target.id]; if (k && A.mv && ['reason', 'date', 'time'].includes(k)) A.mv[k] = e.target.value; });
