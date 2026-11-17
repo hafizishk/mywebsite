@@ -308,7 +308,7 @@
   // live and full time: the scores either side of Live (with the clock and its bar) or Full time; the highlights after
   const playHead = (m, r, i, o) => { const hl = o.ft ? hlFor(i) : null, pct = o.ft ? 100 : Math.max(0, Math.min(100, (o.T || 0) / 90 * 100));
     const sc = o.started || o.ft ? String(r.sc).split(/[–-]/).map(x => x.trim()) : null;
-    const mid = o.ft ? '<span class="mc-pill">Full time</span>' : o.started ? `<span class="mc-pill live"><i class="dot pulse"></i>Live · <span data-clock="${i}">${o.clock}</span></span>` : `<span class="mc-pill">${(STORE.live || {})[i] && !Object.keys(STORE.live[i].xi || {}).length ? 'Kick-off ' + kt(m) : 'Team sheets in'}</span>`;
+    const mid = o.ft ? '<span class="mc-pill">Full time</span>' : o.started ? `<span class="mc-pill live"><i class="dot pulse"></i>Live · <span data-clock="${i}">${o.clock}</span></span>` : `<span class="mc-pill">${sheetsIn(i) ? 'Team sheets in' : 'Kick-off ' + kt(m)}</span>`;
     const reds = o.L && o.L.fired ? o.L.fired.filter(e => e[3] === 'R').map(e => ({ team: e[4], name: gname(e), min: minLabel(e[1], e[2]) })) : [];
     const watch = hl ? `<button class="mh-tix" data-video="${hl.id}">Watch the highlights</button>` : `<a class="mh-tix" href="https://www.mewatch.sg/" target="_blank" rel="noopener" data-trip="mewatch" style="text-decoration:none;display:flex;align-items:center;justify-content:center">${o.ft ? 'Watch on meWATCH' : 'Watch live on meWATCH'}</a>`;
     return `<div class="card mhead mc" style="--hc:${C[m[2]].c};--ac:${C[m[3]].c}">${mcTop(m, i)}${mcRow(m, sc, mid)}
@@ -479,6 +479,8 @@
   // line-ups as a list, both teams side by side: the team sheet, no formation (Hafiz, 4 Nov)
   // The team sheets in XI are Matchweek 6's, so they show for the replay's two games only. Any other game says the
   // line-up is to follow (Hafiz, 14 Nov, option B) until the official's own entry exists; it used to fail on a club with no sheet.
+  // both sides' team sheets are in: a console game needs both published; the replay's two games carry theirs (Hafiz, 14 Nov)
+  const sheetsIn = i => { const A = (STORE.live || {})[i], m = SPL.matches[i]; return A ? !!(A.xi && A.xi[m[2]] && A.xi[m[3]]) : LIVE_IDS.includes(i); };
   function lineups(i, L) {
     const m = SPL.matches[i], own = ((STORE.live || {})[i] || {}).xi || {}, sheet = k => own[k] || (LIVE_IDS.includes(i) && XI[k]) || null;
     // a row is a squad shirt number, or [number, name] when the official entered a player the squad list doesn't have
@@ -526,7 +528,7 @@
       const cell = `<span style="display:flex;flex-direction:column;gap:2px;${h ? 'align-items:flex-end;text-align:right;padding-right:10px' : 'padding-left:10px'}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:${e[3] === 'G' ? 700 : 500}">${h ? '' : icon(e)}${who}${h ? icon(e) : ''}</span>${sub ? `<span style="font-size:11px;color:var(--muted)">${sub}</span>` : ''}</span>`;
       return `<div style="display:grid;grid-template-columns:1fr 50px 1fr;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)">${h ? cell : '<span></span>'}<span class="d mono" style="font-size:13px;text-align:center;color:var(--muted)">${minLabel(e[1], e[2])}</span>${h ? '<span></span>' : cell}</div>`;
     });
-    return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · ' + kt(SPL.matches[i]) + '</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">Team sheets are in. Kick-off ' + kt(SPL.matches[i]) + '.</div>'}</div>
+    return crowdCard(i) + `<div class="card" style="padding:4px 16px">${L.started ? rowsH.join('') + '<div class="lbl" style="text-align:center;padding:12px 0">Kick-off · ' + kt(SPL.matches[i]) + '</div>' : '<div style="padding:14px 0;font-size:13px;color:var(--muted)">' + (sheetsIn(i) ? 'Team sheets are in. ' : '') + 'Kick-off ' + kt(SPL.matches[i]) + '.</div>'}</div>
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span class="lbl">Officials &amp; broadcast</span><span style="font-size:13px;color:#DCDAF0">Live on meWATCH</span></div>`;
   }
   // Fans' Player of the Match (Hafiz, 10 Nov, option B, F1's Driver of the Day): four nominees from either side;
