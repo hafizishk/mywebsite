@@ -555,3 +555,18 @@ button:disabled{cursor:default}
 .mc-nimg{display:block;height:140px;border-radius:18px;background:center/cover no-repeat rgba(255,255,255,.06)}.mc-news b{font:700 15px/1.25 'Inter',sans-serif}
 #app[data-look=light] .mc-pill{background:rgba(21,20,42,.07)}
 .mc-club{gap:5px!important}.mc-pos{font:600 10.5px 'Inter',sans-serif;color:var(--muted);white-space:nowrap;letter-spacing:.01em}
+
+/* Narrow phones and a fold's cover screen, 384px and under (Hafiz, 18 Nov). Wider screens, an opened fold included,
+   keep the stretched layout as it is (option B). */
+.tname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:384px){
+  .mc-row{grid-template-columns:52px 34px minmax(0,1fr) 34px 52px}
+  .mc-sc{font-size:48px}
+  .mc-pill{padding:6px 8px;font-size:12px}
+  #app{--tcw:27px}
+  .trow{grid-template-columns:18px 1fr 22px 28px 30px 56px;gap:5px}
+}
+@media (max-width:336px){
+  .mc-pill.live{flex-direction:column;gap:0}
+  .mc-sc{font-size:44px}
+}
