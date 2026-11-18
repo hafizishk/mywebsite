@@ -558,15 +558,22 @@ button:disabled{cursor:default}
 
 /* Narrow phones and a fold's cover screen, 384px and under (Hafiz, 18 Nov). Wider screens, an opened fold included,
    keep the stretched layout as it is (option B). */
-.tname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:1px;margin-right:-1px}
 @media (max-width:384px){
   .mc-row{grid-template-columns:52px 34px minmax(0,1fr) 34px 52px}
   .mc-sc{font-size:48px}
   .mc-pill{padding:6px 8px;font-size:12px}
-  #app{--tcw:27px}
+  /* the season table: --tcw a number column, --trg the gap (the header row follows the rows), --tsq and --tfp the Form
+     view's squares and points tracks; Full's own sizes are in app.js (tableScreen) */
+  #app{--tcw:27px;--trg:5px;--tsq:72px;--tfp:48px}
   .trow{grid-template-columns:18px 1fr 22px 28px 30px 56px;gap:5px}
 }
+@media (max-width:359px){
+  #app{--trg:3px;--tfp:36px}
+  .trow{grid-template-columns:14px 1fr 17px 26px 18px 48px;gap:3px}
+}
 @media (max-width:336px){
+  #app{--tpos:16px;--tgap:3px;--tcg:5px;--tclub:65px}
   .mc-pill.live{flex-direction:column;gap:0}
   .mc-sc{font-size:44px}
 }
